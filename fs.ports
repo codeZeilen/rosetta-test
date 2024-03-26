@@ -1,0 +1,63 @@
+(spec 
+	"file-descriptor" "0.1"
+
+	(sources 
+		("The Open Group Base Specifications Issue 7, 2018 edition" "IEEE and The Open Group" "https://pubs.opengroup.org/onlinepubs/9699919799"))
+
+	(placeholder (open file-name mode) "open needs to track open file descriptors to ensure that all are closed during tear down of a test.")
+	(placeholder (close file-descriptor))
+	(placeholder (read file-descriptor length))
+	(placeholder (write file-descriptor content))
+	(placeholder (flush file-descriptor))
+	(placeholder (is-file-descriptor? some-value))
+	(placeholder (is-file-error? some-value))
+
+	(placeholder (create-test-file file-name file-content) "Places a test file with the specified content in a temporary location.")
+	(placeholder (remove-test-file file-name file-content))
+
+
+	(setup 
+		(create-test-file "my-test-file" "first line\nsecond line"))
+
+	(tearDown
+		(remove-test-file "my-test-file"))
+
+	(capability 'open
+		(test "open returns a file descriptor"
+			(assert (is-file-descriptor? (open "my-test-file" "r"))))
+			
+		(test "opening with non-existant mode, results in error" (
+			(assert (is-file-error? (open "my-test-file" "g"))
+			(assert (is-file-error? (open "my-test-file" "rq"))
+			(assert (is-file-error? (open "my-test-file" "qr"))))))))
+
+	(capability 'read
+		(setup 
+			(set! 'test-file (open "my-test-file" "r")))
+
+		(tearDown
+			(close test-file)
+			(unset-variable 'test-file))
+
+		(test "read can read one value"
+			(assert-equal
+				(read test-file 1)
+				"f"))
+
+		(test "read can read all of the content"
+			(assert-equal
+				(read test-file 22)
+				"first line\nsecond line"))
+		
+		(test "read on a write-only file is an error"
+			(close test-file) ; to ensure we can open it write-only
+			(let 
+				((write-only-file (open "my-test-file" "w"))) 
+				(assert (is-file-error? (read write-only-file 1)))))
+
+		(capability 'read-binary-or-character 
+			(placeholder (read-binary-or-text))
+			
+			(test "read binary mode returns number" ...)
+			
+			(test "read text mode returns character" ...))))

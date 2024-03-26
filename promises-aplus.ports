@@ -1,0 +1,57 @@
+(spec 
+	"promises-aplus" "0.1"
+
+	(sources 
+		("promises/a+ test suite" "Promises/A+ organization" "https://github.com/promises-aplus/promises-tests")
+		("promises/a+ spec" "Promises/A+ organization" "https://promisesaplus.com/"))
+
+	(placeholder (resolved-promise value))
+	(placeholder (rejected-promise value))
+	(placeholder (create-promise onFulfilled onRejected))
+	(placeholder (resolve promise value))
+	(placeholder (reject promise reason))
+	(placeholder (later) "Enforce next tick") 
+
+	(capability '2.1.2.1
+		(
+			(test "trying to fulfill then immediately reject"
+				(let*
+					(
+						(onFulfilledCalled #f)
+						(promise (create-promise
+							(lambda (value) 
+								(set! 'onFulfilledCalled #t))
+							(lambda (value) (fail)))))
+					(resolve promise 'dummy)
+					(reject promise 'dummy)
+					(later (lambda () 
+						(assert onFulfilledCalled)))))
+					
+			(test "trying to fulfill then reject eventually"
+				(let*
+					(
+						(onFulfilledCalled #f)
+						(promise (create-promise
+							(lambda (value) 
+								(set! 'onFulfilledCalled #t))
+							(lambda (value) (fail)))))
+					(later (lambda ()
+						(resolve promise 'dummy)
+						(reject promise 'dummy)
+						(later (lambda () 
+							(assert onFulfilledCalled)))))))
+							
+			(test "trying to fulfill immediately then reject delayed"
+				(let*
+					(
+						(onFulfilledCalled #f)
+						(promise (create-promise
+							(lambda (value) 
+								(set! 'onFulfilledCalled #t))
+							(lambda (value) (fail)))))
+					(later (lambda ()
+						(resolve promise 'dummy)
+						(later (lambda () 
+							(reject promise 'dummy)
+							(later (lambda () 
+								(assert onFulfilledCalled))))))))))))
