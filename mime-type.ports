@@ -85,7 +85,7 @@
 				(parameter-named "message/partial;number=2;total=3(this is a comment)" "total")
 				"3")))
 		
-		(test "paramter keys can contain numerous special characters - RFC 2045 5.1 tspecials"
+		(test "parameter keys can contain numerous special characters - RFC 2045 5.1 tspecials"
 			((each
 				(lambda (character) (
 					(letrec 
