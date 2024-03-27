@@ -1,6 +1,6 @@
 # PorTS Sketches
 
-This repository contains sketches of PorTS test suites. They are neither complete nor runnable. Their purpose is to explore requirements and pitfalls for the design of the PorTS language.
+This repository contains sketches of PorTS test suites. They are neither complete nor runnable. Their purpose is to explore requirements and pitfalls for the design of the nonexistent PorTS language.
 
 ## Structure
 
