@@ -7,14 +7,14 @@ import tempfile
 
 fs_suite = ports.suite("fs.ports")
 
-@fs_suite.setUp
+@fs_suite.setUp()
 def set_up(env):
     test_directory = tempfile.mkdtemp()
     env["_test_directory"] = test_directory
     env["_original_directory"] = os.getcwd()
     os.chdir(test_directory)
 
-@fs_suite.tearDown
+@fs_suite.tearDown()
 def tear_down(env):
     for file in env.get("file_descriptors", []):
         file.close()

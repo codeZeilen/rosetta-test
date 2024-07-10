@@ -87,7 +87,7 @@ def atom(token):
     'Numbers become numbers; #t and #f are booleans; "..." string; otherwise Symbol.'
     if token == '#t': return True
     elif token == '#f': return False
-    elif token[0] == '"': return token[1:-1].decode('string_escape')
+    elif token[0] == '"': return token[1:-1]
     try: return int(token)
     except ValueError:
         try: return float(token)
@@ -101,7 +101,7 @@ def to_string(x):
     if x is True: return "#t"
     elif x is False: return "#f"
     elif isa(x, Symbol): return x
-    elif isa(x, str): return '"%s"' % x.encode('string_escape').replace('"',r'\"')
+    elif isa(x, str): return '"%s"' % x.replace('"',r'\"')
     elif isa(x, list): return '('+' '.join(list(map(to_string, x)))+')'
     elif isa(x, complex): return str(x).replace('j', 'i')
     else: return str(x)
@@ -127,6 +127,8 @@ def repl(prompt='lispy> ', inport=InPort(sys.stdin), out=sys.stdout):
 
 ################ Environment class
 
+class ArgumentError(Exception): pass
+
 class Env(dict):
     "An environment: a dict of {'var':val} pairs, with an outer Env."
     def __init__(self, parms=(), args=(), outer=None):
@@ -136,9 +138,9 @@ class Env(dict):
             self.update({parms:list(args)})
         else: 
             if len(args) != len(parms):
-                raise TypeError('expected %s, given %s, ' 
-                                % (to_string(parms), to_string(args)))
+                raise ArgumentError(f'expected {parms}, given {args}, ')
             self.update(zip(parms,args))
+    
     def find(self, var):
         "Find the innermost Env where var appears."
         if var in self: return self
@@ -168,7 +170,8 @@ def add_globals(self):
      '>':op.gt, '<':op.lt, '>=':op.ge, '<=':op.le, '=':op.eq, 
      'equal?':op.eq, 'eq?':op.is_, 'length':len, 'cons':cons,
      'car':lambda x:x[0], 'cdr':lambda x:x[1:], 'append':op.add,  
-     'list':lambda *x:list(x), 'list?': lambda x:isa(x,list),
+     'list':lambda *x:list(x), 'list?': lambda x:isa(x,list), 'list-ref':op.getitem,
+     'map':lambda lamb, l: list(map(lamb, l)), 'for-each':lambda lamb, l: [lamb(x) for x in l],
      'null?':lambda x:x==[], 'symbol?':lambda x: isa(x, Symbol),
      'boolean?':lambda x: isa(x, bool), 'pair?':is_pair, 
      'port?': lambda x:isa(x,file), 'apply':lambda proc,l: proc(*l), 
@@ -221,7 +224,10 @@ def eval(x, env=global_env):
                 x = proc.exp
                 env = Env(proc.parms, exps, proc.env)
             else:
-                return proc(*exps)
+                try:
+                    return proc(*exps)
+                except TypeError as e:
+                    raise TypeError(f'Error: {e} for epxression {x}')
 
 ################ expand
 
@@ -317,7 +323,6 @@ eval(parse("""(begin
            `(if ,(car args) (and ,@(cdr args)) #f)))))
 
 ;; More macros can also go here
-
 )"""))
 
 if __name__ == '__main__':

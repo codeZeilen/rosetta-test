@@ -1,6 +1,7 @@
 (spec 
 	"file-descriptor" "0.1"
-
+	(display spec-name)
+	(display spec-version)
 	(sources 
 		("The Open Group Base Specifications Issue 7, 2018 edition" "IEEE and The Open Group" "https://pubs.opengroup.org/onlinepubs/9699919799"))
 
@@ -15,13 +16,12 @@
 	(placeholder (create-test-file file-name file-content) "Places a test file with the specified content in a temporary location.")
 	(placeholder (remove-test-file file-name file-content))
 
-
 	(setup 
 		(create-test-file "my-test-file" "first line\nsecond line"))
 
 	(tearDown
 		(remove-test-file "my-test-file"))
-
+ 
 	(capability 'open
 		(test "open returns a file descriptor"
 			(assert (is-file-descriptor? (open "my-test-file" "r"))))
@@ -33,7 +33,7 @@
 
 	(capability 'read
 		(setup 
-			(set! 'test-file (open "my-test-file" "r")))
+			(set! test-file (open "my-test-file" "r")))
 
 		(tearDown
 			(close test-file)

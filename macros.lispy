@@ -1,0 +1,28 @@
+(begin
+    (define-macro spec (lambda args
+        (if (>= (length args) 2)
+            `(let 
+                ((spec-name ,(list-ref args 0))
+                 (spec-version ,(list-ref args 1))
+                 (spec-capabilities '())
+                 (spec-sources '())
+                 (spec-placeholders '()))
+                
+                ,@(cdr (cdr args))
+                (list spec-name spec-version spec-sources spec-capabilities spec-placeholders))
+            (#f))))
+
+    (define-macro sources (lambda source-triples
+        `(set! spec-sources (append spec-sources (list ,@(map (lambda (source) (cons 'list source)) source-triples))))))
+        
+    (define-macro placeholder (lambda placeholder-spec 
+        `(set! 
+            spec-placeholders 
+            (append 
+                spec-placeholders 
+                (list (create-placeholder ',(car (car placeholder-spec)) ',(cdr (car placeholder-spec))))
+    ))))
+    
+    (define-macro setup (lambda setup '(display "setup")))
+    (define-macro tearDown (lambda tearDown '(display "tearDown")))
+    (define-macro capability (lambda capability-spec '(display "capability"))))
