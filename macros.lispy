@@ -1,28 +1,61 @@
 (begin
+
+    (define (filter pred lst)
+        (reverse (filter-help pred lst '())))
+
+    (define (filter-help pred lst res)
+        (cond ((null? lst) res)
+                ((pred (car lst)) 
+                (filter-help pred (cdr lst)  (cons (car lst) res)))
+                (else 
+                (filter-help pred (cdr lst)  res))))
+
     (define-macro spec (lambda args
         (if (>= (length args) 2)
             `(let 
                 ((spec-name ,(list-ref args 0))
                  (spec-version ,(list-ref args 1))
-                 (spec-capabilities '())
-                 (spec-sources '())
-                 (spec-placeholders '()))
-                
-                ,@(cdr (cdr args))
-                (list spec-name spec-version spec-sources spec-capabilities spec-placeholders))
-            (#f))))
+                 (spec-contents (list ,@(cdr (cdr args)))))
+
+                (list 
+                    spec-name 
+                    spec-version 
+                    (filter (lambda (element) (= 'sources (car element))) spec-contents) ; sources
+                    (filter (lambda (element) (= 'placeholder (car element))) spec-contents) ; placeholder
+                    (filter (lambda (element) (= 'capability (car element))) spec-contents) ; capabilities
+                    (filter (lambda (element) (= 'setup (car element))) spec-contents) ; global setup
+                    (filter (lambda (element) (= 'tearDown (car element))) spec-contents) ; global tearDown))
+            (#f))))))
 
     (define-macro sources (lambda source-triples
-        `(set! spec-sources (append spec-sources (list ,@(map (lambda (source) (cons 'list source)) source-triples))))))
+        `(list 'sources ,@source-triples)))
         
     (define-macro placeholder (lambda placeholder-spec 
-        `(set! 
-            spec-placeholders 
-            (append 
-                spec-placeholders 
-                (list (create-placeholder ',(car (car placeholder-spec)) ',(cdr (car placeholder-spec))))
-    ))))
-    
+        `(create-placeholder ',(car (car placeholder-spec)) ',(cdr (car placeholder-spec)))))
+
     (define-macro setup (lambda setup '(display "setup")))
     (define-macro tearDown (lambda tearDown '(display "tearDown")))
-    (define-macro capability (lambda capability-spec '(display "capability"))))
+
+    (define-macro capability (lambda capability-spec 
+        `(let 
+            ((capability-name ,(car capability-spec))
+            (capability-contents ,(cdr capability-spec)))
+            (list 
+                'capability
+                capability-name 
+                (filter (lambda (element) (= 'setup (car element))) capability-contents) ; setup
+                (filter (lambda (element) (= 'tearDown (car element))) capability-contents) ; tearDown
+                (filter (lambda (element) (or (= 'test (car element)) (= 'capability (car element))) capability-contents) ; tests
+                )
+            ))))
+
+    (define-macro test (lambda test-spec 
+        `(list 'test ,(car test-spec) (lambda () ,(car (cdr test-spec))))))
+
+    (define (test-run test) 
+        ((car (cdr (cdr test)))))
+
+    (define (test-name test) 
+        ((car (cdr test))))
+
+)
