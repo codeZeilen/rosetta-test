@@ -1,9 +1,7 @@
 (spec 
 	"file-descriptor" "0.1"
-	(display spec-name)
-	(display spec-version)
 	(sources 
-		("The Open Group Base Specifications Issue 7, 2018 edition" "IEEE and The Open Group" "https://pubs.opengroup.org/onlinepubs/9699919799"))
+		'("The Open Group Base Specifications Issue 7, 2018 edition" "IEEE and The Open Group" "https://pubs.opengroup.org/onlinepubs/9699919799"))
 
 	(placeholder (open file-name mode) "open needs to track open file descriptors to ensure that all are closed during tear down of a test.")
 	(placeholder (close file-descriptor))
@@ -23,8 +21,8 @@
 		(remove-test-file "my-test-file"))
  
 	(capability 'open
-		(test "open returns a file descriptor"
-			(assert (is-file-descriptor? (open "my-test-file" "r"))))
+		(test "open returns a file descriptor" (
+			(assert (is-file-descriptor? (open "my-test-file" "r")))))
 			
 		(test "opening with non-existant mode, results in error" (
 			(assert (is-file-error? (open "my-test-file" "g"))
@@ -39,21 +37,21 @@
 			(close test-file)
 			(unset-variable 'test-file))
 
-		(test "read can read one value"
+		(test "read can read one value" (
 			(assert-equal
 				(read test-file 1)
-				"f"))
+				"f")))
 
-		(test "read can read all of the content"
+		(test "read can read all of the content" (
 			(assert-equal
 				(read test-file 22)
-				"first line\nsecond line"))
+				"first line\nsecond line")))
 		
-		(test "read on a write-only file is an error"
+		(test "read on a write-only file is an error" (
 			(close test-file) ; to ensure we can open it write-only
 			(let 
 				((write-only-file (open "my-test-file" "w"))) 
-				(assert (is-file-error? (read write-only-file 1)))))
+				(assert (is-file-error? (read write-only-file 1))))))
 
 		(capability 'read-binary-or-character 
 			(placeholder (read-binary-or-text))

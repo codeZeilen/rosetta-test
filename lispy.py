@@ -71,11 +71,16 @@ def read(inport):
             L = []
             while True:
                 token = inport.next_token()
-                if token == ')': return L
-                else: L.append(read_ahead(token))
+                if token == ')': 
+                    return L
+                else: 
+                    try:
+                        L.append(read_ahead(token))
+                    except SyntaxError as e:
+                        raise SyntaxError(f'Syntax Error in list {L}')
         elif ')' == token: raise SyntaxError('unexpected )')
         elif token in quotes: return [quotes[token], read(inport)]
-        elif token is eof_object: raise SyntaxError('unexpected EOF in list')
+        elif token is eof_object: raise SyntaxError(f'Unexpected EOF in list')
         else: return atom(token)
     # body of read:
     token1 = inport.next_token()
@@ -172,6 +177,7 @@ def add_globals(self):
      'car':lambda x:x[0], 'cdr':lambda x:x[1:], 'append':op.add,  
      'list':lambda *x:list(x), 'list?': lambda x:isa(x,list), 'list-ref':op.getitem,
      'map':lambda lamb, l: list(map(lamb, l)), 'for-each':lambda lamb, l: [lamb(x) for x in l],
+
      'null?':lambda x:x==[], 'symbol?':lambda x: isa(x, Symbol),
      'boolean?':lambda x: isa(x, bool), 'pair?':is_pair, 
      'port?': lambda x:isa(x,file), 'apply':lambda proc,l: proc(*l), 
@@ -227,7 +233,7 @@ def eval(x, env=global_env):
                 try:
                     return proc(*exps)
                 except TypeError as e:
-                    raise TypeError(f'Error: {e} for epxression {x}')
+                    raise TypeError(f'Error: {e} for expression {proc}')
 
 ################ expand
 
