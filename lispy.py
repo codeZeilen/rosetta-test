@@ -173,6 +173,7 @@ def add_globals(self):
     self.update({
      '+':op.add, '-':op.sub, '*':op.mul, '/':op.truediv, 'not':op.not_, 
      '>':op.gt, '<':op.lt, '>=':op.ge, '<=':op.le, '=':op.eq, 
+     'or':op.or_, 'xor':op.xor, 'abs':abs,
      'equal?':op.eq, 'eq?':op.is_, 'length':len, 'cons':cons,
      'car':lambda x:x[0], 'cdr':lambda x:x[1:], 'append':op.add,  
      'list':lambda *x:list(x), 'list?': lambda x:isa(x,list), 'list-ref':op.getitem,

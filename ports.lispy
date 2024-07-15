@@ -1,0 +1,83 @@
+(begin
+
+    (define (reverse lst)
+        (define (reverse-help lst res)
+            (if (null? lst) res
+                (reverse-help (cdr lst) (cons (car lst) res))))
+        (reverse-help lst '()))
+
+    (define (filter pred lst)
+        (define (filter-help pred lst res)
+            (if (null? lst) 
+                res
+                (if (pred (car lst)) 
+                    (filter-help pred (cdr lst)  (cons (car lst) res))
+                    (filter-help pred (cdr lst)  res))))
+        (reverse (filter-help pred lst '())))
+                
+    (define (spec spec-name spec-version spec-sources spec-contents) (
+        list 
+            spec-name 
+            spec-version 
+            spec-sources
+            (filter is-placeholder? spec-contents) ; placeholder
+            (filter is-capability? spec-contents) ; capabilities
+            (filter is-setup? spec-contents) ; global setup
+            (filter is-tearDown? spec-contents) ; global tearDown))
+    ))
+    
+    (define (is-placeholder? element) (= 'placeholder (car element)))
+    (define (is-capability? element) (= 'capability (car element)))
+    (define (is-test? element) (= 'test (car element)))
+    (define (is-setup? element) (= 'setup (car element)))
+    (define (is-tearDown? element) (= 'tearDown (car element)))
+
+    (define (sources source-triples) (
+        list 'sources source-triples))
+
+    (define placeholder (lambda placeholder-specs (
+        let 
+            ((placeholder-spec (car placeholder-specs)) 
+            (placeholder-docstring (if (> (length placeholder-specs) 1) 
+                (car (cdr placeholder-specs)) 
+                "")))
+            (list 
+                'placeholder
+                (car placeholder-spec)
+                (cdr placeholder-spec)
+                placeholder-docstring))))
+
+    (define (capability name contents) (
+        list 
+            'capability
+            name 
+            (filter is-setup? contents) ; setup
+            (filter is-tearDown? contents) ; tearDown
+            (filter (lambda (element) (or (is-test? element) (is-capability? element))) contents) ; tests
+            ))
+
+    (define (capability-tests capability) (list-ref capability 4))
+        
+    (define (capability-run capability) ( ; add setup/teardown
+        map (lambda (test) (spec-run test)) (capability-tests capability)))
+
+    (define (spec-run spec) (
+        if (is-test? spec) (test-run spec) (capability-run spec))) ; ensure that it is one of either
+
+    (define (test name test-fn) (list
+        'test 
+        name 
+        test-fn))
+
+    (define (test-function test) (list-ref test 2))
+
+    (define (test-run test) ((test-function test)))
+
+    (define (setup setup-fn) (list
+        'setup
+        setup-fn))
+
+    (define (tearDown tearDown-fn) (list
+        'tearDown
+        tearDown-fn))
+)
