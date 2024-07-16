@@ -2,15 +2,32 @@ import lispy
 
 class Placeholder(object):
 
-    def __init__(self, name, parameters) -> None:
+    def __init__(self, name, parameters, doc_string) -> None:
         self.name = name
         self.parameters = parameters
+        self.doc_string = doc_string
+        
+        self.function = lambda *args: None
+        self.env = None
+        
+    def __call__(self, *args):
+        return self.function(self.env, *args)
+    
+    def is_valid(self):
+        return self.function is not None
+    
+    def __getitem__(self, key):
+        if key == 0:
+            return lispy.Sym("placeholder")
+        else:
+            return None
 
-def create_placeholder(name, parameters):
-    return Placeholder(name, parameters)
+def create_placeholder(name, parameters, doc_string=""):
+    return Placeholder(name, parameters, doc_string)
 
 def ports_assert(value):
     assert value
+
 
 class PortsSuite(object):
 
@@ -29,6 +46,7 @@ class PortsSuite(object):
     def initialize_ports_primitives(self):
         self.lispy_env.update({
             "create-placeholder": create_placeholder,
+            "is-placeholder?": lambda x: isinstance(x, Placeholder),
             "assert": ports_assert
         })
 
@@ -38,8 +56,15 @@ class PortsSuite(object):
 
     def placeholder(self, name):
         def decorator(func):
+            self.placeholder_named(name).function = func
             return func
         return decorator
+    
+    def placeholder_named(self, name):
+        for placeholder in self.placeholders:
+            if placeholder.name == name:
+                return placeholder
+        raise Exception(f"Placeholder {name} not found")
     
     def setUp(self):
         def decorator(func):
@@ -51,7 +76,19 @@ class PortsSuite(object):
             return func
         return decorator
     
+    def ensure_placeholders_are_valid(self):
+        for placeholder in self.placeholders:
+            if not placeholder.is_valid():
+                raise Exception(f"Placeholder {placeholder.name} is not implemented")
+            placeholder.env = self.lispy_env
+            
+    def install_placeholders(self):
+        for placeholder in self.placeholders:
+            self.lispy_env[placeholder.name] = placeholder
+    
     def run(self):
+        self.ensure_placeholders_are_valid()
+        self.install_placeholders()
         self.lispy_env.update({
             "capabilities": self.capabilities
         })

@@ -26,7 +26,6 @@
             (filter is-tearDown? spec-contents) ; global tearDown))
     ))
     
-    (define (is-placeholder? element) (= 'placeholder (car element)))
     (define (is-capability? element) (= 'capability (car element)))
     (define (is-test? element) (= 'test (car element)))
     (define (is-setup? element) (= 'setup (car element)))
@@ -41,8 +40,7 @@
             (placeholder-docstring (if (> (length placeholder-specs) 1) 
                 (car (cdr placeholder-specs)) 
                 "")))
-            (list 
-                'placeholder
+            (create-placeholder
                 (car placeholder-spec)
                 (cdr placeholder-spec)
                 placeholder-docstring))))
@@ -57,9 +55,13 @@
             ))
 
     (define (capability-tests capability) (list-ref capability 4))
+    (define (capability-setups capability) (list-ref capability 2))
+    (define (capability-tearDowns capability) (list-ref capability 3))
         
-    (define (capability-run capability) ( ; add setup/teardown
-        map (lambda (test) (spec-run test)) (capability-tests capability)))
+    (define (capability-run capability) (begin ; add setup/teardown
+        (map (lambda (setup) (setup)) (capability-setups capability))
+        (map (lambda (test) (spec-run test)) (capability-tests capability)))
+        (map (lambda (tearDown) (tearDown)) (capability-tearDowns capability)))
 
     (define (spec-run spec) (
         if (is-test? spec) (test-run spec) (capability-run spec))) ; ensure that it is one of either
