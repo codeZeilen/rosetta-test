@@ -16,38 +16,39 @@
 		(placeholder '(create-test-file file-name file-content) "Places a test file with the specified content in a temporary location.")
 		(placeholder '(remove-test-file file-name))
 
-		(setup (lambda ()
-			(create-test-file "my-test-file" "first line\nsecond line")))
+		(setup (lambda () (begin
+			(display "Setting up file-descriptor tests\n")
+			(create-test-file "my-test-file" "first line\nsecond line"))))
 
 		(tearDown (lambda ()
 			(remove-test-file "my-test-file")))
 	
 		(capability 'open (list
-			(test "open returns a file descriptor" (lambda () (
-				(assert (is-file-descriptor? (open "my-test-file" "r"))))))
+			(test "open returns a file descriptor" (lambda () 
+				(assert (is-file-descriptor? (open "my-test-file" "r")))))
 				
 			(test "opening with non-existant mode, results in error" (lambda () (begin
-				(assert (is-file-error? (open "my-test-file" "g"))
-				(assert (is-file-error? (open "my-test-file" "rq"))
-				(assert (is-file-error? (open "my-test-file" "qr"))))))))))
+				(assert (is-file-error? (open "my-test-file" "g")))
+				(assert (is-file-error? (open "my-test-file" "rq")))
+				(assert (is-file-error? (open "my-test-file" "qr"))))))))
 
 		(capability 'read (list
-			(setup (lambda ()
+			(setup (lambda () 
 				(set! test-file (open "my-test-file" "r"))))
 
 			(tearDown (lambda () (begin
 				(close test-file)
-				(variable-unset! test-file))))
+				(set! test-file '()))))
 
-			(test "read can read one value" (lambda () (
+			(test "read can read one value" (lambda () 
 				(assert-equal
 					(read test-file 1)
-					"f"))))
+					"f")))
 
-			(test "read can read all of the content" (lambda () (
+			(test "read can read all of the content" (lambda ()
 				(assert-equal
-					(read test-file 22)
-					"first line\nsecond line"))))
+					(read test-file 23)
+					"first line\nsecond line")))
 			
 			(test "read on a write-only file is an error" (lambda () (begin
 				(close test-file) ; to ensure we can open it write-only

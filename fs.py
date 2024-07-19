@@ -9,6 +9,7 @@ fs_suite = ports.suite("fs.ports")
 
 @fs_suite.setUp()
 def set_up(env):
+    print("python fs setup")
     test_directory = tempfile.mkdtemp()
     env["_test_directory"] = test_directory
     env["_original_directory"] = os.getcwd()

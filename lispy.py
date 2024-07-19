@@ -161,6 +161,11 @@ class Env(dict):
             del self[var]
         else: 
             raise LookupError(var)
+        
+    def __str__(self) -> str:
+        if self.outer is None:
+            return "global env"
+        return super().__str__() + " -> " + str(self.outer)
 
 def is_pair(x): return x != [] and isa(x, list)
 def cons(x, y): return [x]+y
@@ -198,61 +203,72 @@ def add_globals(self):
      'open-output-file':lambda f:open(f,'w'), 'close-output-port':lambda p: p.close(),
      'eof-object?':lambda x:x is eof_object, 'read-char':readchar,
      'read':read, 'write':lambda x,port=sys.stdout:port.write(to_string(x)),
-     'display':lambda x,port=sys.stdout:port.write(x if isa(x,str) else to_string(x))})
+     'display':lambda x:print(x if isa(x,str) else to_string(x))})
     return self
 
 isa = isinstance
 
 global_env = add_globals(Env())
 
+class LispyException(Exception):
+    def __init__(self, message):
+        self.message = message
+        super().__init__(self.message)
+
+
 ################ eval (tail recursive)
 
 def eval(x, env=global_env):
     "Evaluate an expression in an environment."
-    while True:
-        if isa(x, Symbol):       # variable reference
-            return env.find(x)[x]
-        elif not isa(x, list):   # constant literal
-            return x                
-        elif x[0] is _quote:     # (quote exp)
-            (_, exp) = x
-            return exp
-        elif x[0] is _if:        # (if test conseq alt)
-            (_, test, conseq, alt) = x
-            x = (conseq if eval(test, env) else alt)
-        elif x[0] is _set:       # (set! var exp)
-            (_, var, exp) = x
-            env.find(var)[var] = eval(exp, env)
-            return None
-        elif x[0] is _unset:       # (variable-unset! var)
-            (_, var) = x
-            env.find(var).unset(var)
-            return None
-        elif x[0] is _define:    # (define var exp)
-            (_, var, exp) = x
-            env[var] = eval(exp, env)
-            return None
-        elif x[0] is _lambda:    # (lambda (var*) exp)
-            (_, vars, exp) = x
-            return Procedure(vars, exp, env)
-        elif x[0] is _begin:     # (begin exp+)
-            for exp in x[1:-1]:
-                eval(exp, env)
-            x = x[-1]
-        else:                    # (proc exp*)
-            exps = [eval(exp, env) for exp in x]
-            proc = exps.pop(0)
-            if isa(proc, Procedure):
-                x = proc.exp
-                env = Env(proc.parms, exps, proc.env)
-            else:
-                if not proc:
-                    raise SyntaxError(f'Undefined procedure: {x[0]}')
-                try:
+    try:
+        while True:
+            if isa(x, Symbol):       # variable reference
+                return env.find(x)[x]
+            elif not isa(x, list):   # constant literal
+                return x                
+            elif x[0] is _quote:     # (quote exp)
+                (_, exp) = x
+                return exp
+            elif x[0] is _if:        # (if test conseq alt)
+                (_, test, conseq, alt) = x
+                x = (conseq if eval(test, env) else alt)
+            elif x[0] is _set:       # (set! var exp)
+                (_, var, exp) = x
+                env.find(var)[var] = eval(exp, env)
+                return None
+            elif x[0] is _unset:       # (variable-unset! var)
+                (_, var) = x
+                env.find(var).unset(var)
+                return None
+            elif x[0] is _define:    # (define var exp)
+                (_, var, exp) = x
+                env[var] = eval(exp, env)
+                return None
+            elif x[0] is _lambda:    # (lambda (var*) exp)
+                (_, vars, exp) = x
+                return Procedure(vars, exp, env)
+            elif x[0] is _begin:     # (begin exp+)
+                for exp in x[1:-1]:
+                    eval(exp, env)
+                x = x[-1]
+            else:                    # (proc exp*)
+                exps = [eval(exp, env) for exp in x]
+                proc = exps.pop(0)
+                if isa(proc, Procedure):
+                    x = proc.exp
+                    env = Env(proc.parms, exps, proc.env)
+                else:
+                    if not proc:
+                        raise SyntaxError(f'Undefined procedure: {x[0]}')
+                    
                     return proc(*exps)
-                except TypeError as e:
-                    e.args = e.args + (f'while evaluating {x}' + "\n",)
-                    raise e
+    except LispyException as e:
+        print("handling in " + to_string(x))
+        e.message = e.message + f'while evaluating {to_string(x)}\n'
+        raise
+    except Exception as e:
+        raise LispyException(str(e) + "\n" + f'while evaluating {to_string(x)} in {env}')
+
 
 ################ expand
 

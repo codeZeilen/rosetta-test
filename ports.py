@@ -21,12 +21,43 @@ class Placeholder(object):
             return lispy.Sym("placeholder")
         else:
             return None
+    
+# TODO: Should be combined with above    
+class PortsFunction(object):
+    
+    def __init__(self, function, env) -> None:
+        self.function = function
+        self.env = env
+
+    def __call__(self, *args):
+        return self.function(self.env, *args)
+    
+    def __getitem__(self, key):
+        if key == 0:
+            return lispy.Sym(self.ports_role())
+        elif key == 1:
+            return self
+        else:
+            return None 
+        
+class PortsSetup(PortsFunction):
+    
+    def ports_role(self):
+        return "setup"
+    
+class PortsTearDown(PortsFunction):
+    
+    def ports_role(self):
+        return "tearDown"
 
 def create_placeholder(name, parameters, doc_string=""):
     return Placeholder(name, parameters, doc_string)
 
 def ports_assert(value):
     assert value
+    
+def ports_assert_eq(a, b):
+    assert a == b, f"{a} != {b}"
 
 
 class PortsSuite(object):
@@ -40,7 +71,7 @@ class PortsSuite(object):
             self.suite = self.eval(file.read())
         
         self.suite_name, self.suite_version, self.sources, self.placeholders, capabilities, setup, tear_down = self.suite
-        self.root_capability = [lispy.Sym("capability"), "root", setup, tear_down, capabilities, []]
+        self.root_capability = [lispy.Sym("capability"), "root", setup, tear_down, [], capabilities, []]
         
     def eval(self, code):
         return lispy.eval(lispy.expand(lispy.parse(code), True), self.lispy_env)
@@ -49,7 +80,8 @@ class PortsSuite(object):
         self.lispy_env.update({
             "create-placeholder": create_placeholder,
             "is-placeholder?": lambda x: isinstance(x, Placeholder),
-            "assert": ports_assert
+            "assert": ports_assert,
+            "assert-equal": ports_assert_eq
         })
 
     def initialize_ports(self):
@@ -70,11 +102,13 @@ class PortsSuite(object):
     
     def setUp(self):
         def decorator(func):
+            self.root_capability[2].insert(0, PortsSetup(func, self.lispy_env))
             return func
         return decorator
     
     def tearDown(self):
         def decorator(func):
+            self.root_capability[3].append(PortsTearDown(func, self.lispy_env))
             return func
         return decorator
     
