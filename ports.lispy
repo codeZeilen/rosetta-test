@@ -45,16 +45,19 @@
                 (cdr placeholder-spec)
                 placeholder-docstring))))
 
-    (define (capability name contents) (
-        list 
+    (define (capability name contents) (let
+        ((new-capability (list 
             'capability
             name 
             (filter is-setup? contents) ; setup
             (filter is-tearDown? contents) ; tearDown
             (filter is-test? contents) ; tests
             (filter is-capability? contents) ; capabilities
-            '() ; parent
-            ))
+            '()))) ; parent
+        (for-each 
+            (lambda (test) (test-set-capability! test new-capability)) 
+            (capability-tests new-capability))
+        new-capability))
 
     (define (capability-set-children-parent! capability) 
         (for-each 
@@ -79,10 +82,7 @@
 
     (define (capability-run-tests capability) (begin 
         (map 
-            (lambda (test) (begin 
-                (capability-run-setups capability)
-                (test-run test)
-                (capability-run-tearDowns capability)))
+            test-run
             (capability-tests capability))))
 
     (define (capability-run-child-capabilities capability) (begin
@@ -103,12 +103,17 @@
     (define (test name test-fn) (list
         'test 
         name 
-        test-fn))
+        test-fn
+        '())) ; capability
     (define (test-name test) (list-ref test 1))
     (define (test-fn test) (list-ref test 2))
+    (define (test-capability test) (list-ref test 3))
+    (define (test-set-capability! test capability) (list-set! test 3 capability))
     (define (test-run test) (begin
         (display (+ (+ "running test: " (test-name test)) "\n"))
-        ((test-fn test))))
+        (capability-run-setups (test-capability test))
+        ((test-fn test))
+        (capability-run-tearDowns (test-capability test))))
 
     (define (setup setup-fn) (list
         'setup
