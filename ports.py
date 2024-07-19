@@ -1,33 +1,15 @@
 import lispy
 
-class Placeholder(object):
 
-    def __init__(self, name, parameters, doc_string) -> None:
-        self.name = name
-        self.parameters = parameters
-        self.doc_string = doc_string
-        
-        self.function = None
-        self.env = None
-        
-    def __call__(self, *args):
-        return self.function(self.env, *args)
-    
-    def is_valid(self):
-        return self.function is not None
-    
-    def __getitem__(self, key):
-        if key == 0:
-            return lispy.Sym("placeholder")
-        else:
-            return None
-    
 # TODO: Should be combined with above    
 class PortsFunction(object):
     
     def __init__(self, function, env) -> None:
         self.function = function
         self.env = env
+        
+    def is_valid(self):
+        return self.function is not None
 
     def __call__(self, *args):
         return self.function(self.env, *args)
@@ -49,6 +31,20 @@ class PortsTearDown(PortsFunction):
     
     def ports_role(self):
         return "tearDown"
+    
+class Placeholder(PortsFunction):
+
+    def __init__(self, name, parameters, doc_string) -> None:
+        self.name = name
+        self.parameters = parameters
+        self.doc_string = doc_string
+        super().__init__(None, None)
+        
+    def __getitem__(self, key):
+        if key == 0:
+            return lispy.Sym("placeholder")
+        else:
+            return None
 
 def create_placeholder(name, parameters, doc_string=""):
     return Placeholder(name, parameters, doc_string)
