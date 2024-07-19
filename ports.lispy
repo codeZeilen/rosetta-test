@@ -52,16 +52,41 @@
             (filter is-setup? contents) ; setup
             (filter is-tearDown? contents) ; tearDown
             (filter (lambda (element) (or (is-test? element) (is-capability? element))) contents) ; tests
+            '() ; parent
             ))
 
-    (define (capability-tests capability) (list-ref capability 4))
+    (define (capability-set-children-parent! capability) 
+        (for-each 
+            (lambda (child-capability) (begin
+                (capability-set-parent! child-capability capability)
+                (capability-set-children-parent! child-capability))) 
+            (filter is-capability? (capability-tests capability))))
+
+
     (define (capability-setups capability) (list-ref capability 2))
     (define (capability-tearDowns capability) (list-ref capability 3))
+    (define (capability-tests capability) (list-ref capability 4))
+    (define (capability-parent capability) (list-ref capability 5))
+    (define (capability-set-parent! capability parent-capability) 
+        (list-set! capability 5 parent-capability))
         
     (define (capability-run capability) (begin ; add setup/teardown
-        (map (lambda (setup) (setup)) (capability-setups capability))
+        (capability-run-setups capability)
         (map (lambda (test) (spec-run test)) (capability-tests capability)))
-        (map (lambda (tearDown) (tearDown)) (capability-tearDowns capability)))
+        (capability-run-tearDowns capability))
+    ;(map (lambda (tearDown) (tearDown)) (capability-tearDowns capability))
+
+    (define (capability-run-setups capability) (begin
+        (if (not (null? (capability-parent capability)))
+            (capability-run-setups (capability-parent capability))
+            '())
+        (map setup-run (capability-setups capability))))
+
+    (define (capability-run-tearDowns capability) (begin
+        (map tearDown-run (capability-tearDowns capability))
+        (if (not (null? (capability-parent capability)))
+            (capability-run-tearDowns (capability-parent capability))
+            '())))
 
     (define (spec-run spec) (
         if (is-test? spec) (test-run spec) (capability-run spec))) ; ensure that it is one of either
@@ -73,13 +98,17 @@
 
     (define (test-function test) (list-ref test 2))
 
-    (define (test-run test) ((test-function test)))
+    (define (test-run test) (test-function test))
 
     (define (setup setup-fn) (list
         'setup
         setup-fn))
+    (define (setup-fn setup) (list-ref setup 1))
+    (define (setup-run setup) ((setup-fn setup)))
 
     (define (tearDown tearDown-fn) (list
         'tearDown
         tearDown-fn))
+    (define (tearDown-fn tearDown) (list-ref tearDown 1))
+    (define (tearDown-run tearDown) ((tearDown-fn tearDown)))
 )

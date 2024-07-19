@@ -16,8 +16,8 @@ def Sym(s, symbol_table={}):
     if s not in symbol_table: symbol_table[s] = Symbol(s)
     return symbol_table[s]
 
-_quote, _if, _set, _define, _lambda, _begin, _definemacro, = list(map(Sym, 
-"quote   if   set!  define   lambda   begin   define-macro".split()))
+_quote, _if, _set, _unset, _define, _lambda, _begin, _definemacro, = list(map(Sym, 
+"quote   if   set!  variable-unset!  define   lambda   begin   define-macro".split()))
 
 _quasiquote, _unquote, _unquotesplicing = list(map(Sym,
 "quasiquote   unquote   unquote-splicing".split()))
@@ -148,9 +148,19 @@ class Env(dict):
     
     def find(self, var):
         "Find the innermost Env where var appears."
-        if var in self: return self
-        elif self.outer is None: raise LookupError(var)
-        else: return self.outer.find(var)
+        if var in self: 
+            return self
+        elif self.outer is None: 
+            raise LookupError(var)
+        else: 
+            return self.outer.find(var)
+        
+    def unset(self, var):
+        "Unset a variable in the current environment."
+        if var in self: 
+            del self[var]
+        else: 
+            raise LookupError(var)
 
 def is_pair(x): return x != [] and isa(x, list)
 def cons(x, y): return [x]+y
@@ -177,7 +187,8 @@ def add_globals(self):
      'equal?':op.eq, 'eq?':op.is_, 'length':len, 'cons':cons,
      'car':lambda x:x[0], 'cdr':lambda x:x[1:], 'append':op.add,  
      'list':lambda *x:list(x), 'list?': lambda x:isa(x,list), 'list-ref':op.getitem,
-     'map':lambda lamb, l: list(map(lamb, l)), 'for-each':lambda lamb, l: [lamb(x) for x in l],
+     'list-set!':op.setitem,
+     'map':lambda fn, l: list(map(fn, l)), 'for-each':lambda fn, l: [fn(x) for x in l],
 
      'null?':lambda x:x==[], 'symbol?':lambda x: isa(x, Symbol),
      'boolean?':lambda x: isa(x, bool), 'pair?':is_pair, 
@@ -213,6 +224,10 @@ def eval(x, env=global_env):
             (_, var, exp) = x
             env.find(var)[var] = eval(exp, env)
             return None
+        elif x[0] is _unset:       # (variable-unset! var)
+            (_, var) = x
+            env.find(var).unset(var)
+            return None
         elif x[0] is _define:    # (define var exp)
             (_, var, exp) = x
             env[var] = eval(exp, env)
@@ -231,10 +246,13 @@ def eval(x, env=global_env):
                 x = proc.exp
                 env = Env(proc.parms, exps, proc.env)
             else:
+                if not proc:
+                    raise SyntaxError(f'Undefined procedure: {x[0]}')
                 try:
                     return proc(*exps)
                 except TypeError as e:
-                    raise TypeError(f'Error: {e} for expression {proc}')
+                    e.args = e.args + (f'while evaluating {x}' + "\n",)
+                    raise e
 
 ################ expand
 

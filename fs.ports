@@ -14,7 +14,7 @@
 		(placeholder '(is-file-error? some-value))
 
 		(placeholder '(create-test-file file-name file-content) "Places a test file with the specified content in a temporary location.")
-		(placeholder '(remove-test-file file-name file-content))
+		(placeholder '(remove-test-file file-name))
 
 		(setup (lambda ()
 			(create-test-file "my-test-file" "first line\nsecond line")))
@@ -37,7 +37,7 @@
 
 			(tearDown (lambda () (begin
 				(close test-file)
-				(unset-variable 'test-file))))
+				(variable-unset! test-file))))
 
 			(test "read can read one value" (lambda () (
 				(assert-equal

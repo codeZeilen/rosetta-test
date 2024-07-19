@@ -37,6 +37,20 @@ def read_file(env, file, length):
         return file.read(length)
     except Exception as err:
         return err
+    
+@fs_suite.placeholder("write")
+def write_file(env, file, content):
+    try:
+        return file.write(content)
+    except Exception as err:
+        return err
+    
+@fs_suite.placeholder("flush")
+def flush_file(env, file):
+    try:
+        return file.flush()
+    except Exception as err:
+        return err
 
 @fs_suite.placeholder("close")
 def close_file(env, file):
@@ -57,5 +71,10 @@ def is_file_error(env, value):
 def create_test_file(env, file_name, file_content):
     with open(file_name, "w") as file:
         file.write(file_content)
+
+@fs_suite.placeholder("remove-test-file")
+def remove_test_file(env, file_name):
+    if os.path.exists(file_name):
+        os.remove(file_name)
 
 fs_suite.run()
