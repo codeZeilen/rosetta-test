@@ -179,6 +179,9 @@ def callcc(proc):
     except RuntimeWarning as w:
         if w is ball: return ball.retval
         else: raise w
+        
+def primitive_error(msg):
+    raise Exception(msg)
 
 def add_globals(self):
     "Add some Scheme standard procedures."
@@ -194,6 +197,7 @@ def add_globals(self):
      'list':lambda *x:list(x), 'list?': lambda x:isa(x,list), 'list-ref':op.getitem,
      'list-set!':op.setitem,
      'map':lambda fn, l: list(map(fn, l)), 'for-each':lambda fn, l: [fn(x) for x in l],
+     'error':lambda err_msg: primitive_error(err_msg),
 
      'null?':lambda x:x==[], 'symbol?':lambda x: isa(x, Symbol),
      'boolean?':lambda x: isa(x, bool), 'pair?':is_pair, 
