@@ -1,5 +1,8 @@
 import lispy
+import unittest
 
+class TestPortsUnittestContainer(unittest.TestCase):
+    pass
 
 # TODO: Should be combined with above    
 class PortsFunction(object):
@@ -69,8 +72,10 @@ class PortsSuite(object):
         self.suite_name, self.suite_version, self.sources, self.placeholders, capabilities, setup, tear_down = self.suite
         self.root_capability = [lispy.Sym("capability"), "root", setup, tear_down, [], capabilities, []]
         
-    def eval(self, code):
-        return lispy.eval(lispy.expand(lispy.parse(code), True), self.lispy_env)
+    def eval(self, code, env=None):
+        if not env:
+            env = self.lispy_env
+        return lispy.eval(lispy.expand(lispy.parse(code), True), env)
 
     def initialize_ports_primitives(self):
         self.lispy_env.update({
@@ -119,6 +124,17 @@ class PortsSuite(object):
             self.lispy_env[placeholder.name] = placeholder
             placeholder.env = self.lispy_env
     
+    def generate_test_name(self, ports_test):
+        test_name = "_".join(ports_test[1].split())
+        return f"test_{test_name}" #TODO: should be done in ports and should be full-test-name 
+    
+    def generate_unittest_test_method(self, ports_test):
+        return lambda testcase: self.run_test(ports_test)
+    
+    def run_test(self, ports_test):
+        env = lispy.Env((lispy.Sym("current-test"),), (ports_test,), outer=self.lispy_env)
+        self.eval(f"(test-run current-test)", env)
+    
     def run(self):
         self.ensure_placeholders_are_valid()
         self.install_placeholders()
@@ -127,7 +143,17 @@ class PortsSuite(object):
             "test-file": None, # TODO: this should be done by the spec
         })
         self.eval("(capability-set-children-parent! root-capability)")
-        self.eval("(capability-run root-capability)")
+        tests = self.eval("(capability-all-tests root-capability)")
+        
+        test_suite = unittest.TestSuite()
+        for test in tests:
+            test_name = self.generate_test_name(test)
+            setattr(TestPortsUnittestContainer,
+                    test_name,
+                    self.generate_unittest_test_method(test))
+            test_suite.addTest(TestPortsUnittestContainer(test_name))
+        unittest.TextTestRunner().run(test_suite)
+
 
 def suite(file_name):
     return PortsSuite(file_name)

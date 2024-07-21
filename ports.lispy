@@ -14,6 +14,20 @@
                     (filter-help pred (cdr lst)  (cons (car lst) res))
                     (filter-help pred (cdr lst)  res))))
         (reverse (filter-help pred lst '())))
+
+    ; copied from Gauche
+    (define (fold-right f init seq) 
+        (if (null? seq) 
+            init 
+            (f (car seq) 
+                (fold-right f init (cdr seq)))))
+
+     (define (fold-left f init seq) 
+        (if (null? seq) 
+            init 
+            (fold-left f 
+                (f init (car seq)) 
+                (cdr seq))))  
                 
     (define (spec spec-name spec-version spec-sources spec-contents) (
         list 
@@ -74,6 +88,11 @@
     (define (capability-parent capability) (list-ref capability 6))
     (define (capability-set-parent! capability parent-capability) 
         (list-set! capability 6 parent-capability))
+    (define (capability-all-tests capability) (fold-left 
+        (lambda (acc child-capability) 
+            (+ acc (capability-all-tests child-capability))) 
+        (capability-tests capability) 
+        (capability-child-capabilities capability)))
         
     (define (capability-run capability) (begin ; add setup/teardown
         (display (+ (+ "running capability: " (capability-name capability)) "\n"))
