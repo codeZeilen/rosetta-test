@@ -181,7 +181,16 @@ def callcc(proc):
         else: raise w
         
 def primitive_error(msg):
-    raise Exception(msg)
+    return Exception(msg)
+
+def primitive_raise(err):
+    raise err
+
+def primitive_error_handler(handler_fn, thunk_fn):
+    try:
+        return thunk_fn()
+    except Exception as e:
+        return handler_fn(e)
 
 def add_globals(self):
     "Add some Scheme standard procedures."
@@ -198,6 +207,8 @@ def add_globals(self):
      'list-set!':op.setitem,
      'map':lambda fn, l: list(map(fn, l)), 'for-each':lambda fn, l: [fn(x) for x in l],
      'error':lambda err_msg: primitive_error(err_msg),
+     'raise':lambda err: primitive_raise(err),
+     'with-exception-handler': lambda handler_fn, thunk_fn: primitive_error_handler(handler_fn, thunk_fn),
 
      'null?':lambda x:x==[], 'symbol?':lambda x: isa(x, Symbol),
      'boolean?':lambda x: isa(x, bool), 'pair?':is_pair, 
@@ -270,7 +281,7 @@ def eval(x, env=global_env):
         print("handling in " + to_string(x))
         e.message = e.message + f'while evaluating {to_string(x)}\n'
         raise
-    except Exception as e:
+    except (SyntaxError, TypeError) as e:
         raise LispyException(str(e) + "\n" + f'while evaluating {to_string(x)} in {env}')
 
 

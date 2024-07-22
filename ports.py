@@ -55,8 +55,8 @@ def create_placeholder(name, parameters, doc_string=""):
 def ports_assert(value):
     assert value
     
-def ports_assert_eq(a, b):
-    assert a == b, f"{a} != {b}"
+def ports_assert_eq(expected, actual):
+    assert expected == actual, f"{expected} != {actual}"
 
 
 class PortsSuite(object):

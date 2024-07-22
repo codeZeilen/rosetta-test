@@ -90,9 +90,9 @@
 
     (define (verify-unique-names new-capability) (begin
         (if (not (unique-list? (map test-name (capability-tests new-capability))))
-            (error "test names must be unique"))
+            (raise (error "test names must be unique")))
         (if (not (unique-list? (map capability-name (capability-child-capabilities new-capability))))
-            (error "capability names must be unique"))
+            (raise (error "capability names must be unique")))
         (for-each
             verify-unique-names 
             (capability-child-capabilities new-capability))))
@@ -153,9 +153,13 @@
     (define (test-capability test) (list-ref test 3))
     (define (test-set-capability! test capability) (list-set! test 3 capability))
     (define (test-run test) (begin
-        (display (+ (+ "running test: " (test-name test)) "\n"))
         (capability-run-setups (test-capability test))
-        ((test-fn test))
+        (with-exception-handler 
+            (lambda (e) (begin 
+                ; Ensure we run the tear downs
+                (capability-run-tearDowns (test-capability test))
+                (raise e)))
+            (lambda () ((test-fn test))))
         (capability-run-tearDowns (test-capability test))))
 
     (define (setup setup-fn) (list

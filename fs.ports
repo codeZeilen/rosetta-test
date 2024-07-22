@@ -17,7 +17,6 @@
 		(placeholder '(remove-test-file file-name))
 
 		(setup (lambda () (begin
-			(display "Setting up file-descriptor tests\n")
 			(create-test-file "my-test-file" "first line\nsecond line"))))
 
 		(tearDown (lambda ()
