@@ -46,6 +46,12 @@
                 #f
                 (unique-list? (cdr lst)))))
 
+    (define (empty? lst)
+        (= 0 (length lst)))
+
+    (define (empty-or-null? lst-or-null)
+        (or (empty? lst-or-null) (null? lst-or-null)))
+
     ;
     ; PORTS objects
     ;

@@ -16,8 +16,8 @@ def Sym(s, symbol_table={}):
     if s not in symbol_table: symbol_table[s] = Symbol(s)
     return symbol_table[s]
 
-_quote, _if, _set, _unset, _define, _lambda, _begin, _definemacro, = list(map(Sym, 
-"quote   if   set!  variable-unset!  define   lambda   begin   define-macro".split()))
+_quote, _if, _cond, _set, _unset, _define, _lambda, _begin, _definemacro, = list(map(Sym, 
+"quote   if   cond   set!  variable-unset!  define   lambda   begin   define-macro".split()))
 
 _quasiquote, _unquote, _unquotesplicing = list(map(Sym,
 "quasiquote   unquote   unquote-splicing".split()))
@@ -247,6 +247,16 @@ def eval(x, env=global_env):
             elif x[0] is _if:        # (if test conseq alt)
                 (_, test, conseq, alt) = x
                 x = (conseq if eval(test, env) else alt)
+            elif x[0] is _cond:      # (cond (test exp) ...)
+                one_clause_matched = False
+                for clause in x[1:]:
+                    (test, exp) = clause
+                    if test == 'else' or eval(test, env):
+                        x = exp
+                        one_clause_matched = True
+                        break
+                if not one_clause_matched:
+                    return None # no clause matched so the cond returns undefined
             elif x[0] is _set:       # (set! var exp)
                 (_, var, exp) = x
                 env.find(var)[var] = eval(exp, env)
