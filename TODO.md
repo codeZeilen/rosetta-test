@@ -1,8 +1,7 @@
 # TODOs
 
 ## Steps
- - Ensure tearDown is executed on test failure
- - Use host assertions (tricky, as we would need to use the current host testcase instance)
+ - Fill basic placeholders for current state of SMTP suite to check whether the current setup makes any sense or needs to much hidden state
 
 ## Roadmap
  - Create SMTP suite
