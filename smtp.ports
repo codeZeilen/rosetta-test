@@ -1,0 +1,10 @@
+(spec 
+	"file-descriptor" "0.1"
+    (sources 
+		    ("CPython SMTP tests" "Python Foundation" "https://github.com/python/cpython/blob/9ba2a4638d7b620c939face7642b2f53a9fadc4b/Lib/test/test_smtplib.py")
+        ("Ruby net-smtp tests" "MRI maintainers" "https://github.com/ruby/net-smtp/blob/master/test/net/smtp/test_smtp.rb")
+        ("SMTP RFC 2821")
+        ("SMTP RFC 5321" "IETF" "https://tools.ietf.org/html/rfc5321"))
+
+
+)

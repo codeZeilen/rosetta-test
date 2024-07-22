@@ -1,0 +1,47 @@
+When I write 'xy' to the file named 'foo.txt'
+And I flush
+Then stat on the directory includes the file 'foo.txt'
+
+When I add 'video' to the groups of file 'foo.txt'
+Then groups of the file 'foo.txt' contains 'video'
+
+@Then("stat on the directory .... {}")
+function statAssert(..) {
+	result = stat(".");
+	assert(result.includes(fileName));
+}
+
+@Then("groups of the file...")
+function groupsAssert(..) {
+	
+}
+
+@When("I write {content} to the file named {file_name}")
+function writeContentStep(content, file_name) {
+	fh = open(file_name, rw);
+	fh.write(content);
+}
+
+
+
+
+(placeholder (open_file filname))
+(placeholder (write_to_file content filename))
+(placeholder (flush_file_system))
+(placeholder (directory_stat directory_name))
+
+...
+
+(define open_write_close (content file_name) (
+	))
+	
+(test stat (
+	(let ((fh (open_file 'foo.txt'))
+		(write_to_file 'xy' fh)
+		(flush_file_system)
+		(assert (contains 'foo.txt' (directory_stat '.')))))
+		
+@ports_hook("open_file")
+function open_file(file_name) {
+	
+}
