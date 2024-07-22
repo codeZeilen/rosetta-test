@@ -1,5 +1,8 @@
 (begin
 
+    ;
+    ; Standard library
+    ;
     (define (reverse lst)
         (define (reverse-help lst res)
             (if (null? lst) res
@@ -42,7 +45,14 @@
                 (in? (cdr lst) (car lst)) 
                 #f
                 (unique-list? (cdr lst)))))
-                
+
+    ;
+    ; PORTS objects
+    ;
+
+    ; Spec
+    ;
+
     (define (spec spec-name spec-version spec-sources spec-contents) (
         list 
             spec-name 
@@ -62,6 +72,9 @@
     (define (sources source-triples) (
         list 'sources source-triples))
 
+    ; Placeholder 
+    ;
+
     (define placeholder (lambda placeholder-specs (
         let 
             ((placeholder-spec (car placeholder-specs)) 
@@ -72,6 +85,9 @@
                 (car placeholder-spec)
                 (cdr placeholder-spec)
                 placeholder-docstring))))
+
+    ; Capability 
+    ;
 
     (define (capability name contents) (let
         ((new-capability (list 
@@ -143,6 +159,9 @@
             (capability-run-tearDowns (capability-parent capability))
             '())))
 
+    ; Test 
+    ;
+
     (define (test name test-fn) (list
         'test 
         name 
@@ -161,6 +180,9 @@
                 (raise e)))
             (lambda () ((test-fn test))))
         (capability-run-tearDowns (test-capability test))))
+
+    ; Setup/tearDown 
+    ;
 
     (define (setup setup-fn) (list
         'setup
