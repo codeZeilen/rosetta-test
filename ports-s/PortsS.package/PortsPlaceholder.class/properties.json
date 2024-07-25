@@ -1,0 +1,16 @@
+{
+	"category" : "PortsS",
+	"classinstvars" : [
+		 ],
+	"classvars" : [
+		 ],
+	"commentStamp" : "",
+	"instvars" : [
+		"placeholderName",
+		"parameters",
+		"docString" ],
+	"name" : "PortsPlaceholder",
+	"pools" : [
+		 ],
+	"super" : "PortsFunction",
+	"type" : "normal" }

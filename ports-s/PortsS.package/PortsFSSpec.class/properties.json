@@ -1,0 +1,14 @@
+{
+	"category" : "PortsS",
+	"classinstvars" : [
+		 ],
+	"classvars" : [
+		 ],
+	"commentStamp" : "",
+	"instvars" : [
+		 ],
+	"name" : "PortsFSSpec",
+	"pools" : [
+		 ],
+	"super" : "PortsSpec",
+	"type" : "normal" }

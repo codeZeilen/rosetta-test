@@ -1,0 +1,15 @@
+{
+	"category" : "PortsS",
+	"classinstvars" : [
+		 ],
+	"classvars" : [
+		 ],
+	"commentStamp" : "",
+	"instvars" : [
+		"function",
+		"env" ],
+	"name" : "PortsFunction",
+	"pools" : [
+		 ],
+	"super" : "Object",
+	"type" : "normal" }

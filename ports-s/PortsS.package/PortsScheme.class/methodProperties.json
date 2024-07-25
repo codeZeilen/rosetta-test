@@ -2,7 +2,11 @@
 	"class" : {
 		 },
 	"instance" : {
+		"=" : "pre 7/25/2024 15:44",
 		"assert:" : "pre 7/25/2024 14:49",
 		"assertEqual:" : "pre 7/25/2024 14:50",
-		"createPlaceholder:" : "pre 7/25/2024 14:44",
-		"isPlaceholderP:" : "pre 7/25/2024 14:49" } }
+		"begin:" : "pre 7/25/2024 15:38",
+		"createPlaceholder:" : "pre 7/25/2024 15:42",
+		"isPlaceholderP:" : "pre 7/25/2024 15:49",
+		"listSetD:" : "pre 7/25/2024 15:48",
+		"nullP:" : "pre 7/25/2024 15:43" } }

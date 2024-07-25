@@ -1,4 +1,7 @@
 LISP-functions-ports
 createPlaceholder: aConsCell
 
-	self shouldBeImplemented
+	^ PortsPlaceholder new
+		placeholderName: aConsCell first;
+		parameters: aConsCell second;
+		docString: aConsCell third
