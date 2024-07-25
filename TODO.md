@@ -17,6 +17,7 @@
   - cons: Less accessible
   - pro: Can make implementing tools easier, probably more efficient
  - Ensure R7RS-small compatibility!
+    - requires pattern matching and syntax-rules, with those we can get some code from the R7RS spec
 
 ## Long-term Challenges
  - Can we do an LSP in lispy?

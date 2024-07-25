@@ -3,6 +3,7 @@
     ;
     ; Standard library
     ;
+
     (define (reverse lst)
         (define (reverse-help lst res)
             (if (null? lst) res
@@ -36,14 +37,14 @@
     (define (in? list element)
         (fold-right 
             (lambda (x y) (or x y)) 
-            #f 
+            false 
             (map (lambda (x) (= x element)) list)))
 
     (define (unique-list? lst)
-        (if (null? lst) #t
+        (if (null? lst) true
             (if 
                 (in? (cdr lst) (car lst)) 
-                #f
+                false
                 (unique-list? (cdr lst)))))
 
     (define (empty? lst)

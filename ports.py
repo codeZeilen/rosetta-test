@@ -86,7 +86,9 @@ class PortsSuite(object):
             "create-placeholder": create_placeholder,
             "is-placeholder?": lambda x: isinstance(x, Placeholder),
             "assert": ports_assert,
-            "assert-equal": ports_assert_eq
+            "assert-equal": ports_assert_eq,
+            "true": True,
+            "false": False,
         })
 
     def initialize_ports(self):
