@@ -1,0 +1,16 @@
+{
+	"category" : "PortsS",
+	"classinstvars" : [
+		 ],
+	"classvars" : [
+		 ],
+	"commentStamp" : "",
+	"instvars" : [
+		"scheme",
+		"spec",
+		"portsEnvironment" ],
+	"name" : "PortsSpec",
+	"pools" : [
+		 ],
+	"super" : "Object",
+	"type" : "normal" }
