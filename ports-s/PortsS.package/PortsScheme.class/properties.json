@@ -1,0 +1,14 @@
+{
+	"category" : "PortsS",
+	"classinstvars" : [
+		 ],
+	"classvars" : [
+		 ],
+	"commentStamp" : "",
+	"instvars" : [
+		 ],
+	"name" : "PortsScheme",
+	"pools" : [
+		 ],
+	"super" : "SScheme",
+	"type" : "normal" }
