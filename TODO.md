@@ -17,6 +17,7 @@
   - cons: Less accessible
   - pro: Can make implementing tools easier, probably more efficient
  - Ensure R7RS-small compatibility!
+  - define-syntax, syntax-rules, `...`
 
 ## Long-term Challenges
  - Can we do an LSP in lispy?
