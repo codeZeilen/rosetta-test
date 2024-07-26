@@ -6,8 +6,9 @@
 		 ],
 	"commentStamp" : "",
 	"instvars" : [
-		"topEnvironment" ],
-	"name" : "PortsScheme",
+		"bindings",
+		"parent" ],
+	"name" : "PortsSchemeEnv",
 	"pools" : [
 		 ],
 	"super" : "Object",

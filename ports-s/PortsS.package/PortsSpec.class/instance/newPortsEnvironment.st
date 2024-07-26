@@ -1,15 +1,15 @@
-accessing
+private-ports
 newPortsEnvironment
 
 	| newEnvironment |
-	newEnvironment := LK1Environment new
-		parent: self scheme topmostLisp lispEnvironment;
+	newEnvironment := PortsSchemeEnv new
+		parent: self scheme topEnvironment;
 		yourself.
 		
 	self schemeEval: self portsLibrarySource in: newEnvironment.
 	
 	newEnvironment 
-		addSymbolValue: #true -> true;
-		addSymbolValue: #false -> false.
+		at: #true put: true;
+		at: #false put: false.
 	
 	^ newEnvironment

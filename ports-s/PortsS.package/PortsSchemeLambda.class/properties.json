@@ -6,8 +6,10 @@
 		 ],
 	"commentStamp" : "",
 	"instvars" : [
-		"topEnvironment" ],
-	"name" : "PortsScheme",
+		"params",
+		"body",
+		"env" ],
+	"name" : "PortsSchemeLambda",
 	"pools" : [
 		 ],
 	"super" : "Object",

@@ -1,0 +1,13 @@
+{
+	"class" : {
+		 },
+	"instance" : {
+		"at:" : "pre 7/26/2024 15:38",
+		"at:put:" : "pre 7/26/2024 15:40",
+		"bindings:" : "pre 7/26/2024 15:27",
+		"findEnvFor:" : "pre 7/26/2024 15:41",
+		"initialize" : "pre 7/26/2024 16:22",
+		"keyError:" : "pre 7/26/2024 15:39",
+		"parent" : "pre 7/26/2024 15:26",
+		"parent:" : "pre 7/26/2024 15:26",
+		"unset:" : "pre 7/26/2024 15:40" } }

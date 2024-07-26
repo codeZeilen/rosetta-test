@@ -7,8 +7,12 @@
 	"commentStamp" : "",
 	"instvars" : [
 		"scheme",
-		"spec",
-		"portsEnvironment" ],
+		"portsEnvironment",
+		"rootCapability",
+		"version",
+		"specName",
+		"sources",
+		"placeholders" ],
 	"name" : "PortsSpec",
 	"pools" : [
 		 ],
