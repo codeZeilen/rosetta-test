@@ -209,7 +209,7 @@ def add_globals(self):
      'error':lambda err_msg: primitive_error(err_msg),
      'raise':lambda err: primitive_raise(err),
      'with-exception-handler': lambda handler_fn, thunk_fn: primitive_error_handler(handler_fn, thunk_fn),
-
+     'string-append': op.add,
      'null?':lambda x:x==[], 'symbol?':lambda x: isa(x, Symbol),
      'boolean?':lambda x: isa(x, bool), 'pair?':is_pair, 
      'port?': lambda x:isa(x,file), 'apply':lambda proc,l: proc(*l), 

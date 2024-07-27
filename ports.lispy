@@ -60,15 +60,17 @@
     ; Spec
     ;
 
-    (define (spec spec-name spec-version spec-sources spec-contents) (
-        list 
+    (define (spec spec-name spec-version spec-sources spec-contents) (let 
+        ((root-capability (capability 
+                "root"
+                (filter (lambda (e) (not (is-placeholder? e))) spec-contents))))
+        (capability-set-children-parent! root-capability)
+        (list
             spec-name 
             spec-version 
             spec-sources
             (filter is-placeholder? spec-contents) ; placeholder
-            (capability 
-                "root"
-                (filter (lambda (e) (not (is-placeholder? e))) spec-contents))))
+            root-capability)))
     
     (define (is-capability? element) (= 'capability (car element)))
     (define (is-test? element) (= 'test (car element)))
@@ -114,7 +116,12 @@
         (if (not (unique-list? (map test-name (capability-tests new-capability))))
             (raise (error "test names must be unique")))
         (if (not (unique-list? (map capability-name (capability-child-capabilities new-capability))))
-            (raise (error "capability names must be unique")))
+            (raise (error 
+                (fold-left 
+                    (lambda (acc capability) 
+                        (string-append acc (capability-name capability) " "))
+                    "capability names must be unique:"
+                    (capability-child-capabilities new-capability)))))
         (for-each
             verify-unique-names 
             (capability-child-capabilities new-capability))))
@@ -136,12 +143,12 @@
         (list-set! capability 6 parent-capability))
     (define (capability-all-tests capability) (fold-left 
         (lambda (acc child-capability) 
-            (+ acc (capability-all-tests child-capability))) 
+            (append acc (capability-all-tests child-capability))) 
         (capability-tests capability) 
         (capability-child-capabilities capability)))
         
     (define (capability-run capability) (begin ; add setup/teardown
-        (display (+ (+ "running capability: " (capability-name capability)) "\n"))
+        (display (string-append (string-append "running capability: " (capability-name capability)) "\n"))
         (capability-run-tests capability)
         (capability-run-child-capabilities capability)))
 
