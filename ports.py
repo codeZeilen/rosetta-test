@@ -143,7 +143,6 @@ class PortsSuite(object):
             "root-capability": self.root_capability,
             "test-file": None, # TODO: this should be done by the spec
         })
-        self.eval("(capability-set-children-parent! root-capability)")
         tests = self.eval("(capability-all-tests root-capability)")
         
         test_suite = unittest.TestSuite()
