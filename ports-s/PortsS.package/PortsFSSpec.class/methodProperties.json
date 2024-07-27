@@ -2,4 +2,13 @@
 	"class" : {
 		 },
 	"instance" : {
-		"specSource" : "pre 7/25/2024 15:10" } }
+		"closeFile:env:" : "pre 7/27/2024 16:48",
+		"createTestFile:content:env:" : "pre 7/27/2024 16:50",
+		"flushFile:env:" : "pre 7/27/2024 16:49",
+		"isFileDescriptor:env:" : "pre 7/27/2024 16:49",
+		"isFileError:env:" : "pre 7/27/2024 16:50",
+		"openFile:mode:env:" : "pre 7/27/2024 16:40",
+		"readFile:length:env:" : "pre 7/27/2024 16:49",
+		"removeTestFile:env:" : "pre 7/27/2024 16:50",
+		"specSource" : "pre 7/25/2024 15:10",
+		"writeFile:content:env:" : "pre 7/27/2024 16:49" } }
