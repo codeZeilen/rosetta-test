@@ -69,12 +69,7 @@ class PortsSuite(object):
         with open(file_name, "r") as file:
             self.suite = self.eval(file.read())
         
-        self.suite_name, self.suite_version, self.sources, self.placeholders, capabilities, setup, tear_down = self.suite
-        self.root_capability = self.eval(
-            '(capability "root" root-contents)',
-            lispy.Env((lispy.Sym("root-contents"),), 
-                      ((setup + tear_down + capabilities),), 
-                      outer=self.lispy_env))
+        self.suite_name, self.suite_version, self.sources, self.placeholders, self.root_capability = self.suite
 
     def eval(self, code, env=None):
         if not env:

@@ -66,10 +66,9 @@
             spec-version 
             spec-sources
             (filter is-placeholder? spec-contents) ; placeholder
-            (filter is-capability? spec-contents) ; capabilities
-            (filter is-setup? spec-contents) ; global setup
-            (filter is-tearDown? spec-contents) ; global tearDown))
-    ))
+            (capability 
+                "root"
+                (filter (lambda (e) (not (is-placeholder? e))) spec-contents))))
     
     (define (is-capability? element) (= 'capability (car element)))
     (define (is-test? element) (= 'test (car element)))
