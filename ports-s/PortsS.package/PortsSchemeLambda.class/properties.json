@@ -8,7 +8,8 @@
 	"instvars" : [
 		"params",
 		"body",
-		"env" ],
+		"env",
+		"interpreter" ],
 	"name" : "PortsSchemeLambda",
 	"pools" : [
 		 ],

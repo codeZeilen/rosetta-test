@@ -1,4 +1,4 @@
-accessing
+private
 bindings: dictLike
 
-	bindings := dictLike asDictionary.
+	bindings := IdentityDictionary newFrom: dictLike.

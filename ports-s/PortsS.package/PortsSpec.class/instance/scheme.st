@@ -1,4 +1,4 @@
 private-scheme-evaluation
 scheme
 
-	^ scheme ifNil: [PortsScheme new]
+	^ scheme ifNil: [scheme := PortsScheme new]

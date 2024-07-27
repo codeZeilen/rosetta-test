@@ -1,4 +1,4 @@
 LISP-functions-ports
-nullP: aConsCell
+nullP: args
 
-	^ aConsCell first isNil
+	^ args first isNil or: [args isCollection and: [args isEmpty]]

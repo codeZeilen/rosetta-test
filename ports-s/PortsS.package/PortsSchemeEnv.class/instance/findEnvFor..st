@@ -1,4 +1,4 @@
-as yet unclassified
+private
 findEnvFor: aSymbol
 
 	^ (bindings includesKey: aSymbol) 

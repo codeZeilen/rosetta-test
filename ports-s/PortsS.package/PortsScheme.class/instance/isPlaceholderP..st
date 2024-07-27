@@ -1,4 +1,4 @@
 LISP-functions-ports
-isPlaceholderP: aConsCell
+isPlaceholderP: args
 
-	^ aConsCell first isKindOf: PortsPlaceholder
+	^ args first isKindOf: PortsPlaceholder

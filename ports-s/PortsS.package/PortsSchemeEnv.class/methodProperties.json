@@ -4,10 +4,11 @@
 	"instance" : {
 		"at:" : "pre 7/26/2024 15:38",
 		"at:put:" : "pre 7/26/2024 15:40",
-		"bindings:" : "pre 7/26/2024 15:27",
+		"bindings:" : "pre 7/27/2024 14:45",
 		"findEnvFor:" : "pre 7/26/2024 15:41",
 		"initialize" : "pre 7/26/2024 16:22",
 		"keyError:" : "pre 7/26/2024 15:39",
 		"parent" : "pre 7/26/2024 15:26",
 		"parent:" : "pre 7/26/2024 15:26",
+		"setBindingsFor:to:" : "pre 7/27/2024 14:50",
 		"unset:" : "pre 7/26/2024 15:40" } }
