@@ -3,7 +3,6 @@
 ## Steps
  - Fill basic placeholders for current state of SMTP suite to check whether the current setup makes any sense or needs to much hidden state
  - In Ports-S:
-  - implement macro expand
   - implement placeholders for file ops
   - implement run
 
