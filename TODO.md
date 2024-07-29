@@ -2,6 +2,7 @@
 
 ## Steps
  - Fill basic placeholders for current state of SMTP suite to check whether the current setup makes any sense or needs to much hidden state
+  - implement cooperative ending of server loop, as terminating a thread does not seem to be a universal feature -.-'
  - In Ports-S:
   - implement placeholders for file ops
   - implement run

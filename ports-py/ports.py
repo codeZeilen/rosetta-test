@@ -1,5 +1,6 @@
 import lispy
 import unittest
+import threading
 
 class TestPortsUnittestContainer(unittest.TestCase):
     pass
@@ -58,6 +59,15 @@ def ports_assert(value):
 def ports_assert_eq(expected, actual):
     assert expected == actual, f"{expected} != {actual}"
 
+def ports_thread(proc):
+    "TODO: This requires that envs are thread-safe. This is not the case in the current implementation"
+    thread = threading.Thread(target=proc)
+    thread.daemon = True
+    thread.start()
+    return thread
+
+def ports_thread_kill(thread: threading.Thread):
+    thread.terminate()
 
 class PortsSuite(object):
 
@@ -84,6 +94,7 @@ class PortsSuite(object):
             "assert-equal": ports_assert_eq,
             "true": True,
             "false": False,
+            "thread": ports_thread,
         })
 
     def initialize_ports(self):
@@ -117,8 +128,8 @@ class PortsSuite(object):
     def ensure_placeholders_are_valid(self):
         invalid_placeholders = [placeholder for placeholder in self.placeholders if not placeholder.is_valid()]
         if invalid_placeholders:
-            invalid_placeholder_list = "\n".join([placeholder.name for placeholder in invalid_placeholders])
-            raise Exception(f"Invalid placeholders: {invalid_placeholder_list}")
+            invalid_placeholder_list = "\n".join([("- " + placeholder.name) for placeholder in invalid_placeholders])
+            raise Exception(f"Invalid placeholders:\n{invalid_placeholder_list}")
             
     def install_placeholders(self):
         for placeholder in self.placeholders:

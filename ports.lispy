@@ -72,13 +72,13 @@
             (filter is-placeholder? spec-contents) ; placeholder
             root-capability)))
     
-    (define (is-capability? element) (= 'capability (car element)))
-    (define (is-test? element) (= 'test (car element)))
-    (define (is-setup? element) (= 'setup (car element)))
-    (define (is-tearDown? element) (= 'tearDown (car element)))
+    (define (is-capability? element) (and (list? element) (= 'capability (car element))))
+    (define (is-test? element) (and (list? element) (= 'test (car element))))
+    (define (is-setup? element) (and (list? element) (= 'setup (car element))))
+    (define (is-tearDown? element) (and (list? element) (= 'tearDown (car element))))
 
-    (define (sources source-triples) (
-        list 'sources source-triples))
+    (define sources (lambda source-triples (
+        list 'sources source-triples)))
 
     ; Placeholder 
     ;

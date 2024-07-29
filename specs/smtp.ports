@@ -8,38 +8,58 @@
     
     (list 
 
-        (placeholder '(create-socket) "Create a local network socket for the server to communicate through")
-        (placeholder '(socket-read socket) "Read trimmed data from socket")
+        (placeholder '(create-socket) "Create a local network socket for the server to communicate through (it should already listen for new connections)")
+        (placeholder '(socket-receive socket) "Read trimmed data from socket")
         (placeholder '(socket-write socket data) "Write data to socket")
+        (placeholder '(socket-port socket) "Return the port of the socket")
+        (placeholder '(socket-accept socket) "Accept a new connection on the socket")
 
         (placeholder '(smtp-connect host port) "Should connect and return some representation of the connection")
 
         (define server '())
-        (define (server-port server) (list-ref server 1))
-        (define (start-mock-server) ; should return the port number
+        (define (server-thread server) (list-ref server 1))
+        (define (server-port server) (socket-port (list-ref server 2)))
+        (define (create-server thread port) (list 'server thread port))
+        (define (start-mock-server) ; should return a server object
             (let 
                 ((socket (create-socket)))
-                (list (thread (lambda () (mock-smtp-server socket))) socket)))
+                (display "start server")
+                (create-server 
+                    (thread (lambda () (mock-smtp-server socket)))
+                    socket)))
+        (define (stop-mock-server) (thread-kill (server-thread server)))
 
-        (define (mock-smtp-server)
+        (define (mock-smtp-server socket)
             (begin
-                (define (ehlo answer) (socket-write socket (string-append "220 " answer))) ; not correct yet
+                (display "mock server start")
+                (define (ehlo answer) (socket-write connection (string-append "220 " answer))) ; not correct yet
+                (define connection '())
+                (define (init) (set! connection (socket-accept socket)))
                 (define (loop) (let 
-                    ((data (socket-read socket)))
-                    (cond 
-                        ((empty-or-null? data) (loop))
-                        ((= data "EHLO") (ehlo (list-ref (string-split data) 1)))
-                        (else (loop)))))))
+                    ((data "testfoo")) ;(socket-receive connection)
+                    (display "loop")
+                    (ehlo "localhost")
+                    (loop)))
+                    ;(cond 
+                    ;    ((empty-or-null? data) (loop))
+                    ;    ((= data "EHLO") (ehlo (list-ref (string-split data) 1)))
+                    ;    (else (loop)))))
+                (display connection)
+                (init)
+                (display "mock server init done")
+                (display connection)
+                (loop)))
+
+        (setup (lambda () (begin 
+            (set! server (start-mock-server)))))
+
+        (tearDown (lambda () (begin 
+                    (stop-mock-server))))
             
         (capability 'connection 
             (list
-                (setup (lambda () (begin 
-                    (set! server (start-mock-server)))))
-
-                (tearDown (lambda () (begin 
-                    (stop-mock-server))))
-
                 (test "Connect to server" (lambda () (begin 
+                    (display "start test")
                     (smtp-connect "localhost" (server-port server)))))))   
     )
 )
