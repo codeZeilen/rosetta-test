@@ -15,11 +15,14 @@
         (placeholder '(socket-accept socket) "Accept a new connection on the socket")
 
         (placeholder '(smtp-connect host port) "Should connect and return some representation of the connection")
+        (placeholder '(smtp-ehlo content connection) "Send an EHLO command to the server")
 
         (define server '())
         (define (server-thread server) (list-ref server 1))
         (define (server-port server) (socket-port (list-ref server 2)))
-        (define (create-server thread port) (list 'server thread port))
+        (define (server-stopped? server) (list-ref server 3))
+        (define (server-stop server) (list-set! server 3 #t))
+        (define (create-server thread port) (list 'server thread port #f))
         (define (start-mock-server) ; should return a server object
             (let 
                 ((socket (create-socket)))
@@ -27,39 +30,62 @@
                 (create-server 
                     (thread (lambda () (mock-smtp-server socket)))
                     socket)))
-        (define (stop-mock-server) (thread-kill (server-thread server)))
+        (define (stop-mock-server) (server-stop server))
 
         (define (mock-smtp-server socket)
             (begin
                 (display "mock server start")
-                (define (ehlo answer) (socket-write connection (string-append "220 " answer))) ; not correct yet
                 (define connection '())
-                (define (init) (set! connection (socket-accept socket)))
+                (define (init) (begin 
+                    (set! connection (socket-accept socket)) 
+                    (socket-write connection "220 OK\r\n")))
                 (define (loop) (let 
-                    ((data "testfoo")) ;(socket-receive connection)
+                    ((data (socket-receive connection)))
                     (display "loop")
                     (ehlo "localhost")
-                    (loop)))
+                    (if (server-stopped? server)
+                        (begin 
+                            (display "stop server")
+                            (socket-close connection)
+                            (socket-close socket))
+                        (loop))))
                     ;(cond 
                     ;    ((empty-or-null? data) (loop))
                     ;    ((= data "EHLO") (ehlo (list-ref (string-split data) 1)))
                     ;    (else (loop)))))
-                (display connection)
+                (define (ehlo answer) (socket-write connection (string-append "220 " (string-append answer "\r\n")))) ; not correct yet
+
                 (init)
-                (display "mock server init done")
-                (display connection)
                 (loop)))
 
         (setup (lambda () (begin 
             (set! server (start-mock-server)))))
 
         (tearDown (lambda () (begin 
-                    (stop-mock-server))))
-            
+            (stop-mock-server))))
+
+
         (capability 'connection 
             (list
                 (test "Connect to server" (lambda () (begin 
                     (display "start test")
-                    (smtp-connect "localhost" (server-port server)))))))   
+                    (smtp-connect "localhost" (server-port server)))))))
+
+        (capability 'ehlo 
+            (list
+                (setup (lambda () (begin 
+                    (display "setup")
+                    (define smtp-server (smtp-connect "localhost" (server-port server))))))
+
+                (tearDown (lambda () (begin 
+                    (variable-unset! smtp-server))))
+
+                (test "Basic ehlo" (lambda () (begin 
+                    (display "basic ehlo")
+                    (smtp-ehlo "" smtp-server))))
+                    
+                (test "ehlo with content" (lambda () (begin 
+                    (display "content ehlo")
+                    (smtp-ehlo "ehlocontent" smtp-server))))))
     )
 )

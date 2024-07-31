@@ -41,11 +41,15 @@ def socket_read(env, socket):
 
 @smtp_suite.placeholder("socket-write")
 def socket_write(env, socket, content):
-    socket.sendall(content.encode(encoding="utf-8"))
+    socket.sendall(content.encode(encoding="ascii"))
 
 @smtp_suite.placeholder("smtp-connect")
 def smtp_connect(env, host, port):
     return smtplib.SMTP(host, port)
+
+@smtp_suite.placeholder("smtp-ehlo")
+def smtp_ehlo(env, content, smtp):
+    return smtp.ehlo(content)
 
 @smtp_suite.tearDown()
 def tear_down(env):

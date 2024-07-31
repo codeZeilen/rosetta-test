@@ -67,7 +67,7 @@ def ports_thread(proc):
     return thread
 
 def ports_thread_kill(thread: threading.Thread):
-    thread.terminate()
+    pass
 
 class PortsSuite(object):
 
@@ -95,6 +95,7 @@ class PortsSuite(object):
             "true": True,
             "false": False,
             "thread": ports_thread,
+            "kill-thread": ports_thread_kill,
         })
 
     def initialize_ports(self):
