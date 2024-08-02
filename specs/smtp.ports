@@ -13,9 +13,12 @@
         (placeholder '(socket-write socket data) "Write data to socket")
         (placeholder '(socket-port socket) "Return the port of the socket")
         (placeholder '(socket-accept socket) "Accept a new connection on the socket")
+        (placeholder '(socket-close socket) "Close the socket")
 
         (placeholder '(smtp-connect host port) "Should connect and return some representation of the connection")
         (placeholder '(smtp-ehlo content connection) "Send an EHLO command to the server")
+        (placeholder '(smtp-response-code response) "Return the response code from the server")
+        (placeholder '(smtp-response-message response) "Return the response message from the server")
 
         (define server '())
         (define (server-thread server) (list-ref server 1))
@@ -27,10 +30,13 @@
             (let 
                 ((socket (create-socket)))
                 (display "start server")
+                (display socket)
                 (create-server 
                     (thread (lambda () (mock-smtp-server socket)))
                     socket)))
-        (define (stop-mock-server) (server-stop server))
+        (define (stop-mock-server) (begin
+            (server-stop server)
+            (thread-wait-for-completion (server-thread server))))
 
         (define (mock-smtp-server socket)
             (begin
@@ -39,31 +45,43 @@
                 (define (init) (begin 
                     (set! connection (socket-accept socket)) 
                     (socket-write connection "220 OK\r\n")))
+                (define (close-sockets) (begin 
+                    (socket-close connection)
+                    (socket-close socket)))
+                (define (handle data) (begin
+                    (let
+                        ((command (string-upcase (car (string-split data " "))))
+                         (args (cdr (string-split data " "))))
+                        (display command)
+                        (display args)
+                        (cond 
+                            ((= command "EHLO") (ehlo (car args)))
+                            (else (loop))))))
                 (define (loop) (let 
                     ((data (socket-receive connection)))
                     (display "loop")
-                    (ehlo "localhost")
-                    (if (server-stopped? server)
-                        (begin 
-                            (display "stop server")
-                            (socket-close connection)
-                            (socket-close socket))
-                        (loop))))
-                    ;(cond 
-                    ;    ((empty-or-null? data) (loop))
-                    ;    ((= data "EHLO") (ehlo (list-ref (string-split data) 1)))
-                    ;    (else (loop)))))
-                (define (ehlo answer) (socket-write connection (string-append "220 " (string-append answer "\r\n")))) ; not correct yet
+                    (if (empty? data)
+                        (close-sockets)
+                        (begin
+                            (handle data)
+                            (if (server-stopped? server)
+                                (close-sockets)
+                                (loop))))))
+                    
+                (define (ehlo answer) 
+                    (socket-write 
+                        connection 
+                        (string-append "220 " (string-append answer "\r\n"))))
 
                 (init)
                 (loop)))
 
         (setup (lambda () (begin 
+            (display "global setup")
             (set! server (start-mock-server)))))
 
         (tearDown (lambda () (begin 
             (stop-mock-server))))
-
 
         (capability 'connection 
             (list
@@ -73,12 +91,15 @@
 
         (capability 'ehlo 
             (list
+                (define smtp-server '())
+
                 (setup (lambda () (begin 
                     (display "setup")
-                    (define smtp-server (smtp-connect "localhost" (server-port server))))))
+                    (set! smtp-server (smtp-connect "localhost" (server-port server)))
+                    )))
 
                 (tearDown (lambda () (begin 
-                    (variable-unset! smtp-server))))
+                    (set! smtp-server '()))))
 
                 (test "Basic ehlo" (lambda () (begin 
                     (display "basic ehlo")
@@ -86,6 +107,15 @@
                     
                 (test "ehlo with content" (lambda () (begin 
                     (display "content ehlo")
-                    (smtp-ehlo "ehlocontent" smtp-server))))))
+                    (let
+                        ((ehlo-response (smtp-ehlo "ehlocontent" smtp-server)))
+                        (assert-equal
+                            220
+                            (smtp-response-code ehlo-response))
+                        (assert-equal
+                            "ehlocontent"
+                            (smtp-response-message ehlo-response))
+                        ))))
+                ))
     )
 )

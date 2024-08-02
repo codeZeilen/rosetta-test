@@ -32,16 +32,23 @@ def socket_accept(env, server_socket: socketlib.socket):
 @smtp_suite.placeholder("socket-port")
 def socket_port(env, socket):
     "Return the port number of the socket"
+    assert socket.fileno() != -1 # Socket not closed
     return socket.getsockname()[1]
 
 @smtp_suite.placeholder("socket-receive")
 def socket_read(env, socket):
     "Read from the socket"
-    return socket.recv(4096)
+    assert socket.fileno() != -1 # Socket not closed
+    return socket.recv(4096).decode(encoding="ascii")
 
 @smtp_suite.placeholder("socket-write")
-def socket_write(env, socket, content):
+def socket_write(env, socket: socketlib.socket, content):
+    assert socket.fileno() != -1 # Socket not closed
     socket.sendall(content.encode(encoding="ascii"))
+    
+@smtp_suite.placeholder("socket-close")
+def socket_close(env, socket):
+    socket.close()
 
 @smtp_suite.placeholder("smtp-connect")
 def smtp_connect(env, host, port):
@@ -50,6 +57,14 @@ def smtp_connect(env, host, port):
 @smtp_suite.placeholder("smtp-ehlo")
 def smtp_ehlo(env, content, smtp):
     return smtp.ehlo(content)
+
+@smtp_suite.placeholder("smtp-response-code")
+def smtp_response_code(env, smtp_response):
+    return smtp_response[0]
+
+@smtp_suite.placeholder("smtp-response-message")
+def smtp_response_message(env, smtp_response):
+    return (smtp_response[1]).decode(encoding="ascii")
 
 @smtp_suite.tearDown()
 def tear_down(env):

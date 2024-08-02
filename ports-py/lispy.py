@@ -8,6 +8,7 @@
 from __future__ import division
 import re, sys, io 
 from contextlib import redirect_stdout
+import threading
 
 class Symbol(str): pass
 
@@ -145,22 +146,46 @@ class Env(dict):
             if len(args) != len(parms):
                 raise ArgumentError(f'expected {parms}, given {args}, ')
             self.update(zip(parms,args))
+
+        self.lock = threading.Lock()
+        
+    def __getitem__(self, key):
+        self.lock.acquire()
+        try:
+            return super().__getitem__(key)
+        finally:
+            self.lock.release()
+            
+    def __setitem__(self, key, value):
+        self.lock.acquire()
+        try:
+            super().__setitem__(key, value)
+        finally:
+            self.lock.release()
     
     def find(self, var):
         "Find the innermost Env where var appears."
-        if var in self: 
-            return self
-        elif self.outer is None: 
-            raise LookupError(var)
-        else: 
-            return self.outer.find(var)
+        self.lock.acquire()
+        try:
+            if var in self: 
+                return self
+            elif self.outer is None: 
+                raise LookupError(var)
+            else: 
+                return self.outer.find(var)
+        finally:
+            self.lock.release()
         
     def unset(self, var):
         "Unset a variable in the current environment."
-        if var in self: 
-            del self[var]
-        else: 
-            raise LookupError(var)
+        self.lock.acquire()
+        try:
+            if var in self: 
+                del self[var]
+            else: 
+                raise LookupError(var)
+        finally:
+            self.lock.release()
         
     def __str__(self) -> str:
         if self.outer is None:
@@ -209,7 +234,9 @@ def add_globals(self):
      'error':lambda err_msg: primitive_error(err_msg),
      'raise':lambda err: primitive_raise(err),
      'with-exception-handler': lambda handler_fn, thunk_fn: primitive_error_handler(handler_fn, thunk_fn),
-     'string-append': op.add,
+     'string-append': op.add, 'char-whitespace?': lambda x: x.isspace(),
+     'string-split': lambda s,sep: str(s).split(sep), 
+     'string-upcase': lambda s: str(s).upper(), 'string-downcase': lambda s: str(s).lower(),
      'null?':lambda x:x==[], 'symbol?':lambda x: isa(x, Symbol),
      'boolean?':lambda x: isa(x, bool), 'pair?':is_pair, 
      'port?': lambda x:isa(x,file), 'apply':lambda proc,l: proc(*l), 

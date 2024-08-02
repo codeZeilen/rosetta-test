@@ -69,6 +69,10 @@ def ports_thread(proc):
 def ports_thread_kill(thread: threading.Thread):
     pass
 
+def ports_thread_join(thread: threading.Thread):
+    thread.join()
+    print("thread joined")
+
 class PortsSuite(object):
 
     # TODO: Consider simplyfing the macros to just add to a single list of annotations and extract the relevant parts afterwards (using functions written in ports)
@@ -95,7 +99,7 @@ class PortsSuite(object):
             "true": True,
             "false": False,
             "thread": ports_thread,
-            "kill-thread": ports_thread_kill,
+            "thread-wait-for-completion": ports_thread_join,
         })
 
     def initialize_ports(self):
