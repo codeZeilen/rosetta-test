@@ -216,6 +216,12 @@ def primitive_error_handler(handler_fn, thunk_fn):
         return thunk_fn()
     except Exception as e:
         return handler_fn(e)
+    
+def primitive_string_index(astring, substring):
+    try:
+        return astring.index(substring)
+    except:
+        return False
 
 def add_globals(self):
     "Add some Scheme standard procedures."
@@ -235,8 +241,10 @@ def add_globals(self):
      'raise':lambda err: primitive_raise(err),
      'with-exception-handler': lambda handler_fn, thunk_fn: primitive_error_handler(handler_fn, thunk_fn),
      'string-append': op.add, 'char-whitespace?': lambda x: x.isspace(),
-     'string-split': lambda s,sep: str(s).split(sep), 
+     'string-split': lambda s,sep: str(s).split(sep), 'string-replace': lambda old,new,s: str(s).replace(old,new),
+     'string-index': primitive_string_index,
      'string-upcase': lambda s: str(s).upper(), 'string-downcase': lambda s: str(s).lower(),
+     'string-trim': lambda s: str(s).strip(), 
      'null?':lambda x:x==[], 'symbol?':lambda x: isa(x, Symbol),
      'boolean?':lambda x: isa(x, bool), 'pair?':is_pair, 
      'port?': lambda x:isa(x,file), 'apply':lambda proc,l: proc(*l), 

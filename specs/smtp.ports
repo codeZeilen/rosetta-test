@@ -4,7 +4,8 @@
 		'("CPython SMTP tests" "Python Foundation" "https://github.com/python/cpython/blob/9ba2a4638d7b620c939face7642b2f53a9fadc4b/Lib/test/test_smtplib.py")
         '("Ruby net-smtp tests" "MRI maintainers" "https://github.com/ruby/net-smtp/blob/master/test/net/smtp/test_smtp.rb")
         '("SMTP RFC 2821" "IETF" "https://tools.ietf.org/html/rfc2821")
-        '("SMTP RFC 5321" "IETF" "https://tools.ietf.org/html/rfc5321"))
+        '("SMTP RFC 5321" "IETF" "https://tools.ietf.org/html/rfc5321")
+        '("SMTP RFC 4954" "IETF" "https://tools.ietf.org/html/rfc4954"))
     
     (list 
 
@@ -23,14 +24,18 @@
         (define server '())
         (define (server-thread server) (list-ref server 1))
         (define (server-port server) (socket-port (list-ref server 2)))
+        (define (server-capabilities server) (list-ref server 4))
+        (define (server-add-capability server capability) 
+            (list-set! 
+                server 
+                4 
+                (cons capability (server-capabilities server))))
         (define (server-stopped? server) (list-ref server 3))
         (define (server-stop server) (list-set! server 3 #t))
-        (define (create-server thread port) (list 'server thread port #f))
+        (define (create-server thread port) (list 'server thread port #f '()))
         (define (start-mock-server) ; should return a server object
             (let 
                 ((socket (create-socket)))
-                (display "start server")
-                (display socket)
                 (create-server 
                     (thread (lambda () (mock-smtp-server socket)))
                     socket)))
@@ -40,7 +45,6 @@
 
         (define (mock-smtp-server socket)
             (begin
-                (display "mock server start")
                 (define connection '())
                 (define (init) (begin 
                     (set! connection (socket-accept socket)) 
@@ -51,15 +55,14 @@
                 (define (handle data) (begin
                     (let
                         ((command (string-upcase (car (string-split data " "))))
-                         (args (cdr (string-split data " "))))
+                         (args (string-trim (list-ref (string-split data " ") 1))))
                         (display command)
                         (display args)
                         (cond 
-                            ((= command "EHLO") (ehlo (car args)))
+                            ((= command "EHLO") (ehlo args))
                             (else (loop))))))
                 (define (loop) (let 
                     ((data (socket-receive connection)))
-                    (display "loop")
                     (if (empty? data)
                         (close-sockets)
                         (begin
@@ -69,15 +72,27 @@
                                 (loop))))))
                     
                 (define (ehlo answer) 
-                    (socket-write 
-                        connection 
-                        (string-append "220 " (string-append answer "\r\n"))))
+                    (define (replace-last list element) (reverse (cons element (cdr (reverse list)))))
+                    (define (list-ref-last list) (car (reverse list)))
+                    (let 
+                        ((answers (fold-left 
+                            (lambda (acc capability)
+                                (append acc (list (string-append "250-" (string-append capability "\r\n")))))
+                            (list (string-append "250-" (string-append answer "\r\n")))
+                            (server-capabilities server))))
+                        (let 
+                            ((answers-text (string-join 
+                                (replace-last 
+                                    answers
+                                    (string-replace "250-" "250 " (list-ref-last answers)))))) 
+                            (socket-write 
+                                connection 
+                                answers-text))))
 
                 (init)
                 (loop)))
 
         (setup (lambda () (begin 
-            (display "global setup")
             (set! server (start-mock-server)))))
 
         (tearDown (lambda () (begin 
@@ -86,36 +101,44 @@
         (capability 'connection 
             (list
                 (test "Connect to server" (lambda () (begin 
-                    (display "start test")
                     (smtp-connect "localhost" (server-port server)))))))
 
-        (capability 'ehlo 
-            (list
-                (define smtp-server '())
+        (capability 'commands (list
+            (define smtp-server '())
 
-                (setup (lambda () (begin 
-                    (display "setup")
-                    (set! smtp-server (smtp-connect "localhost" (server-port server)))
-                    )))
+            (setup (lambda () (begin 
+                (set! smtp-server (smtp-connect "localhost" (server-port server))))))
 
-                (tearDown (lambda () (begin 
-                    (set! smtp-server '()))))
+            (tearDown (lambda () (begin 
+                (set! smtp-server '()))))
 
+            (capability 'ehlo (list
                 (test "Basic ehlo" (lambda () (begin 
-                    (display "basic ehlo")
                     (smtp-ehlo "" smtp-server))))
                     
-                (test "ehlo with content" (lambda () (begin 
-                    (display "content ehlo")
+                (test "ehlo with identifier" (lambda () (begin 
                     (let
-                        ((ehlo-response (smtp-ehlo "ehlocontent" smtp-server)))
+                        ((ehlo-response (smtp-ehlo "553.231.231.234" smtp-server)))
                         (assert-equal
-                            220
+                            250
                             (smtp-response-code ehlo-response))
                         (assert-equal
-                            "ehlocontent"
+                            "553.231.231.234"
                             (smtp-response-message ehlo-response))
                         ))))
+
+                (test "server answers list of capabilities" (lambda () (begin
+                    (server-add-capability server "8BITMIME")
+                    (let
+                        ((ehlo-response (smtp-ehlo "" smtp-server)))
+                        (display ehlo-response)
+                        (assert-equal
+                            250
+                            (smtp-response-code ehlo-response))
+                        (assert
+                            (string-index (smtp-response-message ehlo-response) "8BITMIME"))))))
                 ))
+
+        ))
     )
 )
