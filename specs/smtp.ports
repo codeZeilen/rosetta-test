@@ -113,7 +113,7 @@
                 (set! smtp-server '()))))
 
             (capability 'ehlo (list
-                (test "Basic ehlo" (lambda () (begin 
+                (test "basic ehlo" (lambda () (begin 
                     (smtp-ehlo "" smtp-server))))
                     
                 (test "ehlo with identifier" (lambda () (begin 
