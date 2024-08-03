@@ -60,7 +60,6 @@ def ports_assert_eq(expected, actual):
     assert expected == actual, f"{expected} != {actual}"
 
 def ports_thread(proc):
-    "TODO: This requires that envs are thread-safe. This is not the case in the current implementation"
     thread = threading.Thread(target=proc)
     thread.daemon = True
     thread.start()
@@ -71,7 +70,6 @@ def ports_thread_kill(thread: threading.Thread):
 
 def ports_thread_join(thread: threading.Thread):
     thread.join()
-    print("thread joined")
 
 class PortsSuite(object):
 
@@ -103,7 +101,7 @@ class PortsSuite(object):
         })
 
     def initialize_ports(self):
-        with open("ports.lispy", "r") as file:
+        with open("ports.scm", "r") as file:
             self.eval(file.read())
 
     def placeholder(self, name):

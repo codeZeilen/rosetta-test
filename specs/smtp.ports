@@ -131,7 +131,6 @@
                     (server-add-capability server "8BITMIME")
                     (let
                         ((ehlo-response (smtp-ehlo "" smtp-server)))
-                        (display ehlo-response)
                         (assert-equal
                             250
                             (smtp-response-code ehlo-response))
