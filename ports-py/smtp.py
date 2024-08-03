@@ -12,7 +12,7 @@ def create_socket(env):
     try:
         server_socket = socketlib.socket(socketlib.AF_INET, socketlib.SOCK_STREAM)
         server_socket.setblocking(True)
-        server_socket.bind(("localhost", 0))
+        server_socket.bind(("127.0.0.1", 0))
         server_socket.listen(1)
         sockets.append(server_socket)
         return server_socket
