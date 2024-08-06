@@ -44,6 +44,7 @@ def socket_read(env, socket):
 @smtp_suite.placeholder("socket-write")
 def socket_write(env, socket: socketlib.socket, content):
     assert socket.fileno() != -1 # Socket not closed
+    print("Writing to socket: ", content)
     socket.sendall(content.encode(encoding="ascii"))
     
 @smtp_suite.placeholder("socket-close")
@@ -65,6 +66,10 @@ def smtp_response_code(env, smtp_response):
 @smtp_suite.placeholder("smtp-response-message")
 def smtp_response_message(env, smtp_response):
     return (smtp_response[1]).decode(encoding="ascii")
+
+@smtp_suite.placeholder("smtp-capabilities")
+def smtp_capabilities(env, smtp, ehlo_response):
+    return map(str.strip, smtp_response_message(env, ehlo_response).split("\n")[1:])
 
 @smtp_suite.tearDown()
 def tear_down(env):

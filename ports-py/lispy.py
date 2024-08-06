@@ -244,7 +244,7 @@ def add_globals(self):
      'string-split': lambda s,sep: str(s).split(sep), 'string-replace': lambda old,new,s: str(s).replace(old,new),
      'string-index': primitive_string_index,
      'string-upcase': lambda s: str(s).upper(), 'string-downcase': lambda s: str(s).lower(),
-     'string-trim': lambda s: str(s).strip(), 
+     'string-trim': lambda s: str(s).strip(),'number->string': lambda x: str(x),
      'null?':lambda x:x==[], 'symbol?':lambda x: isa(x, Symbol),
      'boolean?':lambda x: isa(x, bool), 'pair?':is_pair, 
      'port?': lambda x:isa(x,file), 'apply':lambda proc,l: proc(*l), 
