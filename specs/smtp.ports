@@ -20,18 +20,18 @@
         (placeholder '(smtp-ehlo content connection) "Send an EHLO command to the server")
         (placeholder '(smtp-response-code response) "Return the response code from the server")
         (placeholder '(smtp-response-message response) "Return the response message from the server")
-        (placeholder '(smtp-capabilities connection ehlo-response) "Return a list of capabilities of the server, either from the connection or the ehlo response") ; This is already an interesting case, as the capabilities may be derived from only a response or may be a property of the connection object
+        (placeholder '(smtp-extensions connection ehlo-response) "Return a list of extensions of the server, either from the connection or the ehlo response") ; This is already an interesting case, as the extensions may be derived from only a response or may be a property of the connection object
 
         (define server '())
         (define (server-thread server) (list-ref server 1))
         (define (server-port server) (socket-port (list-ref server 2)))
-        (define (server-capabilities server) (list-ref server 4))
+        (define (server-extensions server) (list-ref server 4))
         (define (server-response-code server) (list-ref server 5))
         (define (server-set-response-code! server new-code) 
             (list-set! server 5 new-code))
         (define (server-has-response-code? server) (> (server-response-code server) 0))
-        (define (server-set-capabilities! server new-capabilities) 
-            (list-set! server 4 new-capabilities))
+        (define (server-set-extensions! server new-extensions) 
+            (list-set! server 4 new-extensions))
         (define (server-stopped? server) (list-ref server 3))
         (define (server-stop server) (list-set! server 3 #t))
         (define (create-server thread port) (list 'server thread port #f '() 0))
@@ -79,10 +79,10 @@
                     (define (list-ref-last list) (car (reverse list)))
                     (let 
                         ((answers (fold-left 
-                            (lambda (acc capability)
-                                (append acc (list (string-append "250-" (string-append capability "\r\n")))))
+                            (lambda (acc extension)
+                                (append acc (list (string-append "250-" (string-append extension "\r\n")))))
                             (list (string-append "250-" (string-append answer "\r\n")))
-                            (server-capabilities server))))
+                            (server-extensions server))))
                         (let 
                             ((answers-text (string-join 
                                 (replace-last 
@@ -96,7 +96,7 @@
                 (loop)))
 
         (define (assert-response-code response code) (assert-equal code (smtp-response-code response)))
-        (define (assert-capabilities server response capabilities) (= capabilities (smtp-capabilities server response)))
+        (define (assert-extensions server response extensions) (= extensions (smtp-extensions server response)))
 
         (setup (lambda () (begin 
             (set! server (start-mock-server)))))
@@ -134,19 +134,19 @@
                             (smtp-response-message ehlo-response))
                         ))))
 
-                (test "server answers a single capability" (lambda () (begin
-                    (server-set-capabilities! server (list "8BITMIME"))
+                (test "server answers a single extension" (lambda () (begin
+                    (server-set-extensions! server (list "8BITMIME"))
                     (let
                         ((ehlo-response (smtp-ehlo "" smtp-server)))
                         (assert-response-code ehlo-response 250)
-                        (assert-capabilities server ehlo-response (list "8BITMIME"))))))
+                        (assert-extensions server ehlo-response (list "8BITMIME"))))))
 
-                (test "server answers multiple capabilities" (lambda () (begin
-                    (server-set-capabilities! server (list "8BITMIME" "VERB"))
+                (test "server answers multiple extensions" (lambda () (begin
+                    (server-set-extensions! server (list "8BITMIME" "VERB"))
                     (let
                         ((ehlo-response (smtp-ehlo "" smtp-server)))
                         (assert-response-code ehlo-response 250)
-                        (assert-capabilities server ehlo-response (list "8BITMIME" "VERB"))))))
+                        (assert-extensions server ehlo-response (list "8BITMIME" "VERB"))))))
 
                 (test "server answers ehlo with error code" (lambda () (begin
                     (server-set-response-code! server 550)
