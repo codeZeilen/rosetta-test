@@ -21,20 +21,32 @@
         (placeholder '(smtp-response-code response) "Return the response code from the server")
         (placeholder '(smtp-response-message response) "Return the response message from the server")
         (placeholder '(smtp-extensions connection ehlo-response) "Return a list of extensions of the server, either from the connection or the ehlo response") ; This is already an interesting case, as the extensions may be derived from only a response or may be a property of the connection object
+        (placeholder '(smtp-authenticate method credentials) "Run authentication and return the result (in case of an exception return exception object or a stand-in for the exception)")
+        (placeholder '(smtp-auth-successful? "Was the authentication successful?"))
+        ; The following two are also interesting as this is an advanced feature that might be moved to a dedicated capability, but then it shares the same situation as the other unsuccessful auth tests
+        (placeholder '(smtp-auth-credentials-error? "Did the authentication fail due to wrong credentials?")) 
+        (placeholder '(smtp-auth-not-supported-error? "Did the authentication fail due to no compatible authentication method?"))
 
         (define server '())
         (define (server-thread server) (list-ref server 1))
         (define (server-port server) (socket-port (list-ref server 2)))
+        (define (server-stopped? server) (list-ref server 3))
         (define (server-extensions server) (list-ref server 4))
         (define (server-response-code server) (list-ref server 5))
-        (define (server-set-response-code! server new-code) 
-            (list-set! server 5 new-code))
-        (define (server-has-response-code? server) (> (server-response-code server) 0))
+        (define (server-auths server) (list-ref server 6))
+
         (define (server-set-extensions! server new-extensions) 
             (list-set! server 4 new-extensions))
-        (define (server-stopped? server) (list-ref server 3))
+        (define (server-set-response-code! server new-code) 
+            (list-set! server 5 new-code))
+        (define (server-set-auths! server new-auths) 
+            (list-set! server 6 new-auths))
+        
         (define (server-stop server) (list-set! server 3 #t))
-        (define (create-server thread port) (list 'server thread port #f '() 0))
+        (define (server-has-response-code? server) (> (server-response-code server) 0))
+        
+        (define (create-server thread port) (list 'server thread port #f '() 0 '()))
+
         (define (start-mock-server) ; should return a server object
             (let 
                 ((socket (create-socket)))
@@ -64,6 +76,7 @@
                             (socket-write connection (string-append (number->string (server-response-code server)) " no message in particular\r\n"))
                             (cond 
                                 ((= command "EHLO") (ehlo args))
+                                ((= command "AUTH") (auth args))
                                 (else (loop)))))))
                 (define (loop) (let 
                     ((data (socket-receive connection)))
@@ -74,6 +87,8 @@
                             (if (server-stopped? server)
                                 (close-sockets)
                                 (loop))))))
+                (define (auth data)
+                    (socket-write connection "550\r\n"))
                 (define (ehlo answer) 
                     (define (replace-last list element) (reverse (cons element (cdr (reverse list)))))
                     (define (list-ref-last list) (car (reverse list)))
@@ -153,6 +168,35 @@
                     (let
                         ((ehlo-response (smtp-ehlo "" smtp-server)))
                         (assert-response-code ehlo-response 550)))))
+
+                ))
+
+            (capability 'auth (list
+                
+                (capability 'plain-auth (list 
+
+                    (test "plain auth success" (lambda () (begin 
+                        (server-set-auths! server '((plain ("account" "password"))))
+                        (let 
+                            ((auth-result 
+                                (smtp-authenticate smtp-server 'plain (list "account" "password"))))
+                            (assert (smtp-auth-successful? auth-result))))))
+
+                    (test "plain auth unsuccessful" (lambda () (begin 
+                        (server-set-auths! server '((plain ("account" "password"))))
+                        (let 
+                            ((auth-result (smtp-authenticate smtp-server 'plain '("account" "foo"))))
+                            (assert (not (smtp-auth-successful? auth-result)))
+                            (assert (smtp-auth-credentials-error? auth-result))))))
+
+                    (test "plain auth not supported" (lambda () (begin 
+                        (server-set-auths! server '())
+                        (let 
+                            ((auth-result (smtp-authenticate smtp-server 'plain '("account" "foo"))))
+                            (assert (not (smtp-auth-successful? auth-result)))
+                            (assert (smtp-auth-not-supported-error? auth-result))))))
+
+                    ))
 
                 ))
         ))

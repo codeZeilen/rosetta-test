@@ -67,10 +67,33 @@ def smtp_response_code(env, smtp_response):
 def smtp_response_message(env, smtp_response):
     return (smtp_response[1]).decode(encoding="ascii")
 
-@smtp_suite.placeholder("smtp-capabilities")
+@smtp_suite.placeholder("smtp-extensions")
 def smtp_capabilities(env, smtp, ehlo_response):
     return map(str.strip, smtp_response_message(env, ehlo_response).split("\n")[1:])
 
+@smtp_suite.placeholder("smtp-authenticate")
+def smtp_authenticate(env, smtp, method, credentials):
+    result = False
+    if method == "PLAIN":
+        try:
+            smtp.login(*credentials)
+            result = True
+        except Exception as err:
+            result = err
+    return result
+
+@smtp_suite.placeholder("smtp-auth-successful?")
+def smtp_auth_successful(env, result):
+    return result == True
+
+@smtp_suite.placeholder("smtp-auth-credentials-error?")
+def smtp_auth_credentials_error(env, result):
+    return result == smtplib.SMTPAuthenticationError
+
+@smtp_suite.placeholder("smtp-auth-not-supported-error?")
+def smtp_auth_not_supported_error(env, result):
+    return result == smtplib.SMTPNotSupportedError
+    
 @smtp_suite.tearDown()
 def tear_down(env):
     for socket in sockets:
