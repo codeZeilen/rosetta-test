@@ -39,7 +39,9 @@ def socket_port(env, socket):
 def socket_read(env, socket):
     "Read from the socket"
     assert socket.fileno() != -1 # Socket not closed
-    return socket.recv(4096).decode(encoding="ascii")
+    result = socket.recv(4096).decode(encoding="ascii")
+    print("read from socket: " + result)
+    return result
 
 @smtp_suite.placeholder("socket-write")
 def socket_write(env, socket: socketlib.socket, content):
@@ -54,6 +56,10 @@ def socket_close(env, socket):
 @smtp_suite.placeholder("smtp-connect")
 def smtp_connect(env, host, port):
     return smtplib.SMTP(host, port)
+
+@smtp_suite.placeholder("smtp-disconnect")
+def smtp_disconnect(env, smtp):
+    smtp.close()
 
 @smtp_suite.placeholder("smtp-ehlo")
 def smtp_ehlo(env, content, smtp):
@@ -100,4 +106,4 @@ def tear_down(env):
         socket.close()
     sockets.clear()
 
-smtp_suite.run()
+smtp_suite.run()#only=("test_plain_auth_not_supported",))

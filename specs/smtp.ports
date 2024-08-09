@@ -17,6 +17,7 @@
         (placeholder '(socket-close socket) "Close the socket")
 
         (placeholder '(smtp-connect host port) "Should connect and return some representation of the connection")
+        (placeholder '(smtp-disconnect connection) "")
         (placeholder '(smtp-ehlo content connection) "Send an EHLO command to the server")
         (placeholder '(smtp-response-code response) "Return the response code from the server")
         (placeholder '(smtp-response-message response) "Return the response message from the server")
@@ -42,6 +43,17 @@
         (define (server-set-auths! server new-auths) 
             (list-set! server 6 new-auths))
         
+        (define (server-extensions-with-auth server) 
+            (if (empty? (server-auths server))
+                (server-extensions server)
+                (append 
+                    (server-extensions server)
+                    (list (fold-left 
+                        (lambda (acc auth-name) (string-append acc (string-append " " auth-name)))
+                        "AUTH"
+                        (map
+                            (lambda (auth) (car auth))
+                            (server-auths server)))))))
         (define (server-stop server) (list-set! server 3 #t))
         (define (server-has-response-code? server) (> (server-response-code server) 0))
         
@@ -54,7 +66,9 @@
                     (thread (lambda () (mock-smtp-server socket)))
                     socket)))
         (define (stop-mock-server) (begin
+            (display "starting to stop mock server")
             (server-stop server)
+            (display "signaled server stop")
             (thread-wait-for-completion (server-thread server))))
 
         (define (mock-smtp-server socket)
@@ -69,26 +83,32 @@
                 (define (handle data) (begin
                     (let
                         ((command (string-upcase (car (string-split data " "))))
-                         (args (string-trim (list-ref (string-split data " ") 1))))
-                        (display command)
+                         (args (map string-trim (cdr (string-split data " ")))))
+                        (display (string-append "new command: " command))
                         (display args)
                         (if (server-has-response-code? server)
                             (socket-write connection (string-append (number->string (server-response-code server)) " no message in particular\r\n"))
                             (cond 
-                                ((= command "EHLO") (ehlo args))
+                                ((= command "EHLO") (ehlo (car args)))
                                 ((= command "AUTH") (auth args))
-                                (else (loop)))))))
+                                (else (error "Command not found")))))))
                 (define (loop) (let 
                     ((data (socket-receive connection)))
                     (if (empty? data)
                         (close-sockets)
                         (begin
                             (handle data)
+                            (display "handled data")
                             (if (server-stopped? server)
                                 (close-sockets)
                                 (loop))))))
                 (define (auth data)
-                    (socket-write connection "550\r\n"))
+                    (let 
+                        ((method (car data))
+                         (credentials (list-ref data 1)))
+                        (if (= credentials "AGFjY291bnQAcGFzc3dvcmQ=")
+                            (socket-write connection "235 2.7.0 Authentication successful\r\n") ; TODO: write correct response
+                            (socket-write connection "535 5.7.8  Authentication credentials invalid\r\n")))) ; TODO: write correct response
                 (define (ehlo answer) 
                     (define (replace-last list element) (reverse (cons element (cdr (reverse list)))))
                     (define (list-ref-last list) (car (reverse list)))
@@ -97,7 +117,7 @@
                             (lambda (acc extension)
                                 (append acc (list (string-append "250-" (string-append extension "\r\n")))))
                             (list (string-append "250-" (string-append answer "\r\n")))
-                            (server-extensions server))))
+                            (server-extensions-with-auth server))))
                         (let 
                             ((answers-text (string-join 
                                 (replace-last 
@@ -117,7 +137,9 @@
             (set! server (start-mock-server)))))
 
         (tearDown (lambda () (begin 
-            (stop-mock-server))))
+            (display "stopping mock server")
+            (stop-mock-server)
+            (display "stopped mock server"))))
 
         (capability 'connection 
             (list
@@ -127,14 +149,17 @@
 
         (capability 'commands (list
             (define smtp-server '())
-
-            (setup (lambda () (begin 
-                (set! smtp-server (smtp-connect "localhost" (server-port server))))))
+            (define (connect-smtp-server)
+                (display "connecting to smtp server")
+                (set! smtp-server (smtp-connect "localhost" (server-port server))))
 
             (tearDown (lambda () (begin 
                 (set! smtp-server '()))))
 
             (capability 'ehlo (list
+                (setup (lambda () (begin 
+                    (connect-smtp-server))))
+
                 (test "basic ehlo" (lambda () (begin 
                     (smtp-ehlo "" smtp-server))))
                     
@@ -172,27 +197,37 @@
                 ))
 
             (capability 'auth (list
-                
+
+                (define (connect-and-ehlo-smtp-server) 
+                    (connect-smtp-server)
+                    (smtp-ehlo "" smtp-server))
+
+                (tearDown (lambda () (begin 
+                    (smtp-disconnect smtp-server))))
+
                 (capability 'plain-auth (list 
 
-                    (test "plain auth success" (lambda () (begin 
-                        (server-set-auths! server '((plain ("account" "password"))))
+                    (test "plain auth success" (lambda () (begin
+                        (server-set-auths! server '((PLAIN ("account" "password"))))
+                        (connect-and-ehlo-smtp-server)
                         (let 
                             ((auth-result 
-                                (smtp-authenticate smtp-server 'plain (list "account" "password"))))
+                                (smtp-authenticate smtp-server 'PLAIN (list "account" "password"))))
                             (assert (smtp-auth-successful? auth-result))))))
 
                     (test "plain auth unsuccessful" (lambda () (begin 
-                        (server-set-auths! server '((plain ("account" "password"))))
+                        (server-set-auths! server '((PLAIN ("account" "password"))))
+                        (connect-and-ehlo-smtp-server)
                         (let 
-                            ((auth-result (smtp-authenticate smtp-server 'plain '("account" "foo"))))
+                            ((auth-result (smtp-authenticate smtp-server 'PLAIN '("account" "foo"))))
                             (assert (not (smtp-auth-successful? auth-result)))
                             (assert (smtp-auth-credentials-error? auth-result))))))
 
                     (test "plain auth not supported" (lambda () (begin 
                         (server-set-auths! server '())
+                        (connect-and-ehlo-smtp-server)
                         (let 
-                            ((auth-result (smtp-authenticate smtp-server 'plain '("account" "foo"))))
+                            ((auth-result (smtp-authenticate smtp-server 'PLAIN '("account" "foo"))))
                             (assert (not (smtp-auth-successful? auth-result)))
                             (assert (smtp-auth-not-supported-error? auth-result))))))
 

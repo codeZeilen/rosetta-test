@@ -153,7 +153,7 @@ class PortsSuite(object):
         env = lispy.Env((lispy.Sym("current-test"),), (ports_test,), outer=self.lispy_env)
         self.eval(f"(test-run current-test)", env)
     
-    def run(self):
+    def run(self, only=None):
         self.ensure_placeholders_are_valid()
         self.install_placeholders()
         self.lispy_env.update({
@@ -165,6 +165,9 @@ class PortsSuite(object):
         test_suite = unittest.TestSuite()
         for test in tests:
             test_name = self.generate_test_name(test)
+            if only:
+                if test_name not in only:
+                    continue
             setattr(TestPortsUnittestContainer,
                     test_name,
                     self.generate_unittest_test_method(test))
