@@ -106,7 +106,10 @@ class PortsSuite(object):
 
     def placeholder(self, name):
         def decorator(func):
-            self.placeholder_named(name).function = func
+            try:
+                self.placeholder_named(name).function = func
+            except Exception as e:
+                raise Exception(f"Tried to fill placeholder {name}, but was not specified in suite.")
             return func
         return decorator
     
