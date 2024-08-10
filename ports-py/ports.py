@@ -53,8 +53,8 @@ class Placeholder(PortsFunction):
 def create_placeholder(name, parameters, doc_string=""):
     return Placeholder(name, parameters, doc_string)
 
-def ports_assert(value):
-    assert value
+def ports_assert(value, msg=""):
+    assert value, msg
     
 def ports_assert_eq(expected, actual):
     assert expected == actual, f"{expected} != {actual}"

@@ -83,7 +83,8 @@
             root-capability)))
     
     (define (is-capability? element) (and (list? element) (= 'capability (car element))))
-    (define (is-test? element) (and (list? element) (= 'test (car element))))
+    (define (is-test? element) (and (list? element) (or (= 'test (car element)) (is-data-test? element))))
+    (define (is-data-test? element) (and (list? element) (= 'data-test (car element))))
     (define (is-setup? element) (and (list? element) (= 'setup (car element))))
     (define (is-tearDown? element) (and (list? element) (= 'tearDown (car element))))
 
@@ -194,7 +195,12 @@
     (define (test-fn test) (list-ref test 2))
     (define (test-capability test) (list-ref test 3))
     (define (test-set-capability! test capability) (list-set! test 3 capability))
-    (define (test-run test) (begin
+    (define (test-run test) 
+        (if (is-data-test? test)
+            (data-test-run test)
+            (basic-test-run test)))
+    ; TODO: Refactor the following to only have a single run fn that is similar to the data-test fn. Then the basic test run is a special case that has only a single empty data line.
+    (define (basic-test-run test) (begin
         (capability-run-setups (test-capability test))
         (with-exception-handler 
             (lambda (e) (begin 
@@ -203,6 +209,22 @@
                 (raise e)))
             (lambda () ((test-fn test))))
         (capability-run-tearDowns (test-capability test))))
+    (define (data-test-run test) (for-each
+        (lambda (data-line) 
+            (capability-run-setups (test-capability test))
+            (with-exception-handler 
+                (lambda (e) (begin 
+                    ; Ensure we run the tear downs
+                    (capability-run-tearDowns (test-capability test))
+                    (raise e)))
+                (lambda () (apply (test-fn test) data-line)))
+            (capability-run-tearDowns (test-capability test)))
+        (data-test-data test)))
+
+    (define (data-test name data test-fn) 
+        (list 'data-test name test-fn '() data))
+    (define (data-test-data data-test) (list-ref data-test 4))
+
 
     ; Setup/tearDown 
     ;

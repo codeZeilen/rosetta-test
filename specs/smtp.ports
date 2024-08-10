@@ -55,9 +55,9 @@
                             (lambda (auth) (car auth))
                             (server-auths server)))))))
         (define (server-stop server) (list-set! server 3 #t))
-        (define (server-has-response-code? server) (> (server-response-code server) 0))
+        (define (server-has-response-code? server) (not (= (server-response-code server) "0")))
         
-        (define (create-server thread port) (list 'server thread port #f '() 0 '()))
+        (define (create-server thread port) (list 'server thread port #f '() "0" '()))
 
         (define (start-mock-server) ; should return a server object
             (let 
@@ -87,7 +87,7 @@
                         (display (string-append "new command: " command))
                         (display args)
                         (if (server-has-response-code? server)
-                            (socket-write connection (string-append (number->string (server-response-code server)) " no message in particular\r\n"))
+                            (socket-write connection (string-append (server-response-code server) "\r\n"))
                             (cond 
                                 ((= command "EHLO") (ehlo (car args)))
                                 ((= command "AUTH") (auth args))
@@ -189,7 +189,7 @@
                         (assert-extensions server ehlo-response (list "8BITMIME" "VERB"))))))
 
                 (test "server answers ehlo with error code" (lambda () (begin
-                    (server-set-response-code! server 550)
+                    (server-set-response-code! server "550 not message")
                     (let
                         ((ehlo-response (smtp-ehlo "" smtp-server)))
                         (assert-response-code ehlo-response 550)))))
@@ -221,7 +221,7 @@
                         (let 
                             ((auth-result (smtp-authenticate smtp-server 'PLAIN '("account" "foo"))))
                             (assert (not (smtp-auth-successful? auth-result)))
-                            (assert (smtp-auth-credentials-error? auth-result))))))
+                            (assert (smtp-auth-credentials-error? auth-result) "Expected credentials error")))))
 
                     (test "plain auth not supported" (lambda () (begin 
                         (server-set-auths! server '())
@@ -230,6 +230,19 @@
                             ((auth-result (smtp-authenticate smtp-server 'PLAIN '("account" "foo"))))
                             (assert (not (smtp-auth-successful? auth-result)))
                             (assert (smtp-auth-not-supported-error? auth-result))))))
+
+                    (data-test "other auth failures" 
+                        '(("454 4.7.0  Temporary authentication failure")
+                          ("534 5.7.9  Authentication mechanism is too weak")
+                          ("538 5.7.11  Encryption required for requested authentication mechanism")
+                          ("500 5.5.6  Authentication Exchange line is too long"))
+                        (lambda (response) (begin 
+                            (server-set-auths! server '((PLAIN ("account" "password"))))
+                            (connect-and-ehlo-smtp-server)
+                            (server-set-response-code! server response)
+                            (let 
+                                ((auth-result (smtp-authenticate smtp-server 'PLAIN (list "account" "password"))))
+                                (assert (not (smtp-auth-successful? auth-result)))))))
 
                     ))
 

@@ -94,11 +94,11 @@ def smtp_auth_successful(env, result):
 
 @smtp_suite.placeholder("smtp-auth-credentials-error?")
 def smtp_auth_credentials_error(env, result):
-    return result == smtplib.SMTPAuthenticationError
+    return type(result) == smtplib.SMTPAuthenticationError
 
 @smtp_suite.placeholder("smtp-auth-not-supported-error?")
 def smtp_auth_not_supported_error(env, result):
-    return result == smtplib.SMTPNotSupportedError
+    return type(result) == smtplib.SMTPNotSupportedError
     
 @smtp_suite.tearDown()
 def tear_down(env):
@@ -106,4 +106,4 @@ def tear_down(env):
         socket.close()
     sockets.clear()
 
-smtp_suite.run()#only=("test_plain_auth_not_supported",))
+smtp_suite.run()#only=("test_plain_auth_unsuccessful",))
