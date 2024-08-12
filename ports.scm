@@ -57,7 +57,7 @@
         ((str-list (car args))
          (delimiter (if (= (length args) 2) (car (cdr args)) "")))
         (fold-left 
-            (lambda (acc x) (string-append (string-append acc delimiter) x)) 
+            (lambda (acc x) (string-append acc delimiter x))
             "" 
             str-list))))
 
@@ -160,10 +160,10 @@
     (define (capability-full-name capability) 
         (if (null? (capability-parent capability))
             (capability-name capability)
-            (string-append (capability-full-name (capability-parent capability)) (string-append "." (capability-name capability)))))
+            (string-append (capability-full-name (capability-parent capability)) "." (capability-name capability))))
         
     (define (capability-run capability) (begin ; add setup/teardown
-        (display (string-append (string-append "running capability: " (capability-name capability)) "\n"))
+        (display (string-append "running capability: " (capability-name capability) "\n"))
         (capability-run-tests capability)
         (capability-run-child-capabilities capability)))
 

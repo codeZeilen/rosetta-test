@@ -49,7 +49,7 @@
                 (append 
                     (server-extensions server)
                     (list (fold-left 
-                        (lambda (acc auth-name) (string-append acc (string-append " " auth-name)))
+                        (lambda (acc auth-name) (string-append acc " " auth-name))
                         "AUTH"
                         (map
                             (lambda (auth) (car auth))
@@ -133,8 +133,8 @@
                     (let 
                         ((answers (fold-left 
                             (lambda (acc extension)
-                                (append acc (list (string-append "250-" (string-append extension "\r\n")))))
-                            (list (string-append "250-" (string-append answer "\r\n")))
+                                (append acc (list (string-append "250-" extension "\r\n"))))
+                            (list (string-append "250-" answer "\r\n"))
                             (server-extensions-with-auth server))))
                         (let 
                             ((answers-text (string-join 

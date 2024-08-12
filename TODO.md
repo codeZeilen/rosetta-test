@@ -8,6 +8,10 @@
  - In Ports-S:
   - implement placeholders for file ops
   - implement run
+ - SMTP Spec Ideas
+  - Implement more auth methods
+  - 8BITMIME extension present or not
+  - SMTPUTF8?
 
 ## Roadmap
  - Create SMTP suite
