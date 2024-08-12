@@ -103,12 +103,21 @@
                                 (close-sockets)
                                 (loop))))))
                 (define (auth data)
+                    (define (write-auth-failure-response) 
+                        (socket-write connection "535 5.7.8  Authentication credentials invalid\r\n"))
                     (let 
                         ((method (car data))
                          (credentials (list-ref data 1)))
-                        (if (= credentials "AGFjY291bnQAcGFzc3dvcmQ=")
-                            (socket-write connection "235 2.7.0 Authentication successful\r\n") ; TODO: write correct response
-                            (socket-write connection "535 5.7.8  Authentication credentials invalid\r\n")))) ; TODO: write correct response
+                        (cond 
+                            ((= method "PLAIN") (begin
+                                (if (= credentials "AGFjY291bnQAcGFzc3dvcmQ=")
+                                    (socket-write connection "235 2.7.0 Authentication successful\r\n") ; TODO: write correct response
+                                    (write-auth-failure-response))))
+                            ((= method "XOAUTH2") (begin
+                                (if (= credentials "dXNlcj1hY2NvdW50AWF1dGg9QmVhcmVyIHRva2VuAQE=")
+                                    (socket-write connection "235 2.7.0 Authentication successful\r\n") ; TODO: write correct response
+                                    (write-auth-failure-response))))
+                            (else (socket-write connection "504 5.5.2 Command not implemented\r\n")))))
                 (define (ehlo answer) 
                     (define (replace-last list element) (reverse (cons element (cdr (reverse list)))))
                     (define (list-ref-last list) (car (reverse list)))
@@ -205,6 +214,21 @@
                 (tearDown (lambda () (begin 
                     (smtp-disconnect smtp-server))))
 
+                (data-test "other auth failures" 
+                    '(("454 4.7.0  Temporary authentication failure" #t)
+                    ("534 5.7.9  Authentication mechanism is too weak" #t)
+                    ("538 5.7.11  Encryption required for requested authentication mechanism" #t)
+                    ("500 5.5.6  Authentication Exchange line is too long" #t)
+                    ("503 5.5.1 Error: authentication not enabled" #f) )
+                    (lambda (response auth-enabled) (begin 
+                        (if auth-enabled (server-set-auths! server '((PLAIN ("account" "password")))))
+                        (connect-and-ehlo-smtp-server)
+                        (server-set-response-code! server response)
+                        (let 
+                            ((auth-result (smtp-authenticate smtp-server 'PLAIN (list "account" "password"))))
+                            (assert (not (smtp-auth-successful? auth-result)) (string-append "Expected auth failure for " response " but got " auth-result))))))
+                    
+
                 (capability 'plain-auth (list 
 
                     (test "plain auth success" (lambda () (begin
@@ -231,22 +255,38 @@
                             (assert (not (smtp-auth-successful? auth-result)))
                             (assert (smtp-auth-not-supported-error? auth-result))))))
 
-                    (data-test "other auth failures" 
-                        '(("454 4.7.0  Temporary authentication failure")
-                          ("534 5.7.9  Authentication mechanism is too weak")
-                          ("538 5.7.11  Encryption required for requested authentication mechanism")
-                          ("500 5.5.6  Authentication Exchange line is too long"))
-                        (lambda (response) (begin 
-                            (server-set-auths! server '((PLAIN ("account" "password"))))
-                            (connect-and-ehlo-smtp-server)
-                            (server-set-response-code! server response)
-                            (let 
-                                ((auth-result (smtp-authenticate smtp-server 'PLAIN (list "account" "password"))))
-                                (assert (not (smtp-auth-successful? auth-result)))))))
-
                     ))
 
+                (capability 'xoauth2 (list 
+
+                    (test "xoauth2 success" (lambda () (begin
+                        (server-set-auths! server '((XOAUTH2 ("account" "token"))))
+                        (connect-and-ehlo-smtp-server)
+                        (let 
+                            ((auth-result 
+                                (smtp-authenticate smtp-server 'XOAUTH2 (list "account" "token"))))
+                            (assert (smtp-auth-successful? auth-result))))))
+
+                    (test "xoauth2 auth unsuccessful" (lambda () (begin 
+                        (server-set-auths! server '((XOAUTH2 ("account" "token"))))
+                        (connect-and-ehlo-smtp-server)
+                        (let 
+                            ((auth-result (smtp-authenticate smtp-server 'XOAUTH2 '("account" "not-a-token"))))
+                            (assert (not (smtp-auth-successful? auth-result)))
+                            (assert (smtp-auth-credentials-error? auth-result) (string-append "Expected credentials error but got " auth-result))))))
+
+                    (test "xoauth2 auth not supported" (lambda () (begin 
+                        (server-set-auths! server '())
+                        (connect-and-ehlo-smtp-server)
+                        (let 
+                            ((auth-result (smtp-authenticate smtp-server 'XOAUTH2 '("account" "token"))))
+                            (assert (not (smtp-auth-successful? auth-result)))
+                            (assert (smtp-auth-not-supported-error? auth-result))))))
+
                 ))
+
+            ))
+
         ))
     )
 )
