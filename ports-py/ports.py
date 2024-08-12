@@ -158,7 +158,7 @@ class PortsSuite(object):
         self.install_placeholders()
         self.lispy_env.update({
             "root-capability": self.root_capability,
-            "test-file": None, # TODO: this should be done by the spec
+            "test-file": None, # TODO: this should be done by the ports code
         })
         tests = self.eval("(capability-all-tests root-capability)")
         

@@ -10,21 +10,21 @@
                 (else 
                 (filter-help pred (cdr lst)  res))))
 
-    (define-macro spec (lambda args
+    (define-macro suite (lambda args
         (if (>= (length args) 2)
             `(let 
-                ((spec-name ,(list-ref args 0))
-                 (spec-version ,(list-ref args 1))
-                 (spec-contents (list ,@(cdr (cdr args)))))
+                ((suite-name ,(list-ref args 0))
+                 (suite-version ,(list-ref args 1))
+                 (suite-contents (list ,@(cdr (cdr args)))))
 
                 (list 
-                    spec-name 
-                    spec-version 
-                    (filter (lambda (element) (= 'sources (car element))) spec-contents) ; sources
-                    (filter (lambda (element) (= 'placeholder (car element))) spec-contents) ; placeholder
-                    (filter (lambda (element) (= 'capability (car element))) spec-contents) ; capabilities
-                    (filter (lambda (element) (= 'setup (car element))) spec-contents) ; global setup
-                    (filter (lambda (element) (= 'tearDown (car element))) spec-contents) ; global tearDown))
+                    suite-name 
+                    suite-version 
+                    (filter (lambda (element) (= 'sources (car element))) suite-contents) ; sources
+                    (filter (lambda (element) (= 'placeholder (car element))) suite-contents) ; placeholder
+                    (filter (lambda (element) (= 'capability (car element))) suite-contents) ; capabilities
+                    (filter (lambda (element) (= 'setup (car element))) suite-contents) ; global setup
+                    (filter (lambda (element) (= 'tearDown (car element))) suite-contents) ; global tearDown))
             (#f))))))
 
     (define-macro sources (lambda source-triples

@@ -67,19 +67,19 @@
     ; PORTS objects
     ;
 
-    ; Spec
+    ; Suite
     ;
 
-    (define (spec spec-name spec-version spec-sources spec-contents) (let 
+    (define (suite suite-name suite-version suite-sources suite-contents) (let 
         ((root-capability (capability 
                 "root"
-                (filter (lambda (e) (not (is-placeholder? e))) spec-contents))))
+                (filter (lambda (e) (not (is-placeholder? e))) suite-contents))))
         (capability-set-children-parent! root-capability)
         (list
-            spec-name 
-            spec-version 
-            spec-sources
-            (filter is-placeholder? spec-contents) ; placeholder
+            suite-name 
+            suite-version 
+            suite-sources
+            (filter is-placeholder? suite-contents) ; placeholder
             root-capability)))
     
     (define (is-capability? element) (and (list? element) (= 'capability (car element))))

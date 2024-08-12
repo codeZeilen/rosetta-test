@@ -1,4 +1,4 @@
-(spec 
+(suite 
 	"SMTP" "0.1"
     (sources 
 		'("CPython SMTP tests" "Python Foundation" "https://github.com/python/cpython/blob/9ba2a4638d7b620c939face7642b2f53a9fadc4b/Lib/test/test_smtplib.py")
