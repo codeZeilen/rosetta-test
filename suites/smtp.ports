@@ -109,10 +109,9 @@
                         (socket-write connection "235 2.7.0 Authentication successful\r\n"))  ; TODO: write correct response
                     (let 
                         ((method (car data))
-                         (credentials (if (> 1 (length data)) (list-ref data 1) "")))
+                         (credentials (if (> (length data) 1) (list-ref data 1) "")))
                         (cond 
                             ((= method "PLAIN") (begin
-                                (display (string-append "plain auth with " credentials))
                                 (if (= credentials "AGFjY291bnQAcGFzc3dvcmQ=")
                                     (write-auth-success-response)
                                     (write-auth-failure-response))))
