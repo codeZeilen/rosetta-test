@@ -104,19 +104,29 @@
                                 (loop))))))
                 (define (auth data)
                     (define (write-auth-failure-response) 
-                        (socket-write connection "535 5.7.8  Authentication credentials invalid\r\n"))
+                        (socket-write connection "535 5.7.8  Authentication credentials invalid\r\n"))  ; TODO: write correct response
+                    (define (write-auth-success-response) 
+                        (socket-write connection "235 2.7.0 Authentication successful\r\n"))  ; TODO: write correct response
                     (let 
                         ((method (car data))
-                         (credentials (list-ref data 1)))
+                         (credentials (if (> 1 (length data)) (list-ref data 1) "")))
                         (cond 
                             ((= method "PLAIN") (begin
+                                (display (string-append "plain auth with " credentials))
                                 (if (= credentials "AGFjY291bnQAcGFzc3dvcmQ=")
-                                    (socket-write connection "235 2.7.0 Authentication successful\r\n") ; TODO: write correct response
+                                    (write-auth-success-response)
                                     (write-auth-failure-response))))
                             ((= method "XOAUTH2") (begin
                                 (if (= credentials "dXNlcj1hY2NvdW50AWF1dGg9QmVhcmVyIHRva2VuAQE=")
-                                    (socket-write connection "235 2.7.0 Authentication successful\r\n") ; TODO: write correct response
+                                    (write-auth-success-response)
                                     (write-auth-failure-response))))
+                            ((= method "CRAM-MD5") (begin
+                                (socket-write connection "334 PDEyMzQ1Njc4OTAuMTIzNDVAc2VydmVybmFtZT4=\r\n")
+                                (let 
+                                    ((cram-md5-response (string-trim (socket-receive connection))))
+                                    (if (= cram-md5-response "YWNjb3VudCAyYzBjMTgxZjkxOGU2ZGM5Mjg3Zjk3N2E1ODhiMzg1YQ==")
+                                        (write-auth-success-response)
+                                        (write-auth-failure-response)))))
                             (else (socket-write connection "504 5.5.2 Command not implemented\r\n")))))
                 (define (ehlo answer) 
                     (define (replace-last list element) (reverse (cons element (cdr (reverse list)))))
@@ -280,6 +290,34 @@
                         (connect-and-ehlo-smtp-server)
                         (let 
                             ((auth-result (smtp-authenticate smtp-server 'XOAUTH2 '("account" "token"))))
+                            (assert (not (smtp-auth-successful? auth-result)))
+                            (assert (smtp-auth-not-supported-error? auth-result))))))
+
+                ))
+
+                (capability 'cram-md5 (list 
+
+                    (test "cram-md5 success" (lambda () (begin
+                        (server-set-auths! server '((CRAM-MD5 ("account" "password"))))
+                        (connect-and-ehlo-smtp-server)
+                        (let 
+                            ((auth-result 
+                                (smtp-authenticate smtp-server 'CRAM-MD5 (list "account" "password"))))
+                            (assert (smtp-auth-successful? auth-result))))))
+
+                    (test "cram-md5 auth unsuccessful" (lambda () (begin 
+                        (server-set-auths! server '((CRAM-MD5 ("account" "password"))))
+                        (connect-and-ehlo-smtp-server)
+                        (let 
+                            ((auth-result (smtp-authenticate smtp-server 'CRAM-MD5 '("account" "not-the-password"))))
+                            (assert (not (smtp-auth-successful? auth-result)))
+                            (assert (smtp-auth-credentials-error? auth-result) (string-append "Expected credentials error but got " auth-result))))))
+
+                    (test "cram-md5 auth not supported" (lambda () (begin 
+                        (server-set-auths! server '())
+                        (connect-and-ehlo-smtp-server)
+                        (let 
+                            ((auth-result (smtp-authenticate smtp-server 'CRAM-MD5 '("account" "password"))))
                             (assert (not (smtp-auth-successful? auth-result)))
                             (assert (smtp-auth-not-supported-error? auth-result))))))
 

@@ -80,7 +80,7 @@ def smtp_capabilities(env, smtp, ehlo_response):
 @smtp_suite.placeholder("smtp-authenticate")
 def smtp_authenticate(env, smtp, method, credentials):
     result = False
-    if method in ("PLAIN", "XOAUTH2"):
+    if method in ("PLAIN", "XOAUTH2", "CRAM-MD5"):
         try:
             smtp.login(*credentials)
             result = True
