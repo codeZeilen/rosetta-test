@@ -9,6 +9,7 @@ from __future__ import division
 import re, sys, io 
 from contextlib import redirect_stdout
 import threading
+from functools import reduce
 
 class Symbol(str): pass
 
@@ -240,7 +241,7 @@ def add_globals(self):
      'error':lambda err_msg: primitive_error(err_msg),
      'raise':lambda err: primitive_raise(err),
      'with-exception-handler': lambda handler_fn, thunk_fn: primitive_error_handler(handler_fn, thunk_fn),
-     'string-append': op.add, 'char-whitespace?': lambda x: x.isspace(),
+     'string-append': lambda *strs: reduce(lambda acc,s: acc + str(s), strs, ""), 'char-whitespace?': lambda x: x.isspace(),
      'string-split': lambda s,sep: str(s).split(sep), 'string-replace': lambda old,new,s: str(s).replace(old,new),
      'string-index': primitive_string_index,
      'string-upcase': lambda s: str(s).upper(), 'string-downcase': lambda s: str(s).lower(),

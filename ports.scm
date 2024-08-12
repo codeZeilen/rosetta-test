@@ -157,6 +157,10 @@
             (append acc (capability-all-tests child-capability))) 
         (capability-tests capability) 
         (capability-child-capabilities capability)))
+    (define (capability-full-name capability) 
+        (if (null? (capability-parent capability))
+            (capability-name capability)
+            (string-append (capability-full-name (capability-parent capability)) (string-append "." (capability-name capability)))))
         
     (define (capability-run capability) (begin ; add setup/teardown
         (display (string-append (string-append "running capability: " (capability-name capability)) "\n"))

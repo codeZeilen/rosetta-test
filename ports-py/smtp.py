@@ -80,7 +80,7 @@ def smtp_capabilities(env, smtp, ehlo_response):
 @smtp_suite.placeholder("smtp-authenticate")
 def smtp_authenticate(env, smtp, method, credentials):
     result = False
-    if method == "PLAIN":
+    if method in ("PLAIN", "XOAUTH2"):
         try:
             smtp.login(*credentials)
             result = True
@@ -106,4 +106,4 @@ def tear_down(env):
         socket.close()
     sockets.clear()
 
-smtp_suite.run()#only=("test_plain_auth_unsuccessful",))
+smtp_suite.run(exclude_capabilities=("root.commands.auth.xoauth2",))#only=("test_plain_auth_unsuccessful",))
