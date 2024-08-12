@@ -5,7 +5,7 @@ import io
 import os
 import tempfile
 
-fs_suite = ports.suite("specs/fs.ports")
+fs_suite = ports.suite("suites/fs.ports")
 
 @fs_suite.setUp()
 def set_up(env):

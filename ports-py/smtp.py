@@ -2,7 +2,7 @@ import ports
 import socket as socketlib
 import smtplib
 
-smtp_suite = ports.suite("specs/smtp.ports")
+smtp_suite = ports.suite("suites/smtp.ports")
 
 sockets = []
 
