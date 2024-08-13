@@ -126,6 +126,23 @@
                                     (if (= cram-md5-response "YWNjb3VudCAyYzBjMTgxZjkxOGU2ZGM5Mjg3Zjk3N2E1ODhiMzg1YQ==")
                                         (write-auth-success-response)
                                         (write-auth-failure-response)))))
+                            ((= method "LOGIN") (begin
+                                
+                                (let 
+                                    ((login-user-response
+                                        (if (not (= credentials "")) 
+                                            credentials
+                                            (begin
+                                                (socket-write connection "334 VXNlcm5hbWU6\r\n")
+                                                (string-trim (socket-receive connection))))))
+                                    (display login-user-response)
+                                    (socket-write connection "334 UGFzc3dvcmQ6\r\n")
+                                    (let 
+                                        ((login-password-response (string-trim (socket-receive connection)))) 
+                                        (display login-password-response)
+                                        (if (and (= login-user-response "YWNjb3VudA==") (= login-password-response "cGFzc3dvcmQ="))
+                                            (write-auth-success-response)
+                                            (write-auth-failure-response))))))
                             (else (socket-write connection "504 5.5.2 Command not implemented\r\n")))))
                 (define (ehlo answer) 
                     (define (replace-last list element) (reverse (cons element (cdr (reverse list)))))
@@ -317,6 +334,35 @@
                         (connect-and-ehlo-smtp-server)
                         (let 
                             ((auth-result (smtp-authenticate smtp-server 'CRAM-MD5 '("account" "password"))))
+                            (assert (not (smtp-auth-successful? auth-result)))
+                            (assert (smtp-auth-not-supported-error? auth-result))))))
+
+                ))
+
+
+                (capability 'login (list 
+
+                    (test "login success" (lambda () (begin
+                        (server-set-auths! server '((LOGIN ("account" "password"))))
+                        (connect-and-ehlo-smtp-server)
+                        (let 
+                            ((auth-result 
+                                (smtp-authenticate smtp-server 'LOGIN (list "account" "password"))))
+                            (assert (smtp-auth-successful? auth-result))))))
+
+                    (test "login auth unsuccessful" (lambda () (begin 
+                        (server-set-auths! server '((LOGIN ("account" "password"))))
+                        (connect-and-ehlo-smtp-server)
+                        (let 
+                            ((auth-result (smtp-authenticate smtp-server 'LOGIN '("account" "not-the-password"))))
+                            (assert (not (smtp-auth-successful? auth-result)))
+                            (assert (smtp-auth-credentials-error? auth-result) (string-append "Expected credentials error but got " auth-result))))))
+
+                    (test "login auth not supported" (lambda () (begin 
+                        (server-set-auths! server '())
+                        (connect-and-ehlo-smtp-server)
+                        (let 
+                            ((auth-result (smtp-authenticate smtp-server 'LOGIN '("account" "password"))))
                             (assert (not (smtp-auth-successful? auth-result)))
                             (assert (smtp-auth-not-supported-error? auth-result))))))
 
