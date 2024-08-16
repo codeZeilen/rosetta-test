@@ -13,7 +13,7 @@
 		"specName",
 		"sources",
 		"placeholders" ],
-	"name" : "PortsSpec",
+	"name" : "PortsSuite",
 	"pools" : [
 		 ],
 	"super" : "Object",

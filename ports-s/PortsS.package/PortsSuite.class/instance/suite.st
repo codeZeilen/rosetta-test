@@ -1,8 +1,8 @@
 accessing
-spec
+suite
 	
 	 ^ rootCapability ifNil: [ | specData |
-		specData := self schemeEval: self specSource.
+		specData := self schemeEval: self suiteSource.
 		specName := specData first.
 		version := specData second.
 		sources := specData third.
