@@ -27,7 +27,9 @@ jobs:
       run: |
         python -m pip install --upgrade pip
         if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
-    - name: Run Tests
+    - name: Run SMTP Tests
       run: |
         python3 ports-py/smtp.py
+    - name: Run FS Tests
+      run: |
         python3 ports-py/fs.py
