@@ -99,6 +99,10 @@ def smtp_auth_credentials_error(env, result):
 @smtp_suite.placeholder("smtp-auth-not-supported-error?")
 def smtp_auth_not_supported_error(env, result):
     return type(result) == smtplib.SMTPNotSupportedError
+
+@smtp_suite.placeholder("smtp-mail")
+def smtp_mail(env, smtp, sender):
+    return smtp.mail(sender)
     
 @smtp_suite.tearDown()
 def tear_down(env):

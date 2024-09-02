@@ -19,10 +19,11 @@
         (placeholder '(smtp-connect host port) "Should connect and return some representation of the connection")
         (placeholder '(smtp-disconnect connection) "")
         (placeholder '(smtp-ehlo content connection) "Send an EHLO command to the server")
+        (placeholder '(smtp-mail connection from) "Send a MAIL command to the server")
         (placeholder '(smtp-response-code response) "Return the response code from the server")
         (placeholder '(smtp-response-message response) "Return the response message from the server")
         (placeholder '(smtp-extensions connection ehlo-response) "Return a list of extensions of the server, either from the connection or the ehlo response") ; This is already an interesting case, as the extensions may be derived from only a response or may be a property of the connection object
-        (placeholder '(smtp-authenticate method credentials) "Run authentication and return the result (in case of an exception return exception object or a stand-in for the exception)")
+        (placeholder '(smtp-authenticate connection method credentials) "Run authentication and return the result (in case of an exception return exception object or a stand-in for the exception)")
         (placeholder '(smtp-auth-successful? "Was the authentication successful?"))
         ; The following two are also interesting as this is an advanced feature that might be moved to a dedicated capability, but then it shares the same situation as the other unsuccessful auth tests
         (placeholder '(smtp-auth-credentials-error? "Did the authentication fail due to wrong credentials?")) 
@@ -91,7 +92,8 @@
                             (cond 
                                 ((= command "EHLO") (ehlo (car args)))
                                 ((= command "AUTH") (auth args))
-                                (else (error "Command not found")))))))
+                                ((= command "MAIL") (mail args))
+                                (else (error "Command not found")))))))                
                 (define (loop) (let 
                     ((data (socket-receive connection)))
                     (if (empty? data)
@@ -102,6 +104,10 @@
                             (if (server-stopped? server)
                                 (close-sockets)
                                 (loop))))))
+                (define (mail data)
+                    (if (or (empty? data) (= (list-ref (string-split (car data) ":") 1) "<invalid>"))
+                        (socket-write connection "500\r\n")
+                        (socket-write connection "250 2.1.0 OK\r\n")))
                 (define (auth data)
                     (define (write-auth-failure-response) 
                         (socket-write connection "535 5.7.8  Authentication credentials invalid\r\n"))  ; TODO: write correct response
@@ -228,6 +234,34 @@
                     (let
                         ((ehlo-response (smtp-ehlo "" smtp-server)))
                         (assert-response-code ehlo-response 550)))))
+
+                ))
+
+            (capability 'mail (list
+            
+                (setup (lambda () (begin 
+                    (connect-smtp-server)
+                    (smtp-ehlo "" smtp-server))))
+
+                (tearDown (lambda () (begin 
+                    (smtp-disconnect smtp-server))))
+
+                (test "basic mail" (lambda () (begin 
+                    (let
+                        ((mail-response (smtp-mail smtp-server "foo@example.com")))
+                        (assert-response-code mail-response 250)))))
+
+                ; RFC 2476 - 3.2
+                (test "mail with empty email address" (lambda () (begin 
+                    (let
+                        ((mail-response (smtp-mail smtp-server "")))
+                        (assert-response-code mail-response 250)))))
+
+                ; TODO Should be a data test
+                (test "mail with invalid mail address" (lambda () (begin 
+                    (let
+                        ((mail-response (smtp-mail smtp-server "invalid")))
+                        (assert-response-code mail-response 500)))))
 
                 ))
 
