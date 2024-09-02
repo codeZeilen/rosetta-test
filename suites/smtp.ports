@@ -20,6 +20,7 @@
         (placeholder '(smtp-disconnect connection) "")
         (placeholder '(smtp-ehlo content connection) "Send an EHLO command to the server")
         (placeholder '(smtp-mail connection from) "Send a MAIL command to the server")
+        (placeholder '(smtp-rset connection) "Send a RST command to the server")
         (placeholder '(smtp-response-code response) "Return the response code from the server")
         (placeholder '(smtp-response-message response) "Return the response message from the server")
         (placeholder '(smtp-extensions connection ehlo-response) "Return a list of extensions of the server, either from the connection or the ehlo response") ; This is already an interesting case, as the extensions may be derived from only a response or may be a property of the connection object
@@ -234,6 +235,23 @@
                     (let
                         ((ehlo-response (smtp-ehlo "" smtp-server)))
                         (assert-response-code ehlo-response 550)))))
+
+                ))
+
+            (capability 'rset (list
+            
+                (setup (lambda () (begin 
+                    (connect-smtp-server)
+                    (smtp-ehlo "" smtp-server))))
+
+                (tearDown (lambda () (begin 
+                    (smtp-disconnect smtp-server))))
+
+                (test "basic rset" (lambda () (begin
+                    (server-set-response-code! server "250")
+                    (let
+                        ((rset-response (smtp-rset smtp-server)))
+                        (assert-response-code rset-response 250)))))
 
                 ))
 

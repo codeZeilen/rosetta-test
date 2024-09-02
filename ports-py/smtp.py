@@ -103,6 +103,10 @@ def smtp_auth_not_supported_error(env, result):
 @smtp_suite.placeholder("smtp-mail")
 def smtp_mail(env, smtp, sender):
     return smtp.mail(sender)
+
+@smtp_suite.placeholder("smtp-rset")
+def smtp_rset(env, smtp):
+    return smtp.rset()
     
 @smtp_suite.tearDown()
 def tear_down(env):
