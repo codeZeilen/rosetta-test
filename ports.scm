@@ -53,6 +53,8 @@
     (define (empty-or-null? lst-or-null)
         (or (empty? lst-or-null) (null? lst-or-null)))
 
+    (define (last list) (car (reverse list)))
+
     (define string-join (lambda args (let 
         ((str-list (car args))
          (delimiter (if (= (length args) 2) (car (cdr args)) "")))

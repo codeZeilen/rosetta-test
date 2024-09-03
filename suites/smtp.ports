@@ -37,6 +37,7 @@
         (define (server-extensions server) (list-ref server 4))
         (define (server-response-code server) (list-ref server 5))
         (define (server-auths server) (list-ref server 6))
+        (define (server-requests server) (list-ref server 7))
 
         (define (server-set-extensions! server new-extensions) 
             (list-set! server 4 new-extensions))
@@ -44,6 +45,8 @@
             (list-set! server 5 new-code))
         (define (server-set-auths! server new-auths) 
             (list-set! server 6 new-auths))
+        (define (server-set-requests! server new-requests) 
+            (list-set! server 7 new-requests))
         
         (define (server-extensions-with-auth server) 
             (if (empty? (server-auths server))
@@ -59,7 +62,7 @@
         (define (server-stop server) (list-set! server 3 #t))
         (define (server-has-response-code? server) (not (= (server-response-code server) "0")))
         
-        (define (create-server thread port) (list 'server thread port #f '() "0" '()))
+        (define (create-server thread port) (list 'server thread port #f '() "0" '() '()))
 
         (define (start-mock-server) ; should return a server object
             (let 
@@ -86,6 +89,9 @@
                     (let
                         ((command (string-upcase (car (string-split data " "))))
                          (args (map string-trim (cdr (string-split data " ")))))
+                        (server-set-requests! 
+                            server 
+                            (append (server-requests server) (list data)))
                         (display (string-append "new command: " command))
                         (display args)
                         (if (server-has-response-code? server)
@@ -274,6 +280,7 @@
                     (let
                         ((mail-response (smtp-mail smtp-server "")))
                         (assert-response-code mail-response 250)))))
+                        ;(assert "MAIL FROM:<>" (last (server-requests server)))))))
 
                 ; TODO Should be a data test
                 (test "mail with invalid mail address" (lambda () (begin 
