@@ -316,6 +316,11 @@
                         ((mail-responses (smtp-rcpt smtp-server '("user@recipient.to") '())))
                         (assert-response-codes mail-responses 250))))) ; TODO: add last request assertion
 
+                (test "rcpt with special addresses" (lambda () (begin 
+                    (let
+                        ((mail-responses (smtp-rcpt smtp-server '("postmaster" "postmaster@recipient.to") '())))
+                        (assert-response-codes mail-responses 250))))) ; TODO: add last request assertion
+
                 (test "rcpt with multiple receivers" (lambda () (begin 
                     (let
                         ((mail-responses (smtp-rcpt smtp-server '("user@recipient.to" "user2@recipient.to") '())))
@@ -328,6 +333,13 @@
 
                 (test "rcpt with options" (lambda () (begin
                     ))) ;TODO: add data test for options
+
+                ; RFC 2821 - 4.1.1.3
+                ; The client MUST NOT transmit parameters other
+                ; than those associated with a service extension offered by the server
+                ; in its EHLO response.
+                ; TODO
+                (test "rcpt with invalid options" ())
 
                 ))
 
