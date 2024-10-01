@@ -20,6 +20,7 @@
         (placeholder '(smtp-disconnect connection) "")
         (placeholder '(smtp-ehlo content connection) "Send an EHLO command to the server")
         (placeholder '(smtp-mail connection from) "Send a MAIL command to the server")
+        (placeholder '(smtp-rcpt connection to-list options) "Send a RCPT command to the server. The to parameter should be a list of recipients. The function should return a list of responses from the server. Whether the RCPT commands are send by multiple invocations or a single one can be decided by the placeholder.")
         (placeholder '(smtp-rset connection) "Send a RST command to the server")
         (placeholder '(smtp-response-code response) "Return the response code from the server")
         (placeholder '(smtp-response-message response) "Return the response message from the server")
@@ -100,6 +101,7 @@
                                 ((= command "EHLO") (ehlo (car args)))
                                 ((= command "AUTH") (auth args))
                                 ((= command "MAIL") (mail args))
+                                ((= command "RCPT") (rcpt args))
                                 (else (error "Command not found")))))))                
                 (define (loop) (let 
                     ((data (socket-receive connection)))
@@ -113,6 +115,10 @@
                                 (loop))))))
                 (define (mail data)
                     (if (or (empty? data) (= (list-ref (string-split (car data) ":") 1) "<invalid>"))
+                        (socket-write connection "500\r\n")
+                        (socket-write connection "250 2.1.0 OK\r\n")))
+                (define (rcpt data)
+                    (if (or (empty? data) (= (list-ref (string-split (car data) ":") 1) "<invalid>")) ; TODO: will fail when options are present
                         (socket-write connection "500\r\n")
                         (socket-write connection "250 2.1.0 OK\r\n")))
                 (define (auth data)
@@ -179,6 +185,11 @@
                 (loop)))
 
         (define (assert-response-code response code) (assert-equal code (smtp-response-code response)))
+        (define (assert-response-codes responses code) (
+            for-each 
+                (lambda (response) (assert-response-code response code))
+                responses))
+
         (define (assert-extensions server response extensions) (= extensions (smtp-extensions server response)))
 
         (setup (lambda () (begin 
@@ -283,10 +294,40 @@
                         ;(assert "MAIL FROM:<>" (last (server-requests server)))))))
 
                 ; TODO Should be a data test
-                (test "mail with invalid mail address" (lambda () (begin 
+                (test "mail with invalid email address" (lambda () (begin 
                     (let
                         ((mail-response (smtp-mail smtp-server "invalid")))
                         (assert-response-code mail-response 500)))))
+
+                ))
+
+            (capability 'rcpt (list
+            
+                (setup (lambda () (begin 
+                    (connect-smtp-server)
+                    (smtp-ehlo "" smtp-server))))
+
+                (tearDown (lambda () (begin 
+                    (smtp-disconnect smtp-server))))
+
+
+                (test "basic rcpt" (lambda () (begin 
+                    (let
+                        ((mail-responses (smtp-rcpt smtp-server '("user@recipient.to") '())))
+                        (assert-response-codes mail-responses 250))))) ; TODO: add last request assertion
+
+                (test "rcpt with multiple receivers" (lambda () (begin 
+                    (let
+                        ((mail-responses (smtp-rcpt smtp-server '("user@recipient.to" "user2@recipient.to") '())))
+                        (assert-response-codes mail-responses 250))))) ; TODO: add last request assertion
+
+                (test "rcpt with invalid email address" (lambda () (begin
+                    (let
+                        ((mail-responses (smtp-rcpt smtp-server '("invalid") '())))
+                        (assert-response-codes mail-responses 500)))))
+
+                (test "rcpt with options" (lambda () (begin
+                    ))) ;TODO: add data test for options
 
                 ))
 

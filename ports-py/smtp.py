@@ -104,6 +104,10 @@ def smtp_auth_not_supported_error(env, result):
 def smtp_mail(env, smtp, sender):
     return smtp.mail(sender)
 
+@smtp_suite.placeholder("smtp-rcpt")
+def smtp_rcpt(env, smtp, recipients, options):
+    return list(map(lambda r: smtp.rcpt(r), recipients))
+
 @smtp_suite.placeholder("smtp-rset")
 def smtp_rset(env, smtp):
     return smtp.rset()
