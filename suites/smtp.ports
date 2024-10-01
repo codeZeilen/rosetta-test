@@ -339,7 +339,8 @@
                 ; than those associated with a service extension offered by the server
                 ; in its EHLO response.
                 ; TODO
-                (test "rcpt with invalid options" ())
+                (test "rcpt with invalid options" (lambda () (begin
+                    )))
 
                 ))
 
