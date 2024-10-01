@@ -105,8 +105,12 @@ def smtp_mail(env, smtp, sender):
     return smtp.mail(sender)
 
 @smtp_suite.placeholder("smtp-rcpt")
-def smtp_rcpt(env, smtp, recipients, options):
-    return list(map(lambda r: smtp.rcpt(r), recipients))
+def smtp_rcpt(env, smtp, recipients, option_tuples):
+    if option_tuples:
+        options = list(map(lambda o: env["compile-options-strings"](o), option_tuples))
+    else:
+        options = [[]] * len(recipients)
+    return list(map(lambda recipient_options: smtp.rcpt(recipient_options[0],options=recipient_options[1]), zip(recipients, options)))
 
 @smtp_suite.placeholder("smtp-rset")
 def smtp_rset(env, smtp):
