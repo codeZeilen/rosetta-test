@@ -111,11 +111,11 @@
                                 (close-sockets)
                                 (loop))))))
                 (define (mail data)
-                    (if (or (empty? data) (= (list-ref (string-split (car data) ":") 1) "<invalid>"))
+                    (if (or (empty? data) (= (second (string-split (car data) ":")) "<invalid>"))
                         (socket-write connection "500\r\n")
                         (socket-write connection "250 2.1.0 OK\r\n")))
                 (define (rcpt data)
-                    (if (or (empty? data) (= (list-ref (string-split (car data) ":") 1) "<invalid>")) ; TODO: will fail when options are present
+                    (if (or (empty? data) (= (second (string-split (car data) ":")) "<invalid>")) ; TODO: will fail when options are present
                         (socket-write connection "500\r\n")
                         (socket-write connection "250 2.1.0 OK\r\n")))
                 (define (auth data)
@@ -125,7 +125,7 @@
                         (socket-write connection "235 2.7.0 Authentication successful\r\n"))  ; TODO: write correct response
                     (let 
                         ((method (car data))
-                         (credentials (if (> (length data) 1) (list-ref data 1) "")))
+                         (credentials (if (> (length data) 1) (second data) "")))
                         (cond 
                             ((= method "PLAIN") (begin
                                 (if (= credentials "AGFjY291bnQAcGFzc3dvcmQ=")
@@ -160,7 +160,6 @@
                             (else (socket-write connection "504 5.5.2 Command not implemented\r\n")))))
                 (define (ehlo answer) 
                     (define (replace-last list element) (reverse (cons element (cdr (reverse list)))))
-                    (define (list-ref-last list) (car (reverse list)))
                     (let 
                         ((answers (fold-left 
                             (lambda (acc extension)
@@ -171,7 +170,7 @@
                             ((answers-text (string-join 
                                 (replace-last 
                                     answers
-                                    (string-replace "250-" "250 " (list-ref-last answers)))))) 
+                                    (string-replace "250-" "250 " (last answers)))))) 
                             (socket-write 
                                 connection 
                                 answers-text))))

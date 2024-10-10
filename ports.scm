@@ -53,15 +53,27 @@
     (define (empty-or-null? lst-or-null)
         (or (empty? lst-or-null) (null? lst-or-null)))
 
+    ; Some of the convenience procedures for accessing list elements as provided by SRFI-1
     (define (last list) (car (reverse list)))
-
-    (define string-join (lambda args (let 
-        ((str-list (car args))
-         (delimiter (if (= (length args) 2) (car (cdr args)) "")))
-        (fold-left 
-            (lambda (acc x) (string-append acc delimiter x))
-            "" 
-            str-list))))
+    (define (first list) (car list))
+    (define (second list) (list-ref list 1))
+    (define (third list) (list-ref list 2))
+    (define (fourth list) (list-ref list 3))
+    (define (fifth list) (list-ref list 4))
+    (define (sixth list) (list-ref list 5))
+    (define (seventh list) (list-ref list 6))
+    (define (eigth list) (list-ref list 7))
+    (define (ninth list) (list-ref list 8))
+    (define (tenth list) (list-ref list 9))
+    
+    (define string-join (lambda args ; accespts a list of strings and an optional delimiter
+        (let 
+            ((str-list (first args))
+             (delimiter (if (= (length args) 2) (car (cdr args)) "")))
+            (fold-left 
+                (lambda (acc x) (string-append acc delimiter x))
+                (car str-list) 
+                (cdr str-list)))))
 
     
 
