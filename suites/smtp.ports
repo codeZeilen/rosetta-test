@@ -85,14 +85,14 @@
                     (socket-close connection)
                     (socket-close socket)))
                 (define (handle data) (begin
+                    ; Log the request
+                    (server-set-requests! 
+                        server 
+                        (append (server-requests server) (list data)))
+                    ; Handle the request
                     (let
-                        ((command (string-upcase (car (string-split data " "))))
-                         (args (map string-trim (cdr (string-split data " ")))))
-                        (server-set-requests! 
-                            server 
-                            (append (server-requests server) (list data)))
-                        (display (string-append "new command: " command))
-                        (display args)
+                        ((command (string-upcase (request-command data)))
+                         (args (request-arguments data)))
                         (if (server-has-response-code? server)
                             (socket-write connection (string-append (server-response-code server) "\r\n"))
                             (cond 
@@ -179,6 +179,12 @@
                 (init)
                 (loop)))
 
+        ; Get command from a request
+        (define (request-command request) (car (string-split request " ")))
+
+        ; Get arguments from a request
+        (define (request-arguments request) (map string-trim (cdr (string-split request " "))))
+
         ; Compile one options tuple (KEY VALUE|VALUES) to a string
         (define (compile-option-string option)
             (string-append 
@@ -204,13 +210,28 @@
 
         (define (assert-extensions server response extensions) (= extensions (smtp-extensions server response)))
 
+        (define (request-equal? request1 request2)
+            (let
+                ((request1-command (string-upcase (request-command request1)))
+                    (request1-arguments (request-arguments request1))
+                    (request2-command (string-upcase (request-command request2)))
+                    (request2-arguments (request-arguments request2)))
+                (and 
+                    (= request1-command request2-command)
+                    (= request1-arguments request2-arguments))))
+
+        ; Asserts whether the last request matches the given one ignoring case for the command part
+        (define (assert-last-request server request) 
+            (assert (request-equal? (last (server-requests server)) request)))
+
+        (define (assert-any-request server request) 
+            (assert (not (empty? (filter (lambda (req) (request-equal? req request)) (server-requests server))))))
+
         (setup (lambda () (begin 
             (set! server (start-mock-server)))))
 
         (tearDown (lambda () (begin 
-            (display "stopping mock server")
-            (stop-mock-server)
-            (display "stopped mock server"))))
+            (stop-mock-server))))
 
         (capability 'connection 
             (list
@@ -301,8 +322,8 @@
                 (test "mail with empty email address" (lambda () (begin 
                     (let
                         ((mail-response (smtp-mail smtp-server "")))
-                        (assert-response-code mail-response 250)))))
-                        ;(assert "MAIL FROM:<>" (last (server-requests server)))))))
+                        (assert-response-code mail-response 250)
+                        (assert-last-request server "MAIL FROM:<>")))))
 
                 ; TODO Should be a data test
                 (test "mail with invalid email address" (lambda () (begin 
@@ -325,12 +346,15 @@
                 (test "basic rcpt" (lambda () (begin 
                     (let
                         ((mail-responses (smtp-rcpt smtp-server '("user@recipient.to") '())))
-                        (assert-response-codes mail-responses 250))))) ; TODO: add last request assertion
+                        (assert-response-codes mail-responses 250)
+                        (assert-last-request server "RCPT TO:<user@recipient.to>"))))) 
 
                 (test "rcpt with special addresses" (lambda () (begin 
                     (let
                         ((mail-responses (smtp-rcpt smtp-server '("postmaster" "postmaster@recipient.to") '())))
-                        (assert-response-codes mail-responses 250))))) ; TODO: add last request assertion
+                        (assert-response-codes mail-responses 250)
+                        (assert-any-request server "RCPT TO:<postmaster>")
+                        (assert-any-request server "RCPT TO:<postmaster@recipient.to>")))))
 
                 (test "rcpt with multiple receivers" (lambda () (begin 
                     (let
@@ -356,13 +380,18 @@
                 (test "rcpt with options" (lambda () (begin
                     ))) ;TODO: add more tests for options
 
-                ; RFC 2821 - 4.1.1.3
-                ; The client MUST NOT transmit parameters other
-                ; than those associated with a service extension offered by the server
-                ; in its EHLO response.
-                ; TODO
-                (test "rcpt with invalid options" (lambda () (begin
-                    )))
+
+                (capability 'rcpt-option-checking (list 
+                    ; RFC 2821 - 4.1.1.3
+                    ; The client MUST NOT transmit parameters other
+                    ; than those associated with a service extension offered by the server
+                    ; in its EHLO response.
+                    ; TODO
+                    (test "rcpt with invalid options" (lambda () (begin
+                        )))
+                    
+                    ))
+                
 
                 ))
 
