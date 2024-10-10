@@ -72,9 +72,7 @@
                     (thread (lambda () (mock-smtp-server socket)))
                     socket)))
         (define (stop-mock-server) (begin
-            (display "starting to stop mock server")
             (server-stop server)
-            (display "signaled server stop")
             (thread-wait-for-completion (server-thread server))))
 
         (define (mock-smtp-server socket)
@@ -109,7 +107,6 @@
                         (close-sockets)
                         (begin
                             (handle data)
-                            (display "handled data")
                             (if (server-stopped? server)
                                 (close-sockets)
                                 (loop))))))
@@ -154,11 +151,9 @@
                                             (begin
                                                 (socket-write connection "334 VXNlcm5hbWU6\r\n")
                                                 (string-trim (socket-receive connection))))))
-                                    (display login-user-response)
                                     (socket-write connection "334 UGFzc3dvcmQ6\r\n")
                                     (let 
                                         ((login-password-response (string-trim (socket-receive connection)))) 
-                                        (display login-password-response)
                                         (if (and (= login-user-response "YWNjb3VudA==") (= login-password-response "cGFzc3dvcmQ="))
                                             (write-auth-success-response)
                                             (write-auth-failure-response))))))
@@ -226,7 +221,6 @@
         (capability 'commands (list
             (define smtp-server '())
             (define (connect-smtp-server)
-                (display "connecting to smtp server")
                 (set! smtp-server (smtp-connect "localhost" (server-port server))))
 
             (tearDown (lambda () (begin 

@@ -40,13 +40,11 @@ def socket_read(env, socket):
     "Read from the socket"
     assert socket.fileno() != -1 # Socket not closed
     result = socket.recv(4096).decode(encoding="ascii")
-    print("read from socket: " + result)
     return result
 
 @smtp_suite.placeholder("socket-write")
 def socket_write(env, socket: socketlib.socket, content):
     assert socket.fileno() != -1 # Socket not closed
-    print("Writing to socket: ", content)
     socket.sendall(content.encode(encoding="ascii"))
     
 @smtp_suite.placeholder("socket-close")
