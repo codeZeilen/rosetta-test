@@ -188,11 +188,11 @@
         ; Compile one options tuple (KEY VALUE|VALUES) to a string
         (define (compile-option-string option)
             (string-append 
-                (car option)
+                (first option)
                 "="
-                (if (list? (cdr option)) 
-                    (string-join (cdr option) ",") 
-                    (cdr option)))) 
+                (if (list? (last option)) 
+                    (string-join (last option) ",") 
+                    (last option)))) 
 
         ; Compile a list of option tuples to a list of strings
         (define (compile-options-strings options) 
@@ -210,6 +210,7 @@
 
         (define (assert-extensions server response extensions) (= extensions (smtp-extensions server response)))
 
+        ; Tests whether request 1 corresponds to request 2 (ignoring case)
         (define (request-equal? request1 request2)
             (let
                 ((request1-command (string-upcase (request-command request1)))
@@ -224,8 +225,15 @@
         (define (assert-last-request server request) 
             (assert (request-equal? (last (server-requests server)) request)))
 
+        (define (server-includes-request server request) 
+            (not (empty? (filter 
+                    (lambda (req) (request-equal? req request)) 
+                    (server-requests server)))))
+
         (define (assert-any-request server request) 
-            (assert (not (empty? (filter (lambda (req) (request-equal? req request)) (server-requests server))))))
+            (assert 
+                (server-includes-request server request) 
+                (string-append "Expected request " request " but got " (server-requests server))))
 
         (setup (lambda () (begin 
             (set! server (start-mock-server)))))
@@ -359,7 +367,9 @@
                 (test "rcpt with multiple receivers" (lambda () (begin 
                     (let
                         ((mail-responses (smtp-rcpt smtp-server '("user@recipient.to" "user2@recipient.to") '())))
-                        (assert-response-codes mail-responses 250))))) ; TODO: add last request assertion
+                        (assert-response-codes mail-responses 250)
+                        (assert-any-request server "RCPT TO:<user@recipient.to>")
+                        (assert-any-request server "RCPT TO:<user2@recipient.to>")))))
 
                 (test "rcpt with invalid email address" (lambda () (begin
                     (let
@@ -371,11 +381,13 @@
                     (let
                         ((mail-responses (smtp-rcpt 
                             smtp-server 
-                            '("user@receipt.to" 
-                              "user2@receipt.to") 
+                            '("user@recipient.to" 
+                              "user2@recipient.to") 
                             '((("NOTIFY" ("SUCCESS" "FAILURE"))) 
-                              (("NOTIFY" "NEVER")))))) ; TODO: write ports version of compiling the options string
-                        (assert-response-codes mail-responses 250))))) ; TODO: add last request assertion
+                              (("NOTIFY" "NEVER"))))))
+                        (assert-response-codes mail-responses 250)
+                        (assert-any-request server "RCPT TO:<user@recipient.to> NOTIFY=SUCCESS,FAILURE")
+                        (assert-any-request server "RCPT TO:<user2@recipient.to> NOTIFY=NEVER")))))
 
                 (test "rcpt with options" (lambda () (begin
                     ))) ;TODO: add more tests for options
