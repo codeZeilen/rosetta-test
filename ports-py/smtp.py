@@ -60,7 +60,7 @@ def smtp_disconnect(env, smtp):
     smtp.close()
 
 @smtp_suite.placeholder("smtp-ehlo")
-def smtp_ehlo(env, content, smtp):
+def smtp_ehlo(env, smtp, content):
     return smtp.ehlo(content)
 
 @smtp_suite.placeholder("smtp-response-code")
@@ -113,6 +113,10 @@ def smtp_rcpt(env, smtp, recipients, option_tuples):
 @smtp_suite.placeholder("smtp-rset")
 def smtp_rset(env, smtp):
     return smtp.rset()
+
+@smtp_suite.placeholder("smtp-send-message")
+def smtp_rset(env, smtp: smtplib.SMTP, message, sender, recipients):
+    return smtp.sendmail(sender, recipients, message)
     
 @smtp_suite.tearDown()
 def tear_down(env):
