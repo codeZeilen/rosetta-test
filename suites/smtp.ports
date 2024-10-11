@@ -265,46 +265,47 @@
         ; This covers full scenarios for sending a message that may be covered by convenience functions or
         ; require bridge implementors to use the commands directly
         (capability 'send-message (list
-            (define smtp-server '())
+            (define smtp-connection '())
             (define (connect-smtp-server)
-                (set! smtp-server (smtp-connect "localhost" (server-port server))))
+                (set! smtp-connection (smtp-connect "localhost" (server-port server))))
 
             (setup (lambda () (begin 
                 (connect-smtp-server)
-                (smtp-ehlo smtp-server ""))))
+                (smtp-ehlo smtp-connection ""))))
 
             (tearDown (lambda () (begin 
-                (smtp-disconnect smtp-server)
-                (set! smtp-server '()))))
+                (smtp-disconnect smtp-connection)
+                (set! smtp-connection '()))))
 
             (test "Send a message" (lambda () (let
-                ((response (smtp-send-message smtp-server "message content" "sender@sender.to" '("user@recipient.to"))))
+                ((response (smtp-send-message smtp-connection "message content" "sender@sender.to" '("user@recipient.to"))))
                 (assert-response-code response 250))))
 
             (test "Send a message to multiple recipients" (lambda () (let
-                ((response (smtp-send-message smtp-server "message content" "sender@sender.to" '("user1@recipient.to" "user2@recipient.to"))))
+                ((response (smtp-send-message smtp-connection "message content" "sender@sender.to" '("user1@recipient.to" "user2@recipient.to"))))
                 (assert-response-code response 250))))
 
         ))
 
         (capability 'commands (list
-            (define smtp-server '())
+            (define smtp-connection '())
             (define (connect-smtp-server)
-                (set! smtp-server (smtp-connect "localhost" (server-port server))))
+                (set! smtp-connection (smtp-connect "localhost" (server-port server))))
 
             (tearDown (lambda () (begin 
-                (set! smtp-server '()))))
+                (smtp-disconnect smtp-connection)
+                (set! smtp-connection '()))))
 
             (capability 'ehlo (list
                 (setup (lambda () (begin 
                     (connect-smtp-server))))
 
                 (test "basic ehlo" (lambda () (begin 
-                    (smtp-ehlo smtp-server ""))))
+                    (smtp-ehlo smtp-connection ""))))
                     
                 (test "ehlo with identifier" (lambda () (begin 
                     (let
-                        ((ehlo-response (smtp-ehlo smtp-server "553.231.231.234")))
+                        ((ehlo-response (smtp-ehlo smtp-connection "553.231.231.234")))
                         (assert-equal
                             250
                             (smtp-response-code ehlo-response))
@@ -316,21 +317,21 @@
                 (test "server answers a single extension" (lambda () (begin
                     (server-set-extensions! server (list "8BITMIME"))
                     (let
-                        ((ehlo-response (smtp-ehlo smtp-server "")))
+                        ((ehlo-response (smtp-ehlo smtp-connection "")))
                         (assert-response-code ehlo-response 250)
                         (assert-extensions server ehlo-response (list "8BITMIME"))))))
 
                 (test "server answers multiple extensions" (lambda () (begin
                     (server-set-extensions! server (list "8BITMIME" "VERB"))
                     (let
-                        ((ehlo-response (smtp-ehlo smtp-server "")))
+                        ((ehlo-response (smtp-ehlo smtp-connection "")))
                         (assert-response-code ehlo-response 250)
                         (assert-extensions server ehlo-response (list "8BITMIME" "VERB"))))))
 
                 (test "server answers ehlo with error code" (lambda () (begin
                     (server-set-response-code! server "550 not message")
                     (let
-                        ((ehlo-response (smtp-ehlo smtp-server "")))
+                        ((ehlo-response (smtp-ehlo smtp-connection "")))
                         (assert-response-code ehlo-response 550)))))
 
                 ))
@@ -339,15 +340,15 @@
             
                 (setup (lambda () (begin 
                     (connect-smtp-server)
-                    (smtp-ehlo smtp-server ""))))
+                    (smtp-ehlo smtp-connection ""))))
 
                 (tearDown (lambda () (begin 
-                    (smtp-disconnect smtp-server))))
+                    (smtp-disconnect smtp-connection))))
 
                 (test "basic rset" (lambda () (begin
                     (server-set-response-code! server "250")
                     (let
-                        ((rset-response (smtp-rset smtp-server)))
+                        ((rset-response (smtp-rset smtp-connection)))
                         (assert-response-code rset-response 250)))))
 
                 ))
@@ -356,27 +357,27 @@
             
                 (setup (lambda () (begin 
                     (connect-smtp-server)
-                    (smtp-ehlo smtp-server ""))))
+                    (smtp-ehlo smtp-connection ""))))
 
                 (tearDown (lambda () (begin 
-                    (smtp-disconnect smtp-server))))
+                    (smtp-disconnect smtp-connection))))
 
                 (test "basic mail" (lambda () (begin 
                     (let
-                        ((mail-response (smtp-mail smtp-server "foo@example.com")))
+                        ((mail-response (smtp-mail smtp-connection "foo@example.com")))
                         (assert-response-code mail-response 250)))))
 
                 ; RFC 2476 - 3.2
                 (test "mail with empty email address" (lambda () (begin 
                     (let
-                        ((mail-response (smtp-mail smtp-server "")))
+                        ((mail-response (smtp-mail smtp-connection "")))
                         (assert-response-code mail-response 250)
                         (assert-last-request server "MAIL FROM:<>")))))
 
                 ; TODO Should be a data test
                 (test "mail with invalid email address" (lambda () (begin 
                     (let
-                        ((mail-response (smtp-mail smtp-server "invalid")))
+                        ((mail-response (smtp-mail smtp-connection "invalid")))
                         (assert-response-code mail-response 500)))))
 
                 ))
@@ -385,42 +386,42 @@
             
                 (setup (lambda () (begin 
                     (connect-smtp-server)
-                    (smtp-ehlo smtp-server ""))))
+                    (smtp-ehlo smtp-connection ""))))
 
                 (tearDown (lambda () (begin 
-                    (smtp-disconnect smtp-server))))
+                    (smtp-disconnect smtp-connection))))
 
 
                 (test "basic rcpt" (lambda () (begin 
                     (let
-                        ((mail-responses (smtp-rcpt smtp-server '("user@recipient.to") '())))
+                        ((mail-responses (smtp-rcpt smtp-connection '("user@recipient.to") '())))
                         (assert-response-codes mail-responses 250)
                         (assert-last-request server "RCPT TO:<user@recipient.to>"))))) 
 
                 (test "rcpt with special addresses" (lambda () (begin 
                     (let
-                        ((mail-responses (smtp-rcpt smtp-server '("postmaster" "postmaster@recipient.to") '())))
+                        ((mail-responses (smtp-rcpt smtp-connection '("postmaster" "postmaster@recipient.to") '())))
                         (assert-response-codes mail-responses 250)
                         (assert-any-request server "RCPT TO:<postmaster>")
                         (assert-any-request server "RCPT TO:<postmaster@recipient.to>")))))
 
                 (test "rcpt with multiple receivers" (lambda () (begin 
                     (let
-                        ((mail-responses (smtp-rcpt smtp-server '("user@recipient.to" "user2@recipient.to") '())))
+                        ((mail-responses (smtp-rcpt smtp-connection '("user@recipient.to" "user2@recipient.to") '())))
                         (assert-response-codes mail-responses 250)
                         (assert-any-request server "RCPT TO:<user@recipient.to>")
                         (assert-any-request server "RCPT TO:<user2@recipient.to>")))))
 
                 (test "rcpt with invalid email address" (lambda () (begin
                     (let
-                        ((mail-responses (smtp-rcpt smtp-server '("invalid") '())))
+                        ((mail-responses (smtp-rcpt smtp-connection '("invalid") '())))
                         (assert-response-codes mail-responses 500)))))
 
                 (test "rcpt with options - DSN" (lambda () (begin
                     (server-set-extensions! server '("DSN"))
                     (let
                         ((mail-responses (smtp-rcpt 
-                            smtp-server 
+                            smtp-connection 
                             '("user@recipient.to" 
                               "user2@recipient.to") 
                             '((("NOTIFY" ("SUCCESS" "FAILURE"))) 
@@ -451,10 +452,10 @@
 
                 (define (connect-and-ehlo-smtp-server) 
                     (connect-smtp-server)
-                    (smtp-ehlo smtp-server ""))
+                    (smtp-ehlo smtp-connection ""))
 
                 (tearDown (lambda () (begin 
-                    (smtp-disconnect smtp-server))))
+                    (smtp-disconnect smtp-connection))))
 
                 (data-test "other auth failures" 
                     '(("454 4.7.0  Temporary authentication failure" #t)
@@ -467,7 +468,7 @@
                         (connect-and-ehlo-smtp-server)
                         (server-set-response-code! server response)
                         (let 
-                            ((auth-result (smtp-authenticate smtp-server 'PLAIN (list "account" "password"))))
+                            ((auth-result (smtp-authenticate smtp-connection 'PLAIN (list "account" "password"))))
                             (assert (not (smtp-auth-successful? auth-result)) (string-append "Expected auth failure for " response " but got " auth-result))))))
                     
 
@@ -478,14 +479,14 @@
                         (connect-and-ehlo-smtp-server)
                         (let 
                             ((auth-result 
-                                (smtp-authenticate smtp-server 'PLAIN (list "account" "password"))))
+                                (smtp-authenticate smtp-connection 'PLAIN (list "account" "password"))))
                             (assert (smtp-auth-successful? auth-result))))))
 
                     (test "plain auth unsuccessful" (lambda () (begin 
                         (server-set-auths! server '((PLAIN ("account" "password"))))
                         (connect-and-ehlo-smtp-server)
                         (let 
-                            ((auth-result (smtp-authenticate smtp-server 'PLAIN '("account" "foo"))))
+                            ((auth-result (smtp-authenticate smtp-connection 'PLAIN '("account" "foo"))))
                             (assert (not (smtp-auth-successful? auth-result)))
                             (assert (smtp-auth-credentials-error? auth-result) "Expected credentials error")))))
 
@@ -493,7 +494,7 @@
                         (server-set-auths! server '())
                         (connect-and-ehlo-smtp-server)
                         (let 
-                            ((auth-result (smtp-authenticate smtp-server 'PLAIN '("account" "foo"))))
+                            ((auth-result (smtp-authenticate smtp-connection 'PLAIN '("account" "foo"))))
                             (assert (not (smtp-auth-successful? auth-result)))
                             (assert (smtp-auth-not-supported-error? auth-result))))))
 
@@ -506,14 +507,14 @@
                         (connect-and-ehlo-smtp-server)
                         (let 
                             ((auth-result 
-                                (smtp-authenticate smtp-server 'XOAUTH2 (list "account" "token"))))
+                                (smtp-authenticate smtp-connection 'XOAUTH2 (list "account" "token"))))
                             (assert (smtp-auth-successful? auth-result))))))
 
                     (test "xoauth2 auth unsuccessful" (lambda () (begin 
                         (server-set-auths! server '((XOAUTH2 ("account" "token"))))
                         (connect-and-ehlo-smtp-server)
                         (let 
-                            ((auth-result (smtp-authenticate smtp-server 'XOAUTH2 '("account" "not-a-token"))))
+                            ((auth-result (smtp-authenticate smtp-connection 'XOAUTH2 '("account" "not-a-token"))))
                             (assert (not (smtp-auth-successful? auth-result)))
                             (assert (smtp-auth-credentials-error? auth-result) (string-append "Expected credentials error but got " auth-result))))))
 
@@ -521,7 +522,7 @@
                         (server-set-auths! server '())
                         (connect-and-ehlo-smtp-server)
                         (let 
-                            ((auth-result (smtp-authenticate smtp-server 'XOAUTH2 '("account" "token"))))
+                            ((auth-result (smtp-authenticate smtp-connection 'XOAUTH2 '("account" "token"))))
                             (assert (not (smtp-auth-successful? auth-result)))
                             (assert (smtp-auth-not-supported-error? auth-result))))))
 
@@ -534,14 +535,14 @@
                         (connect-and-ehlo-smtp-server)
                         (let 
                             ((auth-result 
-                                (smtp-authenticate smtp-server 'CRAM-MD5 (list "account" "password"))))
+                                (smtp-authenticate smtp-connection 'CRAM-MD5 (list "account" "password"))))
                             (assert (smtp-auth-successful? auth-result))))))
 
                     (test "cram-md5 auth unsuccessful" (lambda () (begin 
                         (server-set-auths! server '((CRAM-MD5 ("account" "password"))))
                         (connect-and-ehlo-smtp-server)
                         (let 
-                            ((auth-result (smtp-authenticate smtp-server 'CRAM-MD5 '("account" "not-the-password"))))
+                            ((auth-result (smtp-authenticate smtp-connection 'CRAM-MD5 '("account" "not-the-password"))))
                             (assert (not (smtp-auth-successful? auth-result)))
                             (assert (smtp-auth-credentials-error? auth-result) (string-append "Expected credentials error but got " auth-result))))))
 
@@ -549,7 +550,7 @@
                         (server-set-auths! server '())
                         (connect-and-ehlo-smtp-server)
                         (let 
-                            ((auth-result (smtp-authenticate smtp-server 'CRAM-MD5 '("account" "password"))))
+                            ((auth-result (smtp-authenticate smtp-connection 'CRAM-MD5 '("account" "password"))))
                             (assert (not (smtp-auth-successful? auth-result)))
                             (assert (smtp-auth-not-supported-error? auth-result))))))
 
@@ -563,14 +564,14 @@
                         (connect-and-ehlo-smtp-server)
                         (let 
                             ((auth-result 
-                                (smtp-authenticate smtp-server 'LOGIN (list "account" "password"))))
+                                (smtp-authenticate smtp-connection 'LOGIN (list "account" "password"))))
                             (assert (smtp-auth-successful? auth-result))))))
 
                     (test "login auth unsuccessful" (lambda () (begin 
                         (server-set-auths! server '((LOGIN ("account" "password"))))
                         (connect-and-ehlo-smtp-server)
                         (let 
-                            ((auth-result (smtp-authenticate smtp-server 'LOGIN '("account" "not-the-password"))))
+                            ((auth-result (smtp-authenticate smtp-connection 'LOGIN '("account" "not-the-password"))))
                             (assert (not (smtp-auth-successful? auth-result)))
                             (assert (smtp-auth-credentials-error? auth-result) (string-append "Expected credentials error but got " auth-result))))))
 
@@ -578,7 +579,7 @@
                         (server-set-auths! server '())
                         (connect-and-ehlo-smtp-server)
                         (let 
-                            ((auth-result (smtp-authenticate smtp-server 'LOGIN '("account" "password"))))
+                            ((auth-result (smtp-authenticate smtp-connection 'LOGIN '("account" "password"))))
                             (assert (not (smtp-auth-successful? auth-result)))
                             (assert (smtp-auth-not-supported-error? auth-result))))))
 
