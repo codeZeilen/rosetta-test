@@ -85,16 +85,16 @@
                 (define (close-sockets) (begin 
                     (socket-close connection)
                     (socket-close socket)))
-                (define (handle data) (begin
+                (define (handle request-string) (begin
                     ; Log the request
                     (server-set-requests! 
                         server 
-                        (append (server-requests server) (list data)))
-                    (display (string-append "-" data))
+                        (append (server-requests server) (list request-string)))
+                    (display (string-append "-" request-string))
                     ; Handle the request
                     (let
-                        ((command (string-upcase (request-command data)))
-                         (args (request-arguments data)))
+                        ((command (string-upcase (request-command request-string)))
+                         (args (request-arguments request-string)))
                         (display (string-append "args:" command))
                         (if (server-has-response-code? server)
                             (socket-write connection (string-append (server-response-code server) "\r\n"))
@@ -106,37 +106,37 @@
                                 ((= command "DATA") (data-command args))
                                 (else (error "Command not found")))))))                
                 (define (loop) (let 
-                    ((data (socket-receive connection)))
-                    (if (empty? data)
+                    ((request-string (socket-receive connection)))
+                    (if (empty? request-string)
                         (close-sockets)
                         (begin
-                            (handle data)
+                            (handle request-string)
                             (if (server-stopped? server)
                                 (close-sockets)
                                 (loop))))))
-                (define (mail data)
-                    (if (or (empty? data) (= (second (string-split (car data) ":")) "<invalid>"))
+                (define (mail args)
+                    (if (or (empty? args) (= (second (string-split (car args) ":")) "<invalid>"))
                         (socket-write connection "500\r\n")
                         (socket-write connection "250 2.1.0 OK\r\n")))
-                (define (rcpt data)
-                    (if (or (empty? data) (= (second (string-split (car data) ":")) "<invalid>")) ; TODO: will fail when options are present
+                (define (rcpt args)
+                    (if (or (empty? args) (= (second (string-split (car args) ":")) "<invalid>")) ; TODO: will fail when options are present
                         (socket-write connection "500\r\n")
                         (socket-write connection "250 2.1.0 OK\r\n")))
-                (define (data-command data)
+                (define (data-command args)
                     (display "handling data")
                     (begin 
                         (socket-write connection "354 End data with <CR><LF>.<CR><LF>\r\n")
                         (let 
                             ((message-data (socket-receive connection))) 
                             (socket-write connection "250 2.0.0 OK\r\n"))))
-                (define (auth data)
+                (define (auth args)
                     (define (write-auth-failure-response) 
                         (socket-write connection "535 5.7.8  Authentication credentials invalid\r\n"))  ; TODO: write correct response
                     (define (write-auth-success-response) 
                         (socket-write connection "235 2.7.0 Authentication successful\r\n"))  ; TODO: write correct response
                     (let 
-                        ((method (car data))
-                         (credentials (if (> (length data) 1) (second data) "")))
+                        ((method (car args))
+                         (credentials (if (> (length args) 1) (second args) "")))
                         (cond 
                             ((= method "PLAIN") (begin
                                 (if (= credentials "AGFjY291bnQAcGFzc3dvcmQ=")
