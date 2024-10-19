@@ -285,6 +285,19 @@
                 ((response (smtp-send-message smtp-connection "message content" "sender@sender.to" '("user1@recipient.to" "user2@recipient.to"))))
                 (assert-response-codes response 250))))
 
+            (data-test "Failures during send message" 
+                '(("400 BUSY" 400)
+                ("502 SYNTAX ERROR" 502)
+                ("530 AUTH ERROR" 530)
+                ("520 FATAL ERROR" 520)
+                ("300 UNKNOWN" 300) )
+                (lambda (response response-code) (begin 
+                    (server-set-response-code! server response)
+                    (let
+                        ((response 
+                            (smtp-send-message smtp-connection "message content" "sender@sender.to" '("user@recipient.to"))))
+                        (assert-response-codes response response-code)))))
+
         ))
 
         (capability 'commands (list
