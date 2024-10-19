@@ -114,13 +114,26 @@ def smtp_rcpt(env, smtp, recipients, option_tuples):
 def smtp_rset(env, smtp):
     return smtp.rset()
 
+@smtp_suite.placeholder("smtp-data")
+def smtp_data(env, smtp: smtplib.SMTP, content):
+    try:
+        return smtp.data(content)
+    except smtplib.SMTPDataError as err:
+        return err
+
 @smtp_suite.placeholder("smtp-send-message")
-def smtp_rset(env, smtp: smtplib.SMTP, message, sender, recipients):
+def smtp_send_message(env, smtp: smtplib.SMTP, message, sender, recipients):
     try:
         responses_dict = smtp.sendmail(sender, recipients, message)
+    except smtplib.SMTPDataError as err:
+        return err
     except smtplib.SMTPResponseException as err:
         return [(err.smtp_code, err.smtp_error)]
     return map(lambda r: responses_dict[r] if r in responses_dict else (250, ''), recipients)
+     
+@smtp_suite.placeholder("smtp-error?")
+def smtp_error(env, result):
+    return isinstance(result, Exception)
      
 @smtp_suite.tearDown()
 def tear_down(env):

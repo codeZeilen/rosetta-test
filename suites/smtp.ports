@@ -23,6 +23,8 @@
         (placeholder '(smtp-mail connection from) "Send a MAIL command to the server")
         (placeholder '(smtp-rcpt connection to-list options-list) "Send a RCPT command to the server. The to parameter should be a list of recipients. The function should return a list of responses from the server. Whether the RCPT commands are send by multiple invocations or a single one can be decided by the placeholder. The options list contains lists of options, one list of options per receipient. The list of options contains tuples with the option name as the first element, and the option value as the second. Clients may use the functions compile-options-strings, compile-options-string, and compile-option-string to compile the options list into key-value-strings that can be sent to the server.")
         (placeholder '(smtp-rset connection) "Send a RST command to the server")
+        (placeholder '(smtp-data connection content) "Send a DATA command to the server for transmitting the content. The content should be a string and not contain the SMTP data terminating sequence.")
+        (placeholder '(smtp-error? response) "Returns true if the response represents an error of some kind. This does not include error responses from the server but rather errors in the client-server communication.")
         (placeholder '(smtp-response-code response) "Return the response code from the server")
         (placeholder '(smtp-response-message response) "Return the response message from the server")
         (placeholder '(smtp-extensions connection ehlo-response) "Return a list of extensions of the server, either from the connection or the ehlo response") ; This is already an interesting case, as the extensions may be derived from only a response or may be a property of the connection object
@@ -392,6 +394,28 @@
                     (let
                         ((mail-response (smtp-mail smtp-connection "invalid")))
                         (assert-response-code mail-response 500)))))
+
+                ))
+
+            (capability 'data (list
+            
+                (setup (lambda () (begin 
+                    (connect-smtp-server)
+                    (smtp-ehlo smtp-connection ""))))
+
+                (tearDown (lambda () (begin 
+                    (smtp-disconnect smtp-connection))))
+
+                (test "basic data" (lambda () (begin 
+                    (let
+                        ((data-response (smtp-data smtp-connection "message content")))
+                        (assert-response-code data-response 250)))))
+
+                (test "handling server does not acknowledge data correctly" (lambda () (begin 
+                    (server-set-response-code! server "250")
+                    (let
+                        ((data-response (smtp-data smtp-connection "message content")))
+                        (assert (smtp-error? data-response) "Expected client to fail when server does not acknowledge data correctly")))))
 
                 ))
 
