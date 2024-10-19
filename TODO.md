@@ -1,6 +1,8 @@
 # TODOs
 
-## Steps
+## Step
+ - OPEN: send-message may return multiple return codes, one for each recipient (makes sense, but welp)
+ 
  - Fill basic placeholders for current state of SMTP suite to check whether the current setup makes any sense or needs to much hidden state
   - implement tests for auth
   - implement test for helo
