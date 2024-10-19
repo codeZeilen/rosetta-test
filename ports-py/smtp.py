@@ -116,8 +116,9 @@ def smtp_rset(env, smtp):
 
 @smtp_suite.placeholder("smtp-send-message")
 def smtp_rset(env, smtp: smtplib.SMTP, message, sender, recipients):
-    return smtp.sendmail(sender, recipients, message)
-    
+    responses_dict = smtp.sendmail(sender, recipients, message)
+    return map(lambda r: responses_dict[r] if r in responses_dict else (250, ''), recipients)
+     
 @smtp_suite.tearDown()
 def tear_down(env):
     for socket in sockets:
