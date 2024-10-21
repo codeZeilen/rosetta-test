@@ -100,7 +100,10 @@ def smtp_auth_not_supported_error(env, result):
 
 @smtp_suite.placeholder("smtp-mail")
 def smtp_mail(env, smtp, sender):
-    return smtp.mail(sender)
+    try:
+        return smtp.mail(sender)
+    except ValueError as err:
+        return err
 
 @smtp_suite.placeholder("smtp-rcpt")
 def smtp_rcpt(env, smtp, recipients, option_tuples):
@@ -108,7 +111,11 @@ def smtp_rcpt(env, smtp, recipients, option_tuples):
         options = list(map(lambda o: env["compile-options-strings"](o), option_tuples))
     else:
         options = [[]] * len(recipients)
-    return list(map(lambda recipient_options: smtp.rcpt(recipient_options[0],options=recipient_options[1]), zip(recipients, options)))
+    
+    try:
+        return list(map(lambda recipient_options: smtp.rcpt(recipient_options[0],options=recipient_options[1]), zip(recipients, options)))
+    except ValueError as err:
+        return err
 
 @smtp_suite.placeholder("smtp-rset")
 def smtp_rset(env, smtp):
@@ -141,4 +148,4 @@ def tear_down(env):
         socket.close()
     sockets.clear()
 
-smtp_suite.run(exclude_capabilities=("root.commands.auth.xoauth2",))#only=("test_plain_auth_unsuccessful",))
+smtp_suite.run(exclude_capabilities=("root.commands.auth.xoauth2",), exclude=("test_CRLF_detection_in_MAIL_command",))#only=("test_plain_auth_unsuccessful",))

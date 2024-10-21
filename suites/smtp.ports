@@ -264,6 +264,35 @@
                     (smtp-connect "localhost" (server-port server)))))
         ))
 
+        (capability 'crlf-injection-detection (list
+            (define smtp-connection '())
+            (define (connect-smtp-server)
+                (set! smtp-connection (smtp-connect "localhost" (server-port server))))
+
+            (setup (lambda () (begin 
+                (connect-smtp-server)
+                (smtp-ehlo smtp-connection ""))))
+
+            (tearDown (lambda () (begin 
+                (smtp-disconnect smtp-connection)
+                (set! smtp-connection '()))))
+
+            (data-test "CRLF detection in MAIL command"
+                '(("foo\r\nbar") ("foo\nbar") ("foo\rbar")) 
+                (lambda (sender-string) (begin 
+                    (let
+                        ((mail-response (smtp-mail smtp-connection sender-string)))
+                        (assert (smtp-error? mail-response) "Expected client to fail when CRLF is in MAIL command")))))
+
+            (data-test "CRLF detection in RCPT command"
+                '(("foo\r\nbar") ("foo\nbar") ("foo\rbar")) 
+                (lambda (recipient-string) (begin 
+                    (let
+                        ((mail-response (smtp-rcpt smtp-connection recipient-string '())))
+                        (assert (smtp-error? mail-response) "Expected client to fail when CRLF is in RCPT command")))))
+
+            ))
+
         ; This covers full scenarios for sending a message that may be covered by convenience functions or
         ; require bridge implementors to use the commands directly
         (capability 'send-message (list
@@ -411,13 +440,19 @@
                         ((data-response (smtp-data smtp-connection "message content")))
                         (assert-response-code data-response 250)))))
 
+                ; Client should not be confused by an accidental message content termination sequence in the content
+                (test "CRLF detection in DATA command" (lambda () (begin 
+                    (let
+                        ((data-response (smtp-data smtp-connection "message content\r\n.\r\n")))
+                        (assert-response-code data-response 250)))))
+
                 (test "handling server does not acknowledge data correctly" (lambda () (begin 
                     (server-set-response-code! server "250")
                     (let
                         ((data-response (smtp-data smtp-connection "message content")))
                         (assert (smtp-error? data-response) "Expected client to fail when server does not acknowledge data correctly")))))
 
-                ))
+                )) 
 
             (capability 'rcpt (list
             
