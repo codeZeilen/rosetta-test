@@ -282,14 +282,14 @@
                 (lambda (sender-string) (begin 
                     (let
                         ((mail-response (smtp-mail smtp-connection sender-string)))
-                        (assert (smtp-error? mail-response) "Expected client to fail when CRLF is in MAIL command")))))
+                        (assert (smtp-error? mail-response) "Expected client to fail when CR or LF is in MAIL command")))))
 
             (data-test "CRLF detection in RCPT command"
                 '(("foo\r\nbar") ("foo\nbar") ("foo\rbar")) 
                 (lambda (recipient-string) (begin 
                     (let
-                        ((mail-response (smtp-rcpt smtp-connection recipient-string '())))
-                        (assert (smtp-error? mail-response) "Expected client to fail when CRLF is in RCPT command")))))
+                        ((mail-response (smtp-rcpt smtp-connection (list recipient-string) '())))
+                        (assert (smtp-error? mail-response) "Expected client to fail when CR or LF is in RCPT command")))))
 
             ))
 

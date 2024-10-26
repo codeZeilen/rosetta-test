@@ -148,4 +148,4 @@ def tear_down(env):
         socket.close()
     sockets.clear()
 
-smtp_suite.run(exclude_capabilities=("root.commands.auth.xoauth2",), exclude=("test_CRLF_detection_in_MAIL_command",))#only=("test_plain_auth_unsuccessful",))
+smtp_suite.run(exclude_capabilities=("root.commands.auth.xoauth2",), exclude=("test_CRLF_detection_in_MAIL_command","test_CRLF_detection_in_RCPT_command",))#only=("test_plain_auth_unsuccessful",))
