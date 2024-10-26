@@ -55,6 +55,10 @@ def socket_close(env, socket):
 def smtp_connect(env, host, port):
     return smtplib.SMTP(host, port)
 
+@smtp_suite.placeholder("smtp-secure-connect")
+def smtp_secure_connect(env, host, port):
+    return smtplib.SMTP_SSL(host, port)
+
 @smtp_suite.placeholder("smtp-disconnect")
 def smtp_disconnect(env, smtp):
     smtp.close()

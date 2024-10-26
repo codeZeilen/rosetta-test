@@ -8,7 +8,6 @@
         '("SMTP RFC 4954" "IETF" "https://tools.ietf.org/html/rfc4954"))
     
     (list 
-
         (placeholder '(create-socket) "Create a local network socket for the server to communicate through (it should already listen for new connections)")
         (placeholder '(socket-receive socket) "Read trimmed data from socket")
         (placeholder '(socket-write socket data) "Write data to socket")
@@ -16,8 +15,11 @@
         (placeholder '(socket-accept socket) "Accept a new connection on the socket")
         (placeholder '(socket-close socket) "Close the socket")
 
-        (placeholder '(smtp-connect host port) "Should connect and return some representation of the connection")
-        (placeholder '(smtp-disconnect connection) "")
+        (placeholder '(tls-socket-accept socket ca-file cert-file key-file close-underlying-socket) "Should create a new SSL socket with the given configuration. Then the procedure should wait for the handshake (accept) to complete.")
+
+        (placeholder '(smtp-connect host port) "Should connect and return some representation of the connection.")
+        (placeholder '(smtp-secure-connect host port keyfile cert-file) "Should connect and return some representation of the connection done via an SSL socket.")
+        (placeholder '(smtp-disconnect connection) "Should close the connection")
         (placeholder '(smtp-send-message connection content from to-list) "Send a message to the server. The function should return a list corresponding to the responses from the server for each recipient in the to-list. If there is only a single response, a list with a single response should be returned.")
         (placeholder '(smtp-ehlo connection content) "Send an EHLO command to the server")
         (placeholder '(smtp-mail connection from) "Send a MAIL command to the server")
@@ -42,6 +44,7 @@
         (define (server-response-code server) (list-ref server 5))
         (define (server-auths server) (list-ref server 6))
         (define (server-requests server) (list-ref server 7))
+        (define (server-tls? server) (list-ref server 8))
 
         (define (server-set-extensions! server new-extensions) 
             (list-set! server 4 new-extensions))
@@ -51,7 +54,11 @@
             (list-set! server 6 new-auths))
         (define (server-set-requests! server new-requests) 
             (list-set! server 7 new-requests))
-        
+        (define (server-enable-tls server) 
+            (list-set! server 8 #t))
+        (define (server-disable-tls server) 
+            (list-set! server 8 #f))
+
         (define (server-extensions-with-auth server) 
             (if (empty? (server-auths server))
                 (server-extensions server)
@@ -66,7 +73,7 @@
         (define (server-stop server) (list-set! server 3 #t))
         (define (server-has-response-code? server) (not (= (server-response-code server) "0")))
         
-        (define (create-server thread port) (list 'server thread port #f '() "0" '() '()))
+        (define (create-server thread port) (list 'server thread port #f '() "0" '() '() #f))
 
         (define (start-mock-server) ; should return a server object
             (let 
@@ -80,13 +87,19 @@
 
         (define (mock-smtp-server socket)
             (begin
+                (define CA_FILE "./smtp-fixtures/cacert.pem")
+                (define CERT_FILE "./smtp-fixtures/server.key")
+                (define KEY_FILE "./smtp-fixtures/server.crt")
                 (define connection '())
                 (define (init) (begin 
-                    (set! connection (socket-accept socket)) 
+                    (set! connection (socket-accept socket))
+                    (if (server-tls? server) (change-connection-to-tls)) 
                     (socket-write connection "220 OK\r\n")))
                 (define (close-sockets) (begin 
                     (socket-close connection)
                     (socket-close socket)))
+                (define (change-connection-to-tls) (begin
+                    (set! connection (tls-socket-accept connection CA_FILE CERT_FILE KEY_FILE))))
                 (define (handle request-string) (begin
                     ; Log the request
                     (server-set-requests! 
