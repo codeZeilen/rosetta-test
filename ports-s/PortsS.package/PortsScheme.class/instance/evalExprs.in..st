@@ -28,7 +28,7 @@ evalExprs: element in: env
 						x := case second]
 					ifNone: [^ nil]].
 			[#'set!' = x first] -> [ 
-				(localEnv find: x second) 
+				(localEnv findEnvFor: x second) 
 					at: x second
 					put: (self evalExprs: x third in: localEnv)].
 			[#'variable-unset!' = x first] -> [ 
