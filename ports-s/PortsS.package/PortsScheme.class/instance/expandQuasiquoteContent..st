@@ -7,7 +7,7 @@ expandQuasiquoteContent: exprs
 	
 	self 
 		expr: #(quasiquote) , exprs
-		shouldFulfill: exprs first ~= #unquotesplicing
+		shouldFulfill: exprs first ~= #'unquote-splicing'
 		message: 'Can not splice in first position'.
 		
 	#unquote = exprs first ifTrue: [
@@ -15,7 +15,7 @@ expandQuasiquoteContent: exprs
 		self expr: #(quasiquote) , exprs shouldFulfill: exprs size = 2.
 		^ exprs second].
 	
-	((self isPair: exprs first) and: [exprs first first = #unquotesplicing]) 
+	((self isPair: exprs first) and: [exprs first first = #'unquote-splicing']) 
 		ifTrue: [ | unquotesplicing |
 			self expr: exprs shouldFulfill: exprs first size = 2.
 			unquotesplicing := exprs first.

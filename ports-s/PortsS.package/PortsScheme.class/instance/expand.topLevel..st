@@ -21,7 +21,7 @@ expand: exprs topLevel: isTopLevel
 			[#lambda = exprs first] -> [
 				^ self expandLambda: exprs].
 			[#quasiquote = exprs first] -> [
-				^ self expandQuasiquoteContent: exprs allButFirst].
+				^ self expandQuasiquoteContent: exprs second].
 			[exprs first isSymbol and: [macroTable includesKey: exprs first]] -> [
 				^ self applyMacroOn: exprs topLevel: isTopLevel]}
 		otherwise: ["recurse"
