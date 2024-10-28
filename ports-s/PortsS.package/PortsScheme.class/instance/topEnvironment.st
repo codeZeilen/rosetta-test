@@ -6,6 +6,7 @@ topEnvironment
 			bindings: {
 				#+ -> [:args | args first + args second].
 				#'string-append' -> [:args | args fold: #,].
+				#append -> [:args | args fold: #,].
 				#* -> [:args | args first * args second].
 				#= -> [:args | args first = args second].
 				#> -> [:args | args first > args second].
@@ -17,13 +18,13 @@ topEnvironment
 				#cons -> [:args | {args first} , args second "TODO: this is not right"].
 				#'create-placeholder' -> [:args | self createPlaceholder: args].
 				#not -> [:args | args first not].
-				#and -> [:args | args first and: [args second]].
-				#or -> [:args | args first or: [args second]].
 				#map -> [:args | args second collect: [:e | args first value: {e}]].
 				#'for-each' -> [:args | args second do: [:e | args first value: {e}]].
 				#'list-ref' -> [:args | args first at: args second + 1].
 				#'list-set!' -> [:args | args first at: args second + 1 put: args third].
 				#raise -> [:args | args first signal].
 				#error -> [:args | Error new messageText: args first; yourself].
-				#'is-placeholder?' -> [:args | self isPlaceholderP: args]};
+				#'is-placeholder?' -> [:args | self isPlaceholderP: args].
+				#'list?' -> [:args | args first isCollection].
+				#'with-exception-handler' -> [:args | [args second value] on: Exception do: [:e | args first value: e]]};
 			yourself]
