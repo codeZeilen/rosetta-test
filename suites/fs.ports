@@ -16,6 +16,8 @@
 		(placeholder '(create-test-file file-name file-content) "Places a test file with the specified content in a temporary location.")
 		(placeholder '(remove-test-file file-name))
 
+		(define test-file '())
+
 		(setup (lambda () (begin
 			(create-test-file "my-test-file" "first line\nsecond line"))))
 

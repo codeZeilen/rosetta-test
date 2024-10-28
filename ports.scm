@@ -4,6 +4,16 @@
     ; Standard library
     ;
 
+    (define-macro and (lambda args 
+        (if (null? args) #t
+            (if (= (length args) 1) (car args)
+                `(if ,(car args) (and ,@(cdr args)) #f)))))
+
+    (define-macro or (lambda args 
+        (if (null? args) #t
+            (if (= (length args) 1) (car args)
+                `(if (not ,(car args)) (or ,@(cdr args)) #t)))))
+
     (define (reverse lst)
         (define (reverse-help lst res)
             (if (null? lst) res
@@ -74,7 +84,6 @@
                 (lambda (acc x) (string-append acc delimiter x))
                 (car str-list) 
                 (cdr str-list)))))
-
     
 
     ;
