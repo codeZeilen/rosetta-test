@@ -1,6 +1,7 @@
 import lispy
 import unittest
 import threading
+from pathlib import Path
 
 class TestPortsUnittestContainer(unittest.TestCase):
     pass
@@ -188,3 +189,5 @@ class PortsSuite(object):
 def suite(file_name):
     return PortsSuite(file_name)
     
+def fixture_path(file_name: str):
+    return (Path('./suites') / Path(file_name)).absolute().as_posix()

@@ -1,5 +1,6 @@
 import ports
 import socket as socketlib
+import ssl
 import smtplib
 
 smtp_suite = ports.suite("suites/smtp.ports")
@@ -26,6 +27,19 @@ def socket_accept(env, server_socket: socketlib.socket):
         client_socket, address = server_socket.accept()
         sockets.append(client_socket)
         return client_socket
+    except Exception as err:
+        return err
+    
+@smtp_suite.placeholder("secure-socket-accept")
+def secure_socket_accept(env, connection, ca_file, cert_file, key_file, close_wrapped_socket):
+    context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+    context.check_hostname = False
+    context.verify_mode = ssl.CERT_NONE
+    context.load_cert_chain(ports.fixture_path(ca_file), ports.fixture_path(key_file))
+    try:
+        ssock = context.wrap_socket(connection, server_side=True)
+        conn, addr = ssock.accept()
+        return conn
     except Exception as err:
         return err
     
@@ -56,8 +70,16 @@ def smtp_connect(env, host, port):
     return smtplib.SMTP(host, port)
 
 @smtp_suite.placeholder("smtp-secure-connect")
-def smtp_secure_connect(env, host, port):
-    return smtplib.SMTP_SSL(host, port)
+def smtp_secure_connect(env, host, port, cafile):
+    context = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
+    context.check_hostname = False
+    context.verify_mode = ssl.CERT_NONE
+    context.load_verify_locations(ports.fixture_path(cafile))
+    result = smtplib.SMTP_SSL(host, port, context=context)
+    if isinstance(result, ssl.SSLError):
+        raise result
+    else:
+        return result
 
 @smtp_suite.placeholder("smtp-disconnect")
 def smtp_disconnect(env, smtp):
@@ -152,4 +174,5 @@ def tear_down(env):
         socket.close()
     sockets.clear()
 
-smtp_suite.run(exclude_capabilities=("root.commands.auth.xoauth2",), exclude=("test_CRLF_detection_in_MAIL_command",))#only=("test_plain_auth_unsuccessful",))
+smtp_suite.run(exclude_capabilities=("root.commands.auth.xoauth2",), exclude=("test_CRLF_detection_in_MAIL_command",))
+#smtp_suite.run(only=("test_Connect_to_server_with_TLS",))
