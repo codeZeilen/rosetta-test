@@ -15,10 +15,10 @@
         (placeholder '(socket-accept socket) "Accept a new connection on the socket")
         (placeholder '(socket-close socket) "Close the socket")
 
-        (placeholder '(tls-socket-accept socket ca-file cert-file key-file close-underlying-socket) "Should create a new SSL socket with the given configuration. Then the procedure should wait for the handshake (accept) to complete.")
+        (placeholder '(secure-socket-accept socket ca-file cert-file key-file close-underlying-socket) "Should create a new SSL socket with the given configuration. Then the procedure should wait for the handshake (accept) to complete.")
 
         (placeholder '(smtp-connect host port) "Should connect and return some representation of the connection.")
-        (placeholder '(smtp-secure-connect host port keyfile cert-file) "Should connect and return some representation of the connection done via an SSL socket.")
+        (placeholder '(smtp-secure-connect host port ca-file) "Should connect and return some representation of the connection done via an SSL socket.")
         (placeholder '(smtp-disconnect connection) "Should close the connection")
         (placeholder '(smtp-send-message connection content from to-list) "Send a message to the server. The function should return a list corresponding to the responses from the server for each recipient in the to-list. If there is only a single response, a list with a single response should be returned.")
         (placeholder '(smtp-ehlo connection content) "Send an EHLO command to the server")
@@ -46,6 +46,8 @@
         (define (server-requests server) (list-ref server 7))
         (define (server-tls? server) (list-ref server 8))
 
+        (define (server-set-thread! server new-thread) 
+            (list-set! server 1 new-thread))
         (define (server-set-extensions! server new-extensions) 
             (list-set! server 4 new-extensions))
         (define (server-set-response-code! server new-code) 
@@ -73,33 +75,36 @@
         (define (server-stop server) (list-set! server 3 #t))
         (define (server-has-response-code? server) (not (= (server-response-code server) "0")))
         
-        (define (create-server thread port) (list 'server thread port #f '() "0" '() '() #f))
+        (define (create-server thread port tls-enabled) (list 'server thread port #f '() "0" '() '() tls-enabled))
 
-        (define (start-mock-server) ; should return a server object
+        (define (start-mock-server) (basic-start-mock-server #f))
+        (define (basic-start-mock-server tls-enabled?) ; should return a server object
             (let 
                 ((socket (create-socket)))
                 (create-server 
-                    (thread (lambda () (mock-smtp-server socket)))
-                    socket)))
+                    (thread (lambda () (mock-smtp-server socket tls-enabled?)))
+                    socket
+                    tls-enabled?)))
         (define (stop-mock-server) (begin
             (server-stop server)
             (thread-wait-for-completion (server-thread server))))
 
-        (define (mock-smtp-server socket)
+        (define (mock-smtp-server socket tls-enabled?)
             (begin
                 (define CA_FILE "./smtp-fixtures/cacert.pem")
-                (define CERT_FILE "./smtp-fixtures/server.key")
-                (define KEY_FILE "./smtp-fixtures/server.crt")
+                (define CERT_FILE "./smtp-fixtures/server.pem")
+                (define KEY_FILE "./smtp-fixtures/server.key")
                 (define connection '())
                 (define (init) (begin 
-                    (set! connection (socket-accept socket))
-                    (if (server-tls? server) (change-connection-to-tls)) 
+                    (set! 
+                        connection 
+                        (if tls-enabled? 
+                            (secure-socket-accept socket CA_FILE CERT_FILE KEY_FILE #t) 
+                            (socket-accept socket))) 
                     (socket-write connection "220 OK\r\n")))
                 (define (close-sockets) (begin 
                     (socket-close connection)
                     (socket-close socket)))
-                (define (change-connection-to-tls) (begin
-                    (set! connection (tls-socket-accept connection CA_FILE CERT_FILE KEY_FILE))))
                 (define (handle request-string) (begin
                     ; Log the request
                     (server-set-requests! 
@@ -138,7 +143,6 @@
                         (socket-write connection "500\r\n")
                         (socket-write connection "250 2.1.0 OK\r\n")))
                 (define (data-command args)
-                    (display "handling data")
                     (begin 
                         (socket-write connection "354 End data with <CR><LF>.<CR><LF>\r\n")
                         (let 
@@ -261,11 +265,10 @@
                 (string-append "Expected request " request " but got " (server-requests server))))
 
         (setup (lambda () (begin 
-            (set! server (start-mock-server)))))
+            (set! server '()))))
 
         (tearDown (lambda () (begin 
             (stop-mock-server))))
-
 
         ;
         ; Capabilities
@@ -273,8 +276,20 @@
 
         (capability 'connection 
             (list
+                (setup (lambda () (begin 
+                    (set! server (start-mock-server)))))
+
                 (test "Connect to server" (lambda () (begin 
                     (smtp-connect "localhost" (server-port server)))))
+        ))
+
+        (capability 'tls-connection
+            (list
+                (setup (lambda () (begin 
+                    (set! server (basic-start-mock-server #t)))))
+
+                (test "Connect to server with TLS" (lambda () (begin 
+                    (smtp-secure-connect "localhost" (server-port server) "./smtp-fixtures/cacert.pem"))))
         ))
 
         (capability 'crlf-injection-detection (list
@@ -283,6 +298,7 @@
                 (set! smtp-connection (smtp-connect "localhost" (server-port server))))
 
             (setup (lambda () (begin 
+                (set! server (start-mock-server))
                 (connect-smtp-server)
                 (smtp-ehlo smtp-connection ""))))
 
@@ -314,6 +330,7 @@
                 (set! smtp-connection (smtp-connect "localhost" (server-port server))))
 
             (setup (lambda () (begin 
+                (set! server (start-mock-server))
                 (connect-smtp-server)
                 (smtp-ehlo smtp-connection ""))))
 
@@ -348,6 +365,9 @@
             (define smtp-connection '())
             (define (connect-smtp-server)
                 (set! smtp-connection (smtp-connect "localhost" (server-port server))))
+
+            (setup (lambda () (begin
+                (set! server (start-mock-server)))))
 
             (tearDown (lambda () (begin 
                 (smtp-disconnect smtp-connection)
