@@ -30,9 +30,11 @@ evalExprs: element in: env
 			[#'set!' = x first] -> [ 
 				(localEnv findEnvFor: x second) 
 					at: x second
-					put: (self evalExprs: x third in: localEnv)].
+					put: (self evalExprs: x third in: localEnv).
+				^ nil].
 			[#'variable-unset!' = x first] -> [ 
-				(localEnv find: x second) unset: x second].
+				(localEnv find: x second) unset: x second.
+				^ nil].
 			[#define = x first] -> [ 
 				localEnv at: x second put: (self evalExprs: x third in: localEnv).
 				^ nil].
@@ -56,7 +58,7 @@ evalExprs: element in: env
 						x := executableElement body.
 						localEnv := PortsSchemeEnv new
 							setBindingsFor: executableElement params to: evaluatedElements allButFirst;
-							parent: localEnv;
+							parent: executableElement env;
 							yourself].
 					[executableElement isPortsSchemePrimitive] -> [
 						^ executableElement value: evaluatedElements allButFirst]}

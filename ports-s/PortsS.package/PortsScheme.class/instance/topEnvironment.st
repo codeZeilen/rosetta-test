@@ -5,11 +5,15 @@ topEnvironment
 		topEnvironment := PortsSchemeEnv new
 			bindings: {
 				#+ -> [:args | args first + args second].
+				#- -> [:args | args first - args second].
 				#'string-append' -> [:args | args fold: #,].
 				#append -> [:args | args fold: #,].
 				#* -> [:args | args first * args second].
+				#/ -> [:args | args first / args second].
 				#= -> [:args | args first = args second].
 				#> -> [:args | args first > args second].
+				#< -> [:args | args first < args second].
+				#<= -> [:args | args first <= args second].
 				#length -> [:args | args first size].
 				#car -> [:args | args first first].
 				#cdr -> [:args | args first size > 1 ifTrue: [args first allButFirst] ifFalse: [Array empty]].
@@ -26,5 +30,7 @@ topEnvironment
 				#error -> [:args | Error new messageText: args first; yourself].
 				#'is-placeholder?' -> [:args | self isPlaceholderP: args].
 				#'list?' -> [:args | args first isCollection].
-				#'with-exception-handler' -> [:args | [args second value] on: Exception do: [:e | args first value: e]]};
+				#'with-exception-handler' -> [:args | [args second value: {}] on: Exception do: [:e | args first value: {e}]].
+				#assert -> [:args | self assert: args first].
+				#'assert-equal' -> [:args | self assert: args first = args second]};
 			yourself]
