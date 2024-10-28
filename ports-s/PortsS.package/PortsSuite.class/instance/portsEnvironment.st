@@ -1,4 +1,4 @@
 private-ports
 portsEnvironment
 
-	^ portsEnvironment ifNil: [self newPortsEnvironment]
+	^ portsEnvironment ifNil: [portsEnvironment := self newPortsEnvironment]

@@ -1,13 +1,15 @@
 {
 	"class" : {
-		 },
+		"isAbstract" : "pre 10/28/2024 11:29" },
 	"instance" : {
-		"createRootCapability:" : "pre 7/26/2024 14:40",
+		"allTests" : "pre 10/28/2024 11:30",
 		"fillPlaceholders" : "pre 7/27/2024 16:48",
+		"installPlaceholders" : "pre 10/28/2024 11:42",
 		"newPortsEnvironment" : "pre 7/26/2024 16:21",
-		"portsEnvironment" : "pre 7/25/2024 15:05",
+		"portsEnvironment" : "pre 10/28/2024 11:44",
 		"portsLibrarySource" : "pre 8/16/2024 13:20",
-		"run" : "pre 8/16/2024 13:19",
+		"run" : "pre 10/28/2024 11:40",
+		"runTest:" : "pre 10/28/2024 11:34",
 		"scheme" : "pre 7/27/2024 15:04",
 		"schemeEval:" : "pre 7/25/2024 15:10",
 		"schemeEval:in:" : "pre 7/26/2024 16:20",
