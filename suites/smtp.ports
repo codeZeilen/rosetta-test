@@ -275,35 +275,36 @@
         ; Capabilities
         ;
 
-        (capability 'connection 
-            (list
-                (setup (lambda () (begin 
-                    (set! server (start-mock-server)))))
+        (capability 'connection (list
 
-                (test "Connect to server" (lambda () (begin 
-                    (smtp-connect "localhost" (server-port server)))))
+            (setup (lambda () (begin 
+                (set! server (start-mock-server)))))
+
+            (test "Connect to server" (lambda () (begin 
+                (smtp-connect "localhost" (server-port server)))))
+
         ))
 
-        (capability 'tls-connection
-            (list
+        (capability 'tls-connection (list
 
-                (define start-tls-mock-server (lambda () (begin 
-                    (set! server (basic-start-mock-server #t)))))
-                
-                (test "Connect to server with TLS" (lambda () (begin 
-                    (start-tls-mock-server)
-                    (smtp-secure-connect "localhost" (server-port server) "./smtp-fixtures/cacert.pem"))))
+            (define start-tls-mock-server (lambda () (begin 
+                (set! server (basic-start-mock-server #t)))))
+            
+            (test "Connect to server with TLS" (lambda () (begin 
+                (start-tls-mock-server)
+                (smtp-secure-connect "localhost" (server-port server) "./smtp-fixtures/cacert.pem"))))
 
-                (test "Timeout during connect to server with TLS" (lambda () (begin
-                    (set! secure-socket-wrap (lambda (socket x xx xxx xxxx) (begin 
-                        (thread-sleep! 0.5)
-                        (socket-close socket))))
-                    (start-tls-mock-server)
-                    (assert (smtp-error? (smtp-secure-connect-with-timeout "localhost" (server-port server) "./smtp-fixtures/cacert.pem" 0.1))))))
-                
+            (test "Timeout during connect to server with TLS" (lambda () (begin
+                (set! secure-socket-wrap (lambda (socket x xx xxx xxxx) (begin 
+                    (thread-sleep! 0.5)
+                    (socket-close socket))))
+                (start-tls-mock-server)
+                (assert (smtp-error? (smtp-secure-connect-with-timeout "localhost" (server-port server) "./smtp-fixtures/cacert.pem" 0.1))))))
+            
         ))
 
         (capability 'crlf-injection-detection (list
+
             (define smtp-connection '())
             (define (connect-smtp-server)
                 (set! smtp-connection (smtp-connect "localhost" (server-port server))))
@@ -336,6 +337,7 @@
         ; This covers full scenarios for sending a message that may be covered by convenience functions or
         ; require bridge implementors to use the commands directly
         (capability 'send-message (list
+
             (define smtp-connection '())
             (define (connect-smtp-server)
                 (set! smtp-connection (smtp-connect "localhost" (server-port server))))
@@ -373,6 +375,7 @@
         ))
 
         (capability 'commands (list
+        
             (define smtp-connection '())
             (define (connect-smtp-server)
                 (set! smtp-connection (smtp-connect "localhost" (server-port server))))
