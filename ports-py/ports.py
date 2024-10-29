@@ -1,6 +1,7 @@
 import lispy
 import unittest
 import threading
+import time
 from pathlib import Path
 
 class TestPortsUnittestContainer(unittest.TestCase):
@@ -99,6 +100,7 @@ class PortsSuite(object):
             "false": False,
             "thread": ports_thread,
             "thread-wait-for-completion": ports_thread_join,
+            "thread-sleep!": lambda x: time.sleep(x),
         })
 
     def initialize_ports(self):

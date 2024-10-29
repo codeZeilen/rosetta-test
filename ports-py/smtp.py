@@ -30,16 +30,15 @@ def socket_accept(env, server_socket: socketlib.socket):
     except Exception as err:
         return err
     
-@smtp_suite.placeholder("secure-socket-accept")
-def secure_socket_accept(env, connection, ca_file, cert_file, key_file, close_wrapped_socket):
+@smtp_suite.placeholder("secure-socket-wrap")
+def secure_socket_wrap(env, connection, ca_file, cert_file, key_file, close_wrapped_socket):
     context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
     context.check_hostname = False
     context.verify_mode = ssl.CERT_NONE
     context.load_cert_chain(ports.fixture_path(ca_file), ports.fixture_path(key_file))
     try:
         ssock = context.wrap_socket(connection, server_side=True)
-        conn, addr = ssock.accept()
-        return conn
+        return ssock
     except Exception as err:
         return err
     
@@ -71,11 +70,21 @@ def smtp_connect(env, host, port):
 
 @smtp_suite.placeholder("smtp-secure-connect")
 def smtp_secure_connect(env, host, port, cafile):
+    return smtp_secure_connect_with_timeout(env, host, port, cafile)
+
+@smtp_suite.placeholder("smtp-secure-connect-with-timeout")
+def smtp_secure_connect_with_timeout(env, host, port, cafile, timeout=None):
     context = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
     context.check_hostname = False
     context.verify_mode = ssl.CERT_NONE
     context.load_verify_locations(ports.fixture_path(cafile))
-    result = smtplib.SMTP_SSL(host, port, context=context)
+    if timeout:
+        try:
+            result = smtplib.SMTP_SSL(host, port, context=context, timeout=timeout)
+        except TimeoutError as err:
+            return err
+    else:
+        result = smtplib.SMTP_SSL(host, port, context=context)
     if isinstance(result, ssl.SSLError):
         raise result
     else:
