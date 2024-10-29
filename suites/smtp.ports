@@ -15,10 +15,11 @@
         (placeholder '(socket-accept socket) "Accept a new connection on the socket")
         (placeholder '(socket-close socket) "Close the socket")
 
-        (placeholder '(secure-socket-accept socket ca-file cert-file key-file close-underlying-socket) "Should create a new SSL socket with the given configuration. Then the procedure should wait for the handshake (accept) to complete.")
+        (placeholder '(secure-socket-wrap socket ca-file cert-file key-file close-underlying-socket) "Should create a new SSL socket with the given configuration. Then the procedure should wait for the handshake (accept) to complete.")
 
         (placeholder '(smtp-connect host port) "Should connect and return some representation of the connection.")
         (placeholder '(smtp-secure-connect host port ca-file) "Should connect and return some representation of the connection done via an SSL socket.")
+        (placeholder '(smtp-secure-connect-with-timeout host port ca-file timeout) "Should connect and return some representation of the connection done via an SSL socket. The connection should be aborted if the handshake does not complete within the timeout.")
         (placeholder '(smtp-disconnect connection) "Should close the connection")
         (placeholder '(smtp-send-message connection content from to-list) "Send a message to the server. The function should return a list corresponding to the responses from the server for each recipient in the to-list. If there is only a single response, a list with a single response should be returned.")
         (placeholder '(smtp-ehlo connection content) "Send an EHLO command to the server")
@@ -99,7 +100,7 @@
                     (set! 
                         connection 
                         (if tls-enabled? 
-                            (secure-socket-accept socket CA_FILE CERT_FILE KEY_FILE #t) 
+                            (secure-socket-wrap (socket-accept socket) CA_FILE CERT_FILE KEY_FILE #t) 
                             (socket-accept socket))) 
                     (socket-write connection "220 OK\r\n")))
                 (define (close-sockets) (begin 
@@ -285,11 +286,21 @@
 
         (capability 'tls-connection
             (list
-                (setup (lambda () (begin 
-                    (set! server (basic-start-mock-server #t)))))
 
+                (define start-tls-mock-server (lambda () (begin 
+                    (set! server (basic-start-mock-server #t)))))
+                
                 (test "Connect to server with TLS" (lambda () (begin 
+                    (start-tls-mock-server)
                     (smtp-secure-connect "localhost" (server-port server) "./smtp-fixtures/cacert.pem"))))
+
+                (test "Timeout during connect to server with TLS" (lambda () (begin
+                    (set! secure-socket-wrap (lambda (socket x xx xxx xxxx) (begin 
+                        (thread-sleep! 0.5)
+                        (socket-close socket))))
+                    (start-tls-mock-server)
+                    (assert (smtp-error? (smtp-secure-connect-with-timeout "localhost" (server-port server) "./smtp-fixtures/cacert.pem" 0.1))))))
+                
         ))
 
         (capability 'crlf-injection-detection (list
