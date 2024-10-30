@@ -1,0 +1,31 @@
+name: Smalltalk Suites
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  # This workflow contains a single job called "build"
+  test:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        # Select platform(s)
+        os: [ ubuntu-latest ]
+        # Select compatible Smalltalk image(s)
+        smalltalk: [ Squeak64-6.0, Squeak64-5.3]
+    name: ${{ matrix.smalltalk }} on ${{ matrix.os }}
+    steps:
+      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
+      - uses: actions/checkout@v2
+      - uses: hpi-swa/setup-smalltalkCI@v1
+        with:
+          smalltalk-version: ${{ matrix.smalltalk }}
+        env: 
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - run: smalltalkci -s ${{ matrix.smalltalk }}
+        timeout-minutes: 15
+        env: 
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

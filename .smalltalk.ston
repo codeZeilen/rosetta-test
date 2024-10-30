@@ -1,0 +1,15 @@
+SmalltalkCISpec {
+  #loading : [
+    SCIMetacelloLoadSpec {
+      #baseline : 'PortsS',
+      #directory : 'ports-s',
+      #platforms : [ #squeak ]
+    }
+  ],
+  #testing : {
+    #categories : [ 'PortsS-Suites' ],
+    #coverage : {
+      #categories : [ 'Ohm-*' ]
+    }
+  }
+}

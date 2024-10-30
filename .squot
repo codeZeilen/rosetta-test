@@ -1,4 +1,3 @@
 OrderedDictionary {
-	'ports-s/PortsS.package' : #SquotCypressCodeSerializer,
-	'ports-s/BaselineOfPortsS.package' : #SquotCypressCodeSerializer
+	'ports-s/PortsS.package' : #SquotCypressCodeSerializer
 }
