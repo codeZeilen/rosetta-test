@@ -7,4 +7,8 @@ suite
 		version := specData second.
 		sources := specData third.
 		placeholders := specData fourth.
-		rootCapability := specData fifth.]
+		rootCapability := specData fifth.
+		
+		self 
+			fillPlaceholders;
+			installPlaceholders]

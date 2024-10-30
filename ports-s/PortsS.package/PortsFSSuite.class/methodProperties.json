@@ -2,13 +2,16 @@
 	"class" : {
 		 },
 	"instance" : {
-		"closeFile:env:" : "pre 7/27/2024 16:48",
-		"createTestFile:content:env:" : "pre 7/27/2024 16:50",
-		"flushFile:env:" : "pre 7/27/2024 16:49",
-		"isFileDescriptor:env:" : "pre 7/27/2024 16:49",
-		"isFileError:env:" : "pre 7/27/2024 16:50",
-		"openFile:mode:env:" : "pre 7/27/2024 16:40",
-		"readFile:length:env:" : "pre 7/27/2024 16:49",
-		"removeTestFile:env:" : "pre 7/27/2024 16:50",
+		"closeFile:env:" : "pre 10/30/2024 10:39",
+		"createTestFile:content:env:" : "pre 10/29/2024 14:32",
+		"expectedFailures" : "pre 10/30/2024 10:42",
+		"flushFile:env:" : "pre 10/30/2024 10:39",
+		"initialize" : "pre 10/29/2024 14:28",
+		"isFileDescriptor:env:" : "pre 10/29/2024 14:31",
+		"isFileError:env:" : "pre 10/29/2024 14:30",
+		"openFile:mode:env:" : "pre 10/29/2024 14:29",
+		"readFile:length:env:" : "pre 10/30/2024 10:40",
+		"removeTestFile:env:" : "pre 10/29/2024 14:32",
 		"suiteSource" : "pre 8/16/2024 13:20",
-		"writeFile:content:env:" : "pre 7/27/2024 16:49" } }
+		"tearDown" : "pre 10/30/2024 10:40",
+		"writeFile:content:env:" : "pre 10/30/2024 10:40" } }

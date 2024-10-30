@@ -16,7 +16,7 @@ evalExprs: element in: env
 			[#quote = x first] -> [ 
 				^ x second].
 			[#if = x first] -> [ 
-				x := (self evalExprs: x second in: localEnv)
+				x := ((self evalExprs: x second in: localEnv) ~= false) "Because Scheme treats all values as #t except for #f"
 					ifTrue: [x third]
 					ifFalse: [x fourth]].
 			[#cond = x first] -> [  
@@ -28,11 +28,13 @@ evalExprs: element in: env
 						x := case second]
 					ifNone: [^ nil]].
 			[#'set!' = x first] -> [ 
-				(localEnv find: x second) 
+				(localEnv findEnvFor: x second) 
 					at: x second
-					put: (self evalExprs: x third in: localEnv)].
+					put: (self evalExprs: x third in: localEnv).
+				^ nil].
 			[#'variable-unset!' = x first] -> [ 
-				(localEnv find: x second) unset: x second].
+				(localEnv find: x second) unset: x second.
+				^ nil].
 			[#define = x first] -> [ 
 				localEnv at: x second put: (self evalExprs: x third in: localEnv).
 				^ nil].
@@ -56,7 +58,7 @@ evalExprs: element in: env
 						x := executableElement body.
 						localEnv := PortsSchemeEnv new
 							setBindingsFor: executableElement params to: evaluatedElements allButFirst;
-							parent: localEnv;
+							parent: executableElement env;
 							yourself].
 					[executableElement isPortsSchemePrimitive] -> [
 						^ executableElement value: evaluatedElements allButFirst]}

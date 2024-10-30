@@ -1,0 +1,14 @@
+{
+	"category" : "PortsS-Interpreter",
+	"classinstvars" : [
+		 ],
+	"classvars" : [
+		 ],
+	"commentStamp" : "",
+	"instvars" : [
+		 ],
+	"name" : "PortsTypeError",
+	"pools" : [
+		 ],
+	"super" : "Error",
+	"type" : "normal" }

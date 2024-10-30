@@ -19,7 +19,7 @@ expandDefineAndMacro: exprs topLevel: isTopLevel
 			body := self expand: exprs third.
 			#'define-macro' = define ifTrue: [ | macroProcedure |
 				self expr: exprs shouldFulfill: isTopLevel message: 'macros can only be defined at top-level'.
-				macroProcedure  := self eval: body.
+				macroProcedure  := self evalExprs: body in: topEnvironment.
 				self expr: exprs shouldFulfill: macroProcedure isPortsSchemeProcedure message: 'macros needs to be a procedure'.
 				macroTable at: variable put: macroProcedure. 
 				^ nil].

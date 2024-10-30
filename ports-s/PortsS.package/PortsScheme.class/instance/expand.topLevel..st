@@ -1,6 +1,7 @@
 macro expansion
 expand: exprs topLevel: isTopLevel
 
+	self expr: exprs shouldFulfill: (exprs isCollection not or: [exprs size > 0]). "Either a non-empty list, or something else"
 	true 
 		caseOf: {
 			[(self isList: exprs) not] -> ["literal"
@@ -21,7 +22,7 @@ expand: exprs topLevel: isTopLevel
 			[#lambda = exprs first] -> [
 				^ self expandLambda: exprs].
 			[#quasiquote = exprs first] -> [
-				^ self expandQuasiquoteContent: exprs allButFirst].
+				^ self expandQuasiquoteContent: exprs second].
 			[exprs first isSymbol and: [macroTable includesKey: exprs first]] -> [
 				^ self applyMacroOn: exprs topLevel: isTopLevel]}
 		otherwise: ["recurse"

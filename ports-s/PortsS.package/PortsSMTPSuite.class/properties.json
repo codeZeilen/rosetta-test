@@ -1,0 +1,14 @@
+{
+	"category" : "PortsS",
+	"classinstvars" : [
+		 ],
+	"classvars" : [
+		 ],
+	"commentStamp" : "",
+	"instvars" : [
+		"sockets" ],
+	"name" : "PortsSMTPSuite",
+	"pools" : [
+		 ],
+	"super" : "PortsSuite",
+	"type" : "normal" }
