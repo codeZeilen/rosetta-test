@@ -1,4 +1,4 @@
-as yet unclassified
+evaluating
 value: values
 
 	^ self function valueWithArguments: values

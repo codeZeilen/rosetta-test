@@ -1,0 +1,14 @@
+{
+	"category" : "PortsS-Tests",
+	"classinstvars" : [
+		"portsScheme" ],
+	"classvars" : [
+		 ],
+	"commentStamp" : "",
+	"instvars" : [
+		"testsObject" ],
+	"name" : "PortsLispyTests",
+	"pools" : [
+		 ],
+	"super" : "Object",
+	"type" : "normal" }

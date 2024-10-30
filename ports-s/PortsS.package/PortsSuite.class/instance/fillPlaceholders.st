@@ -12,8 +12,9 @@ fillPlaceholders
 		key -> m selector]).
 	
 	placeholders do: [:placeholder |
-		placeholder function: (MessageSend 
-			receiver: self 
-			selector: (placeholderSelectorMap 
-						at: placeholder placeholderName
-						ifAbsent: [self error: 'missing placeholder: ' , placeholder placeholderName]))].
+		placeholderSelectorMap 
+			at: placeholder placeholderName
+			ifPresent: [:placeholderSelector | 
+				placeholder function: (MessageSend 
+					receiver: self 
+					selector: placeholderSelector)]].

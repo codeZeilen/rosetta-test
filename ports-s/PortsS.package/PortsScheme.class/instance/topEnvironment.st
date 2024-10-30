@@ -4,6 +4,8 @@ topEnvironment
 	^ topEnvironment ifNil: [
 		topEnvironment := PortsSchemeEnv new
 			bindings: {
+				#true -> true.
+				#false -> false.
 				#+ -> [:args | args first + args second].
 				#- -> [:args | args first - args second].
 				#'string-append' -> [:args | args fold: #,].
@@ -14,6 +16,9 @@ topEnvironment
 				#> -> [:args | args first > args second].
 				#< -> [:args | args first < args second].
 				#<= -> [:args | args first <= args second].
+				#abs -> [:args | args first abs].
+				#sqrt -> [:args | args first sqrt].
+				#inexact -> [:args | args first asFloat].
 				#length -> [:args | args first size].
 				#car -> [:args | args first first].
 				#cdr -> [:args | args first size > 1 ifTrue: [args first allButFirst] ifFalse: [Array empty]].
@@ -30,5 +35,7 @@ topEnvironment
 				#error -> [:args | Error new messageText: args first; yourself].
 				#'is-placeholder?' -> [:args | self isPlaceholderP: args].
 				#'list?' -> [:args | args first isCollection].
-				#'with-exception-handler' -> [:args | [args second value: {}] on: Exception do: [:e | args first value: {e}]]};
-			yourself]
+				#'with-exception-handler' -> [:args | [args second value: {}] on: Exception do: [:e | args first value: {e}]].
+				#display -> [:args | Transcript showln: args first]};
+			yourself.
+		self evalString: self portsLibrarySource in: topEnvironment.]

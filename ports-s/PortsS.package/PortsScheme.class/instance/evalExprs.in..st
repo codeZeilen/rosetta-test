@@ -16,7 +16,7 @@ evalExprs: element in: env
 			[#quote = x first] -> [ 
 				^ x second].
 			[#if = x first] -> [ 
-				x := (self evalExprs: x second in: localEnv)
+				x := ((self evalExprs: x second in: localEnv) ~= false) "Because Scheme treats all values as #t except for #f"
 					ifTrue: [x third]
 					ifFalse: [x fourth]].
 			[#cond = x first] -> [  
