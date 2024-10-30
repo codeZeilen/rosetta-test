@@ -15,22 +15,24 @@
         (placeholder '(socket-accept socket) "Accept a new connection on the socket")
         (placeholder '(socket-close socket) "Close the socket")
 
-        (placeholder '(secure-socket-wrap socket ca-file cert-file key-file close-underlying-socket) "Should create a new SSL socket with the given configuration. Then the procedure should wait for the handshake (accept) to complete.")
+        (placeholder '(secure-server-socket-wrap socket ca-file cert-file key-file close-underlying-socket) "Should wrap an existing connected server socket with a secure socket (TLS/SSL) with the given configuration. Then the procedure should wait for the handshake (accept) to complete.")
 
         (placeholder '(smtp-connect host port) "Should connect and return some representation of the connection.")
-        (placeholder '(smtp-secure-connect host port ca-file) "Should connect and return some representation of the connection done via an SSL socket.")
-        (placeholder '(smtp-secure-connect-with-timeout host port ca-file timeout) "Should connect and return some representation of the connection done via an SSL socket. The connection should be aborted if the handshake does not complete within the timeout.")
+        (placeholder '(smtp-secure-connect host port ca-file) "Should connect to an SMTP server via a secure connection (SSL/TLS) and return some representation of the connection.")
+        (placeholder '(smtp-secure-connect-with-timeout host port ca-file timeout) "Same as smtp-secure-connect but the connection should be aborted if the handshake does not complete within the timeout.")
         (placeholder '(smtp-disconnect connection) "Should close the connection")
         (placeholder '(smtp-send-message connection content from to-list) "Send a message to the server. The function should return a list corresponding to the responses from the server for each recipient in the to-list. If there is only a single response, a list with a single response should be returned.")
         (placeholder '(smtp-ehlo connection content) "Send an EHLO command to the server")
         (placeholder '(smtp-mail connection from) "Send a MAIL command to the server")
         (placeholder '(smtp-rcpt connection to-list options-list) "Send a RCPT command to the server. The to parameter should be a list of recipients. The function should return a list of responses from the server. Whether the RCPT commands are send by multiple invocations or a single one can be decided by the placeholder. The options list contains lists of options, one list of options per receipient. The list of options contains tuples with the option name as the first element, and the option value as the second. Clients may use the functions compile-options-strings, compile-options-string, and compile-option-string to compile the options list into key-value-strings that can be sent to the server.")
         (placeholder '(smtp-rset connection) "Send a RST command to the server")
+        (placeholder '(smtp-starttls connection cert-file key-file) "Send a STARTTLS command to the server. The cert-file and key-file are optional.")
         (placeholder '(smtp-data connection content) "Send a DATA command to the server for transmitting the content. The content should be a string and not contain the SMTP data terminating sequence.")
         (placeholder '(smtp-error? response) "Returns true if the response represents an error of some kind. This does not include error responses from the server but rather errors in the client-server communication.")
         (placeholder '(smtp-response-code response) "Return the response code from the server")
         (placeholder '(smtp-response-message response) "Return the response message from the server")
         (placeholder '(smtp-extensions connection ehlo-response) "Return a list of extensions of the server, either from the connection or the ehlo response") ; This is already an interesting case, as the extensions may be derived from only a response or may be a property of the connection object
+        (placeholder '(smtp-extension-not-supported-error? response) "Did the command fail due to an unsupported extension?")
         (placeholder '(smtp-authenticate connection method credentials) "Run authentication and return the result (in case of an exception return exception object or a stand-in for the exception)")
         (placeholder '(smtp-auth-successful? "Was the authentication successful?"))
         ; The following two are also interesting as this is an advanced feature that might be moved to a dedicated capability, but then it shares the same situation as the other unsuccessful auth tests
@@ -100,7 +102,7 @@
                     (set! 
                         connection 
                         (if tls-enabled? 
-                            (secure-socket-wrap (socket-accept socket) CA_FILE CERT_FILE KEY_FILE #t) 
+                            (secure-server-socket-wrap (socket-accept socket) CA_FILE CERT_FILE KEY_FILE #t) 
                             (socket-accept socket))) 
                     (socket-write connection "220 OK\r\n")))
                 (define (close-sockets) (begin 
@@ -125,6 +127,7 @@
                                 ((= command "MAIL") (mail args))
                                 ((= command "RCPT") (rcpt args))
                                 ((= command "DATA") (data-command args))
+                                ((= command "STARTTLS") (starttls args))
                                 (else (error "Command not found")))))))                
                 (define (loop) (let 
                     ((request-string (socket-receive connection)))
@@ -149,6 +152,15 @@
                         (let 
                             ((message-data (socket-receive connection))) 
                             (socket-write connection "250 2.0.0 OK\r\n"))))
+                (define (starttls args)
+                    (display "server starttls")
+                    (socket-write connection "220 Ready to start TLS\r\n")
+                    (display "server starttls responded")
+                    (let 
+                        ((secure-socket (secure-server-socket-wrap connection CA_FILE CERT_FILE KEY_FILE #t)))
+                        (display "server starttls wrapped")
+                        (display secure-socket)
+                        (set! connection secure-socket)))
                 (define (auth args)
                     (define (write-auth-failure-response) 
                         (socket-write connection "535 5.7.8  Authentication credentials invalid\r\n"))  ; TODO: write correct response
@@ -287,15 +299,24 @@
 
         (capability 'tls-connection (list
 
+            (define original-secure-server-socket-wrap '())
+
             (define start-tls-mock-server (lambda () (begin 
                 (set! server (basic-start-mock-server #t)))))
-            
+
+            (tearDown (lambda () (begin
+                (if (not (= original-secure-server-socket-wrap '()))
+                    (begin
+                        (set! secure-server-socket-wrap original-secure-server-socket-wrap)
+                        (set! original-secure-server-socket-wrap '()))))))
+
             (test "Connect to server with TLS" (lambda () (begin 
                 (start-tls-mock-server)
                 (smtp-secure-connect "localhost" (server-port server) "./smtp-fixtures/cacert.pem"))))
 
             (test "Timeout during connect to server with TLS" (lambda () (begin
-                (set! secure-socket-wrap (lambda (socket x xx xxx xxxx) (begin 
+                (set! original-secure-server-socket-wrap secure-server-socket-wrap)
+                (set! secure-server-socket-wrap (lambda (socket x xx xxx xxxx) (begin 
                     (thread-sleep! 0.5)
                     (socket-close socket))))
                 (start-tls-mock-server)
@@ -562,10 +583,46 @@
                     (test "rcpt with invalid options" (lambda () (begin
                         )))
                     
-                    ))
+                ))
                 
 
-                ))
+            ))
+
+            (capability 'starttls (list
+            
+                (setup (lambda () (begin 
+                    (connect-smtp-server))))
+
+                (tearDown (lambda () (begin 
+                    (smtp-disconnect smtp-connection))))
+
+                ; Check whether server did indeed start TLS
+
+                (test "starttls" (lambda () (begin 
+                    (server-set-extensions! server '("STARTTLS"))
+                    (smtp-ehlo smtp-connection "")
+                    (let
+                        ((starttls-response (smtp-starttls smtp-connection '() '())))
+                        (assert-response-code starttls-response 220)))))
+
+                (test "starttls without server support" (lambda () (begin 
+                    (server-set-extensions! server '())
+                    (smtp-ehlo smtp-connection "")
+                    (let
+                        ((starttls-response (smtp-starttls smtp-connection '() '())))
+                        (assert (smtp-extension-not-supported-error? starttls-response))))))
+
+                ; RFC 3207 TODO: add specific section
+                (test "After starttls extensions need to be refetched" (lambda () (begin 
+                    (server-set-extensions! server '("STARTTLS"))
+                    (smtp-ehlo smtp-connection "")
+                    (server-set-extensions! server '("FUNKY" "FOO"))
+                    (let
+                        ((starttls-response (smtp-starttls smtp-connection '() '()))
+                         (ehlo-response (smtp-ehlo smtp-connection "")))
+                        (assert-extensions smtp-connection ehlo-response '("FUNKY" "FOO"))))))
+
+            ))
 
             (capability 'auth (list
 
