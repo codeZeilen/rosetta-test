@@ -1,4 +1,0 @@
-*PortsS
-arrayForm
-
-	^ self

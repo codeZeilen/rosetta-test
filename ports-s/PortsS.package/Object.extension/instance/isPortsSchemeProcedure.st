@@ -1,4 +1,0 @@
-*PortsS
-isPortsSchemeProcedure
-
-	^ false

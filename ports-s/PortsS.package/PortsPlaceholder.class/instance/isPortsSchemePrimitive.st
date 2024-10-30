@@ -1,4 +1,0 @@
-*PortsS
-isPortsSchemePrimitive
-
-	^ true

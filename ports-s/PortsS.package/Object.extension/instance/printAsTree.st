@@ -1,4 +1,0 @@
-*PortsS
-printAsTree
-
-	^ self printString
