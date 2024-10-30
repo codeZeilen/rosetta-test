@@ -30,18 +30,19 @@ def socket_accept(env, server_socket: socketlib.socket):
     except Exception as err:
         return err
     
-@smtp_suite.placeholder("secure-socket-wrap")
-def secure_socket_wrap(env, connection, ca_file, cert_file, key_file, close_wrapped_socket):
+@smtp_suite.placeholder("secure-server-socket-wrap")
+def secure_server_socket_wrap(env, connection, ca_file, cert_file, key_file, close_wrapped_socket):
     context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
     context.check_hostname = False
     context.verify_mode = ssl.CERT_NONE
     context.load_cert_chain(ports.fixture_path(ca_file), ports.fixture_path(key_file))
     try:
         ssock = context.wrap_socket(connection, server_side=True)
+        sockets.append(ssock)
         return ssock
     except Exception as err:
         return err
-    
+        
 @smtp_suite.placeholder("socket-port")
 def socket_port(env, socket):
     "Return the port number of the socket"
@@ -133,6 +134,10 @@ def smtp_auth_credentials_error(env, result):
 def smtp_auth_not_supported_error(env, result):
     return type(result) == smtplib.SMTPNotSupportedError
 
+@smtp_suite.placeholder("smtp-extension-not-supported-error?")
+def smtp_extension_not_supported_error(env, result):
+    return type(result) == smtplib.SMTPNotSupportedError
+
 @smtp_suite.placeholder("smtp-mail")
 def smtp_mail(env, smtp, sender):
     try:
@@ -162,6 +167,16 @@ def smtp_data(env, smtp: smtplib.SMTP, content):
         return smtp.data(content)
     except smtplib.SMTPDataError as err:
         return err
+    
+@smtp_suite.placeholder("smtp-starttls")
+def smtp_starttls(env, smtp, certfile=None, keyfile=None):
+    if certfile and keyfile:
+        return smtp.starttls(keyfile=ports.fixture_path(keyfile), certfile=ports.fixture_path(certfile))
+    else:
+        try:
+            return smtp.starttls()
+        except smtplib.SMTPNotSupportedError as err:
+            return err
 
 @smtp_suite.placeholder("smtp-send-message")
 def smtp_send_message(env, smtp: smtplib.SMTP, message, sender, recipients):
@@ -184,4 +199,4 @@ def tear_down(env):
     sockets.clear()
 
 smtp_suite.run(exclude_capabilities=("root.commands.auth.xoauth2",), exclude=("test_CRLF_detection_in_MAIL_command",))
-#smtp_suite.run(only=("test_Connect_to_server_with_TLS",))
+#smtp_suite.run(only_capabilities=("root.commands.starttls"))# ("test_starttls","test_starttls_without_server_support","test_After_starttls_extensions_need_to_be_refetched",))
