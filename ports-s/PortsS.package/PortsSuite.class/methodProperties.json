@@ -2,16 +2,20 @@
 	"class" : {
 		"isAbstract" : "pre 10/28/2024 11:29" },
 	"instance" : {
-		"allTests" : "pre 10/28/2024 11:30",
+		"allTests" : "pre 10/29/2024 14:20",
 		"fillPlaceholders" : "pre 7/27/2024 16:48",
 		"installPlaceholders" : "pre 10/28/2024 11:42",
-		"newPortsEnvironment" : "pre 7/26/2024 16:21",
+		"newPortsEnvironment" : "pre 10/29/2024 14:37",
+		"performTest" : "pre 10/29/2024 14:21",
 		"portsEnvironment" : "pre 10/28/2024 11:44",
 		"portsLibrarySource" : "pre 8/16/2024 13:20",
-		"run" : "pre 10/28/2024 11:40",
-		"runTest:" : "pre 10/28/2024 11:34",
+		"portsRun" : "pre 10/29/2024 14:23",
+		"portsRunTest:" : "pre 10/29/2024 14:15",
 		"scheme" : "pre 7/27/2024 15:04",
 		"schemeEval:" : "pre 7/25/2024 15:10",
 		"schemeEval:in:" : "pre 7/26/2024 16:20",
-		"suite" : "pre 8/16/2024 13:19",
-		"suiteSource" : "pre 8/16/2024 13:19" } }
+		"suite" : "pre 10/29/2024 14:23",
+		"suiteSource" : "pre 8/16/2024 13:19",
+		"testNameOf:" : "pre 10/29/2024 14:19",
+		"timeoutForSetUp" : "pre 10/29/2024 14:39",
+		"timeoutForTest" : "pre 10/29/2024 14:40" } }

@@ -12,9 +12,10 @@
 		"version",
 		"specName",
 		"sources",
-		"placeholders" ],
+		"placeholders",
+		"allTests" ],
 	"name" : "PortsSuite",
 	"pools" : [
 		 ],
-	"super" : "Object",
+	"super" : "TestCase",
 	"type" : "normal" }

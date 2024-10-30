@@ -1,5 +1,5 @@
 running
-runTest: aPortsTest
+portsRunTest: aPortsTest
 
 	self assert: self suite notNil.
 	self 

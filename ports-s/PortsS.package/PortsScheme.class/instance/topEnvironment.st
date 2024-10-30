@@ -30,7 +30,5 @@ topEnvironment
 				#error -> [:args | Error new messageText: args first; yourself].
 				#'is-placeholder?' -> [:args | self isPlaceholderP: args].
 				#'list?' -> [:args | args first isCollection].
-				#'with-exception-handler' -> [:args | [args second value: {}] on: Exception do: [:e | args first value: {e}]].
-				#assert -> [:args | self assert: args first].
-				#'assert-equal' -> [:args | self assert: args first = args second]};
+				#'with-exception-handler' -> [:args | [args second value: {}] on: Exception do: [:e | args first value: {e}]]};
 			yourself]
