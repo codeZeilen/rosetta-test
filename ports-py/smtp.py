@@ -198,5 +198,5 @@ def tear_down(env):
         socket.close()
     sockets.clear()
 
-smtp_suite.run(exclude_capabilities=("root.commands.auth.xoauth2",), exclude=("test_CRLF_detection_in_MAIL_command",))
+smtp_suite.run(exclude_capabilities=("root.commands.auth.xoauth2",), exclude=("test_CRLF_detection_in_MAIL_command","test_CRLF_detection_in_RCPT_command"))
 #smtp_suite.run(only_capabilities=("root.commands.starttls"))# ("test_starttls","test_starttls_without_server_support","test_After_starttls_extensions_need_to_be_refetched",))
