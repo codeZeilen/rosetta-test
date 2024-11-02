@@ -1,17 +1,15 @@
-(suite 
-	"file-descriptor" 
-	"0.1"
+(suite "file-descriptor" "0.1"
 	(sources 
 		'("The Open Group Base Specifications Issue 7, 2018 edition" "IEEE and The Open Group" "https://pubs.opengroup.org/onlinepubs/9699919799"))
 
 	(list 
-		(placeholder '(open file-name mode) "open needs to track open file descriptors to ensure that all are closed during tear down of a test.")
-		(placeholder '(close file-descriptor))
-		(placeholder '(read file-descriptor length))
-		(placeholder '(write file-descriptor content))
-		(placeholder '(flush file-descriptor))
-		(placeholder '(is-file-descriptor? some-value))
-		(placeholder '(is-file-error? some-value))
+		(placeholder '(open file-name mode) "open needs to track open file descriptors to ensure that all are closed during tear down of a test. The file descriptor should be put into character-mode.")
+		(placeholder '(close file-descriptor) "close should close the file descriptor and not allow any subsequent writes")
+		(placeholder '(read file-descriptor length) "read should get length items from the file descriptor")
+		(placeholder '(write file-descriptor content "write should write the content at the current file descriptor position"))
+		(placeholder '(flush file-descriptor) "flush should flush the current writes to the file")
+		(placeholder '(is-file-descriptor? some-value) "Does the value represent a valid file descriptor")
+		(placeholder '(is-file-error? some-value) "Does the value represent an error result of some kind")
 
 		(placeholder '(create-test-file file-name file-content) "Places a test file with the specified content in a temporary location.")
 		(placeholder '(remove-test-file file-name))
@@ -32,6 +30,22 @@
 				(assert (is-file-error? (open "my-test-file" "g")))
 				(assert (is-file-error? (open "my-test-file" "rq")))
 				(assert (is-file-error? (open "my-test-file" "qr"))))))))
+
+		(capability 'close (list
+			(setup (lambda () 
+				(set! test-file (open "my-test-file" "r"))))
+
+			(tearDown (lambda () (begin
+				(close test-file)
+				(set! test-file '()))))
+
+			(test "a closed file descriptor does not allow further reads" (lambda ()
+				(close test-file) 
+				(assert (is-file-error? (read test-file 1)))))
+
+			(test "a closed file descriptor does not allow further writes" (lambda ()
+				(close test-file) 
+				(assert (is-file-error? (write test-file "abc")))))))
 
 		(capability 'read (list
 			(setup (lambda () 
