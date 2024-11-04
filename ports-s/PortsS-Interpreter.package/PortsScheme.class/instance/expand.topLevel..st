@@ -1,7 +1,7 @@
 macro expansion
 expand: exprs topLevel: isTopLevel
 
-	self expr: exprs shouldFulfill: (exprs isCollection not or: [exprs size > 0]). "Either a non-empty list, or something else"
+	self expr: exprs shouldFulfill: (exprs isCollection not or: [exprs isString or: [exprs size > 0]]). "Either a non-empty list, or something else"
 	true 
 		caseOf: {
 			[(self isList: exprs) not] -> ["literal"

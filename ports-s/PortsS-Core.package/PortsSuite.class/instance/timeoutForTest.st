@@ -1,4 +1,4 @@
 running - timeout
 timeoutForTest
 
-	^ 10
+	^ 5
