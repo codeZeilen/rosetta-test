@@ -104,7 +104,7 @@ class PortsSuite(object):
         })
 
     def initialize_ports(self):
-        with open("ports.scm", "r") as file:
+        with open("ports/ports.scm", "r") as file:
             self.eval(file.read())
 
     def placeholder(self, name):
