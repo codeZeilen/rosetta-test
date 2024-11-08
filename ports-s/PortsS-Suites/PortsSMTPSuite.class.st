@@ -19,6 +19,12 @@ PortsSMTPSuite >> createSocket: env [
 	^ serverSocket
 ]
 
+{ #category : #'test selection' }
+PortsSMTPSuite >> excludeCapabilities [
+
+	^ #('root.commands.auth.xoauth2' 'root.commands.auth.cram-md5' 'root.commands.auth.plain-auth' 'root.commands.rset')
+]
+
 { #category : #running }
 PortsSMTPSuite >> setUp [
 
@@ -30,15 +36,14 @@ PortsSMTPSuite >> smtpAuthCredentialsError: authenticationResult env: env [
 
 	<portsPlaceholderName: 'smtp-auth-credentials-error?'>
 	
-	self halt.
+	^ authenticationResult isString and: [(authenticationResult first: 3) = '535']
 ]
 
 { #category : #'suite definition' }
 PortsSMTPSuite >> smtpAuthNotSupportedError: authenticationResult env: env [
 
 	<portsPlaceholderName: 'smtp-auth-not-supported-error?'>
-	
-	self halt.
+	^ authenticationResult isString and: [(authenticationResult first: 3) = '504']
 ]
 
 { #category : #'suite definition' }
@@ -46,7 +51,7 @@ PortsSMTPSuite >> smtpAuthSuccessful: authenticationResult env: env [
 
 	<portsPlaceholderName: 'smtp-auth-successful?'>
 	
-	^ (authenticationResult first: 3) asInteger = 235
+	^ authenticationResult isString and: [(authenticationResult first: 3) asInteger = 235]
 ]
 
 { #category : #'suite definition' }
@@ -54,19 +59,13 @@ PortsSMTPSuite >> smtpAuthenticate: smtp method: authMethod credentials: credent
 
 	<portsPlaceholderName: 'smtp-authenticate'>
 	
-	authMethod = 'LOGIN' ifFalse: [self error].
+	authMethod = 'LOGIN' ifFalse: [self error]. "Only login will be tried by #login"
 	smtp user: credentials first.
 	smtp password: credentials second.
-	smtp login.
+	[smtp login]
+		on: TelnetProtocolError
+		do: [:e | ^ e response].
 	^ smtp lastResponse
-]
-
-{ #category : #'suite definition' }
-PortsSMTPSuite >> smtpConnect: smtp env: env [
-
-	<portsPlaceholderName: 'smtp-disconnect'>
-
-	^ smtp close
 ]
 
 { #category : #'suite definition' }
@@ -89,12 +88,22 @@ PortsSMTPSuite >> smtpData: smtp content: content env: env [
 ]
 
 { #category : #'suite definition' }
+PortsSMTPSuite >> smtpDisconnect: smtp env: env [
+
+	<portsPlaceholderName: 'smtp-disconnect'>
+	^ smtp = #() ifFalse: [smtp close]
+	
+]
+
+{ #category : #'suite definition' }
 PortsSMTPSuite >> smtpEhlo: smtp content: content env: env [
 
 	<portsPlaceholderName: 'smtp-ehlo'>
 
 	smtp localHostName: content.
-	smtp initiateSession.
+	[smtp initiateSession]
+		on: TelnetProtocolError
+		do: [:e | ^ e response].
 	^ smtp lastResponse
 ]
 
@@ -129,7 +138,9 @@ PortsSMTPSuite >> smtpMail: smtp from: fromAddress env: env [
 	
 	[smtp mailFrom: fromAddress]
 		on: SMTPValueError
-		do: [:e | ^ e].
+		do: [:e | ^ e]
+		on: TelnetProtocolError
+		do: [:e | ^ e response].
 	^ smtp lastResponse
 ]
 
@@ -150,7 +161,7 @@ PortsSMTPSuite >> smtpRcpt: smtp to: recipientAddresses options: optionTuples en
 				on: SMTPValueError 
 				do: [:e | result := e]
 				on: TelnetProtocolError
-				do: ["ignore, as the following smtp lastResponse retrieves the error message"].
+				do: [:e | result := e response].
 			result ifNil: [result := smtp lastResponse].
 			result].
 ]
@@ -183,8 +194,8 @@ PortsSMTPSuite >> smtpSendMessage: smtp content: content from: fromAddress to: r
 	<portsPlaceholderName: 'smtp-send-message'>
 	
 	[smtp mailFrom: fromAddress to: recipientAddresses text: content]
-		on: ProtocolClientError
-		do: [:e | "ignore, the smtp lastResponse will get the error response"].
+		on: TelnetProtocolError
+		do: [:e | ^ {e response}].
 	^ {smtp lastResponse}
 ]
 
