@@ -186,7 +186,6 @@
                                         (write-auth-success-response)
                                         (write-auth-failure-response)))))
                             ((= method "LOGIN") (begin
-                                
                                 (let 
                                     ((login-user-response
                                         (if (not (= credentials "")) 
@@ -200,7 +199,8 @@
                                         (if (and (= login-user-response "YWNjb3VudA==") (= login-password-response "cGFzc3dvcmQ="))
                                             (write-auth-success-response)
                                             (write-auth-failure-response))))))
-                            (else (socket-write connection "504 5.5.2 Command not implemented\r\n")))))
+                            ; RFC 4954 - Section 4
+                            (else (socket-write connection "504 5.5.4 Command not implemented\r\n")))))
                 (define (ehlo answer) 
                     (define (replace-last list element) (reverse (cons element (cdr (reverse list)))))
                     (let 
