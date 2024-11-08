@@ -238,7 +238,7 @@ def add_globals(self):
      'cdr':lambda x:x[1:], 
      'append':op.add,  
      'list':lambda *x:list(x), 'list?': lambda x:isa(x,list), 'list-ref':op.getitem,
-     'list-set!':op.setitem, 'member': lambda x,l: x in l,
+     'list-set!':op.setitem,
      'map':lambda fn, l: list(map(fn, l)), 'for-each':lambda fn, l: [fn(x) for x in l],
      'error':lambda err_msg: primitive_error(err_msg),
      'raise':lambda err: primitive_raise(err),
