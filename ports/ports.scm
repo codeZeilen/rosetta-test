@@ -44,16 +44,16 @@
                 (f init (car seq)) 
                 (cdr seq))))  
 
-    (define (member list element)
+    (define (member element list)
         (fold-right 
             (lambda (x y) (or x y)) 
             false 
-            (map (lambda (x) (= x element)) list)))
+            (map (lambda (x) (equal? x element)) list)))
 
     (define (unique-list? lst)
         (if (null? lst) true
             (if 
-                (member (cdr lst) (car lst)) 
+                (member (car lst) (cdr lst)) 
                 false
                 (unique-list? (cdr lst)))))
 
