@@ -36,14 +36,14 @@ PortsSMTPSuite >> smtpAuthCredentialsError: authenticationResult env: env [
 
 	<portsPlaceholderName: 'smtp-auth-credentials-error?'>
 	
-	^ authenticationResult isString and: [(authenticationResult first: 3) = '535']
+	^ (authenticationResult isKindOf: TelnetProtocolError) and: [authenticationResult code = 535]
 ]
 
 { #category : #'suite definition' }
 PortsSMTPSuite >> smtpAuthNotSupportedError: authenticationResult env: env [
 
 	<portsPlaceholderName: 'smtp-auth-not-supported-error?'>
-	^ authenticationResult isString and: [(authenticationResult first: 3) = '504']
+	^ (authenticationResult isKindOf: TelnetProtocolError) and: [authenticationResult code = 504]
 ]
 
 { #category : #'suite definition' }
@@ -64,7 +64,7 @@ PortsSMTPSuite >> smtpAuthenticate: smtp method: authMethod credentials: credent
 	smtp password: credentials second.
 	[smtp login]
 		on: TelnetProtocolError
-		do: [:e | ^ e response].
+		do: [:e | ^ e].
 	^ smtp lastResponse
 ]
 
@@ -83,6 +83,8 @@ PortsSMTPSuite >> smtpData: smtp content: content env: env [
 	
 	[smtp data: content]
 		on: SMTPValueError
+		do: [:e | ^ e]
+		on: TelnetProtocolError
 		do: [:e | ^ e].
 	^ smtp lastResponse
 ]
@@ -103,7 +105,7 @@ PortsSMTPSuite >> smtpEhlo: smtp content: content env: env [
 	smtp localHostName: content.
 	[smtp initiateSession]
 		on: TelnetProtocolError
-		do: [:e | ^ e response].
+		do: [:e | ^ e].
 	^ smtp lastResponse
 ]
 
@@ -128,7 +130,7 @@ PortsSMTPSuite >> smtpIsError: anObject env: env [
 
 	<portsPlaceholderName: 'smtp-error?'>
 	
-	^ anObject isKindOf: Exception
+	^ (anObject isKindOf: TelnetProtocolError) or: [anObject isKindOf: SMTPValueError] 
 ]
 
 { #category : #'suite definition' }
@@ -140,7 +142,7 @@ PortsSMTPSuite >> smtpMail: smtp from: fromAddress env: env [
 		on: SMTPValueError
 		do: [:e | ^ e]
 		on: TelnetProtocolError
-		do: [:e | ^ e response].
+		do: [:e | ^ e].
 	^ smtp lastResponse
 ]
 
@@ -161,7 +163,7 @@ PortsSMTPSuite >> smtpRcpt: smtp to: recipientAddresses options: optionTuples en
 				on: SMTPValueError 
 				do: [:e | result := e]
 				on: TelnetProtocolError
-				do: [:e | result := e response].
+				do: [:e | result := e].
 			result ifNil: [result := smtp lastResponse].
 			result].
 ]
@@ -170,14 +172,16 @@ PortsSMTPSuite >> smtpRcpt: smtp to: recipientAddresses options: optionTuples en
 PortsSMTPSuite >> smtpResponseCode: smtpResponse env: env [
 
 	<portsPlaceholderName: 'smtp-response-code'>
-	^ (smtpResponse first: 3) asInteger
+	smtpResponse isString ifTrue: [^ (smtpResponse first: 3) asInteger].
+	(smtpResponse isKindOf: TelnetProtocolError) ifTrue: [^ smtpResponse code].
 ]
 
 { #category : #'suite definition' }
 PortsSMTPSuite >> smtpResponseMessage: smtpResponse env: env [
 
 	<portsPlaceholderName: 'smtp-response-message'>
-	^ (smtpResponse allButFirst: 3) withBlanksTrimmed
+	smtpResponse isString ifTrue: [^ (smtpResponse allButFirst: 4) withBlanksTrimmed].
+	(smtpResponse isKindOf: TelnetProtocolError) ifTrue: [^ (smtpResponse response allButFirst: 4) withBlanksTrimmed].
 ]
 
 { #category : #'suite definition' }
@@ -195,7 +199,7 @@ PortsSMTPSuite >> smtpSendMessage: smtp content: content from: fromAddress to: r
 	
 	[smtp mailFrom: fromAddress to: recipientAddresses text: content]
 		on: TelnetProtocolError
-		do: [:e | ^ {e response}].
+		do: [:e | ^ {e}].
 	^ {smtp lastResponse}
 ]
 
