@@ -25,14 +25,48 @@ PortsSuite class >> isAbstract [
 PortsSuite >> allTests [ 
 
 	self assert: self suite notNil.
-	allTests ifNil: [
-		allTests := self 
+	allTests ifNil: [| testsFromSuite |
+		testsFromSuite := self 
 			schemeEval: '(capability-all-tests root-capability)' 
 			in: (PortsSchemeEnv new
 				at: #'root-capability' put: rootCapability;
 				parent: self portsEnvironment;
-				yourself)].
+				yourself).
+		allTests := OrderedCollection new.
+		allTests := testsFromSuite reject: [:test | |testName testCapabilityName|
+			testName := self testNameOf: test.
+			testCapabilityName := self capabilityIdentifierOf: test.
+			"If any of the following cases hold, do not add the test"
+			(self onlyTests notEmpty and: [(self onlyTests includes: testName) not])
+				or: [self onlyCapabilities notEmpty and: [(self onlyCapabilities includes: testCapabilityName) not]]
+				or: [self excludeTests notEmpty and: [self excludeTests includes: testName]]
+				or: [self excludeCapabilities notEmpty and: [self excludeCapabilities includes: testCapabilityName]]]].
 	^ allTests
+]
+
+{ #category : #accessing }
+PortsSuite >> capabilityIdentifierOf: aPortsTestObject [ 
+	
+	^ (self 
+		schemeEval: '(capability-full-name (test-capability the-test))' 
+		in: (PortsSchemeEnv new
+			at: #'the-test' put: aPortsTestObject;
+			parent: self portsEnvironment;
+			yourself)) asSymbol.
+]
+
+{ #category : #'test selection' }
+PortsSuite >> excludeCapabilities [
+	"Use this method to specify that the tests from the listed capabilities should not be executed."
+
+	^ #()
+]
+
+{ #category : #'test selection' }
+PortsSuite >> excludeTests [
+	"Use this method to specify that the listed tests should not be executed. Has precedence over the capability exclusion mechanism."
+
+	^ #()
 ]
 
 { #category : #running }
@@ -96,6 +130,20 @@ PortsSuite >> newPortsEnvironment [
 		
 	
 	^ newEnvironment
+]
+
+{ #category : #'test selection' }
+PortsSuite >> onlyCapabilities [
+	"Use this method to specify that only tests form the listed capabilities and NO other should be executed. Has precedence over all exclude mechanisms."
+
+	^ #()
+]
+
+{ #category : #'test selection' }
+PortsSuite >> onlyTests [
+	"Use this method to specify that only the listed tests and NO other should be executed. Has precedence over all other selection mechanisms."
+
+	^ #()
 ]
 
 { #category : #running }
@@ -187,12 +235,12 @@ PortsSuite >> suiteSource [
 ]
 
 { #category : #accessing }
-PortsSuite >> testNameOf: anArray [ 
+PortsSuite >> testNameOf: aPortsTestObject [ 
 	
 	^ self 
 		schemeEval: '(test-name the-test)' 
 		in: (PortsSchemeEnv new
-			at: #'the-test' put: anArray;
+			at: #'the-test' put: aPortsTestObject;
 			parent: self portsEnvironment;
 			yourself).
 ]
