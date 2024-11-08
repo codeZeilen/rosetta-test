@@ -372,7 +372,7 @@ PortsScheme >> nullP: args [
 { #category : #evaluating }
 PortsScheme >> portsLibrarySource [
 
-	^ (FileDirectory default / '..' / '..' / #ports) readOnlyFileNamed: 'ports.scm' do: [:portsFile |
+	^ (FileDirectory default / '..' / '..' / #ports / #ports) readOnlyFileNamed: 'ports.scm' do: [:portsFile |
 		portsFile contents]
 ]
 
@@ -391,6 +391,8 @@ PortsScheme >> topEnvironment [
 				#* -> [:args | args first * args second].
 				#/ -> [:args | args first / args second].
 				#= -> [:args | args first = args second].
+				#'eq?' -> [:args | args first == args second].
+				#'equal?' -> [:args | args first = args second].
 				#> -> [:args | args first > args second].
 				#< -> [:args | args first < args second].
 				#<= -> [:args | args first <= args second].
