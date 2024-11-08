@@ -431,14 +431,14 @@
                     (let
                         ((ehlo-response (smtp-ehlo smtp-connection "")))
                         (assert-response-code ehlo-response 250)
-                        (assert-extensions server ehlo-response (list "8BITMIME"))))))
+                        (assert-extensions smtp-connection ehlo-response (list "8BITMIME"))))))
 
                 (test "server answers multiple extensions" (lambda () (begin
                     (server-set-extensions! server (list "8BITMIME" "VERB"))
                     (let
                         ((ehlo-response (smtp-ehlo smtp-connection "")))
                         (assert-response-code ehlo-response 250)
-                        (assert-extensions server ehlo-response (list "8BITMIME" "VERB"))))))
+                        (assert-extensions smtp-connection ehlo-response (list "8BITMIME" "VERB"))))))
 
                 (test "server answers ehlo with error code" (lambda () (begin
                     (server-set-response-code! server "550 not message")
