@@ -46,19 +46,19 @@ def secure_server_socket_wrap(env, connection, ca_file, cert_file, key_file, clo
 @smtp_suite.placeholder("socket-port")
 def socket_port(env, socket):
     "Return the port number of the socket"
-    assert socket.fileno() != -1 # Socket not closed
+    assert socket.fileno() != -1, "Tried to get the port of an already closed socket"
     return socket.getsockname()[1]
 
 @smtp_suite.placeholder("socket-receive")
 def socket_read(env, socket):
     "Read from the socket"
-    assert socket.fileno() != -1 # Socket not closed
+    assert socket.fileno() != -1, "Tried to read from an already closed socket"
     result = socket.recv(4096).decode(encoding="ascii")
     return result
 
 @smtp_suite.placeholder("socket-write")
 def socket_write(env, socket: socketlib.socket, content):
-    assert socket.fileno() != -1 # Socket not closed
+    assert socket.fileno() != -1, "Tried to write on an already closed socket"
     socket.sendall(content.encode(encoding="ascii"))
     
 @smtp_suite.placeholder("socket-close")
