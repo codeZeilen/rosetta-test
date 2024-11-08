@@ -75,6 +75,10 @@
                         (map
                             (lambda (auth) (car auth))
                             (server-auths server)))))))
+        (define (server-auth-methods server)
+            (map 
+                car
+                (server-auths server)))
         (define (server-stop server) (list-set! server 3 #t))
         (define (server-has-response-code? server) (not (= (server-response-code server) "0")))
         
@@ -85,7 +89,10 @@
             (let 
                 ((socket (create-socket)))
                 (create-server 
-                    (thread (lambda () (mock-smtp-server socket tls-enabled?)))
+                    (thread (lambda () 
+                        (with-exception-handler 
+                            (lambda (e) (display (string-append "Error in server thread: " e)))
+                            (lambda () (mock-smtp-server socket tls-enabled?)))))
                     socket
                     tls-enabled?)))
         (define (stop-mock-server) (begin
@@ -113,12 +120,10 @@
                     (server-set-requests! 
                         server 
                         (append (server-requests server) (list request-string)))
-                    (display (string-append "-" request-string))
                     ; Handle the request
                     (let
                         ((command (string-upcase (request-command request-string)))
                          (args (request-arguments request-string)))
-                        (display (string-append "args:" command))
                         (if (server-has-response-code? server)
                             (socket-write connection (string-append (server-response-code server) "\r\n"))
                             (cond 
@@ -153,13 +158,9 @@
                             ((message-data (socket-receive connection))) 
                             (socket-write connection "250 2.0.0 OK\r\n"))))
                 (define (starttls args)
-                    (display "server starttls")
                     (socket-write connection "220 Ready to start TLS\r\n")
-                    (display "server starttls responded")
                     (let 
                         ((secure-socket (secure-server-socket-wrap connection CA_FILE CERT_FILE KEY_FILE #t)))
-                        (display "server starttls wrapped")
-                        (display secure-socket)
                         (set! connection secure-socket)))
                 (define (auth args)
                     (define (write-auth-failure-response) 
@@ -169,38 +170,41 @@
                     (let 
                         ((method (car args))
                          (credentials (if (> (length args) 1) (second args) "")))
-                        (cond 
-                            ((= method "PLAIN") (begin
-                                (if (= credentials "AGFjY291bnQAcGFzc3dvcmQ=")
-                                    (write-auth-success-response)
-                                    (write-auth-failure-response))))
-                            ((= method "XOAUTH2") (begin
-                                (if (= credentials "dXNlcj1hY2NvdW50AWF1dGg9QmVhcmVyIHRva2VuAQE=")
-                                    (write-auth-success-response)
-                                    (write-auth-failure-response))))
-                            ((= method "CRAM-MD5") (begin
-                                (socket-write connection "334 PDEyMzQ1Njc4OTAuMTIzNDVAc2VydmVybmFtZT4=\r\n")
-                                (let 
-                                    ((cram-md5-response (string-trim (socket-receive connection))))
-                                    (if (= cram-md5-response "YWNjb3VudCAyYzBjMTgxZjkxOGU2ZGM5Mjg3Zjk3N2E1ODhiMzg1YQ==")
+                        (if (member (string-upcase method) (server-auth-methods server)) ; Check whether auth method is listed
+                            (cond
+                                ((= method "PLAIN") (begin
+                                    (if (= credentials "AGFjY291bnQAcGFzc3dvcmQ=")
                                         (write-auth-success-response)
-                                        (write-auth-failure-response)))))
-                            ((= method "LOGIN") (begin
-                                (let 
-                                    ((login-user-response
-                                        (if (not (= credentials "")) 
-                                            credentials
-                                            (begin
-                                                (socket-write connection "334 VXNlcm5hbWU6\r\n")
-                                                (string-trim (socket-receive connection))))))
-                                    (socket-write connection "334 UGFzc3dvcmQ6\r\n")
+                                        (write-auth-failure-response))))
+                                ((= method "XOAUTH2") (begin
+                                    (if (= credentials "dXNlcj1hY2NvdW50AWF1dGg9QmVhcmVyIHRva2VuAQE=")
+                                        (write-auth-success-response)
+                                        (write-auth-failure-response))))
+                                ((= method "CRAM-MD5") (begin
+                                    (socket-write connection "334 PDEyMzQ1Njc4OTAuMTIzNDVAc2VydmVybmFtZT4=\r\n")
                                     (let 
-                                        ((login-password-response (string-trim (socket-receive connection)))) 
-                                        (if (and (= login-user-response "YWNjb3VudA==") (= login-password-response "cGFzc3dvcmQ="))
+                                        ((cram-md5-response (string-trim (socket-receive connection))))
+                                        (if (= cram-md5-response "YWNjb3VudCAyYzBjMTgxZjkxOGU2ZGM5Mjg3Zjk3N2E1ODhiMzg1YQ==")
                                             (write-auth-success-response)
-                                            (write-auth-failure-response))))))
-                            ; RFC 4954 - Section 4
-                            (else (socket-write connection "504 5.5.4 Command not implemented\r\n")))))
+                                            (write-auth-failure-response)))))
+                                ((= method "LOGIN") (begin
+                                    (let 
+                                        ((login-user-response
+                                            (if (not (= credentials "")) 
+                                                credentials
+                                                (begin
+                                                    (socket-write connection "334 VXNlcm5hbWU6\r\n")
+                                                    (string-trim (socket-receive connection))))))
+                                        (socket-write connection "334 UGFzc3dvcmQ6\r\n")
+                                        (let 
+                                            ((login-password-response (string-trim (socket-receive connection)))) 
+                                            (if (and (= login-user-response "YWNjb3VudA==") (= login-password-response "cGFzc3dvcmQ="))
+                                                (write-auth-success-response)
+                                                (write-auth-failure-response))))))
+                                ; RFC 4954 - Section 4
+                                (else (socket-write connection "504 5.5.4 Command not implemented\r\n")))
+                            ; else case to capture non-supported methods early RFC 4954 - Section 4
+                            (socket-write connection "504 5.5.4 Command not implemented\r\n") )))
                 (define (ehlo answer) 
                     (define (replace-last list element) (reverse (cons element (cdr (reverse list)))))
                     (let 
