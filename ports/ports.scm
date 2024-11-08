@@ -44,7 +44,7 @@
                 (f init (car seq)) 
                 (cdr seq))))  
 
-    (define (in? list element)
+    (define (member list element)
         (fold-right 
             (lambda (x y) (or x y)) 
             false 
@@ -53,7 +53,7 @@
     (define (unique-list? lst)
         (if (null? lst) true
             (if 
-                (in? (cdr lst) (car lst)) 
+                (member (cdr lst) (car lst)) 
                 false
                 (unique-list? (cdr lst)))))
 
