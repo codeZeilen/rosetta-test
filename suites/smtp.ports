@@ -90,9 +90,7 @@
                 ((socket (create-socket)))
                 (create-server 
                     (thread (lambda () 
-                        (with-exception-handler 
-                            (lambda (e) (display (string-append "Error in server thread: " e)))
-                            (lambda () (mock-smtp-server socket tls-enabled?)))))
+                        (mock-smtp-server socket tls-enabled?)))
                     socket
                     tls-enabled?)))
         (define (stop-mock-server) (begin
