@@ -18,6 +18,7 @@
         (placeholder '(secure-server-socket-wrap socket ca-file cert-file key-file close-underlying-socket) "Should wrap an existing connected server socket with a secure socket (TLS/SSL) with the given configuration. Then the procedure should wait for the handshake (accept) to complete.")
 
         (placeholder '(smtp-connect host port) "Should connect and return some representation of the connection.")
+        (placeholder '(smtp-connect-with-auto-starttls host port starttls-mode) "Should connect and set the automatic starttls mode (which can be 'automatic (send starttls if available, otherwise do not), 'required (connect and send starttls, fail if server does not support it), 'never (do not automatically send starttls)). In case the connection results in an error (e.g. starttls mode is 'required but server does not support starttls), the error should be returned.")
         (placeholder '(smtp-secure-connect host port ca-file) "Should connect to an SMTP server via a secure connection (SSL/TLS) and return some representation of the connection.")
         (placeholder '(smtp-secure-connect-with-timeout host port ca-file timeout) "Same as smtp-secure-connect but the connection should be aborted if the handshake does not complete within the timeout.")
         (placeholder '(smtp-disconnect connection) "Should close the connection")
@@ -48,6 +49,7 @@
         (define (server-auths server) (list-ref server 6))
         (define (server-requests server) (list-ref server 7))
         (define (server-tls? server) (list-ref server 8))
+        (define (server-tls-started? server) (list-ref server 9)) ; Was a TLS connection started via STARTTLS?
 
         (define (server-set-thread! server new-thread) 
             (list-set! server 1 new-thread))
@@ -63,6 +65,8 @@
             (list-set! server 8 #t))
         (define (server-disable-tls server) 
             (list-set! server 8 #f))
+        (define (server-set-tls-started! server boolean) 
+            (list-set! server 9 boolean))
 
         (define (server-extensions-with-auth server) 
             (if (empty? (server-auths server))
@@ -81,8 +85,9 @@
                 (server-auths server)))
         (define (server-stop server) (list-set! server 3 #t))
         (define (server-has-response-code? server) (not (= (server-response-code server) "0")))
+        (define (let-server-complete-handler) (thread-sleep! 0.1))
         
-        (define (create-server thread port tls-enabled) (list 'server thread port #f '() "0" '() '() tls-enabled))
+        (define (create-server thread port tls-enabled) (list 'server thread port #f '() "0" '() '() tls-enabled #f))
 
         (define (start-mock-server) (basic-start-mock-server #f))
         (define (basic-start-mock-server tls-enabled?) ; should return a server object
@@ -108,8 +113,12 @@
                         connection 
                         (if tls-enabled? 
                             (secure-server-socket-wrap (socket-accept socket) CA_FILE CERT_FILE KEY_FILE #t) 
-                            (socket-accept socket))) 
-                    (socket-write connection "220 OK\r\n")))
+                            (socket-accept socket)))
+                    (if (null? connection)
+                        #f
+                        (begin 
+                            (socket-write connection "220 OK\r\n")
+                            #t))))
                 (define (close-sockets) (begin 
                     (socket-close connection)
                     (socket-close socket)))
@@ -159,6 +168,7 @@
                     (socket-write connection "220 Ready to start TLS\r\n")
                     (let 
                         ((secure-socket (secure-server-socket-wrap connection CA_FILE CERT_FILE KEY_FILE #t)))
+                        (server-set-tls-started! server #t)
                         (set! connection secure-socket)))
                 (define (auth args)
                     (define (write-auth-failure-response) 
@@ -220,8 +230,7 @@
                                 connection 
                                 answers-text))))
 
-                (init)
-                (loop)))
+                (if (init) (loop))))
 
         ; Get command from a request
         (define (request-command request) (string-trim (car (string-split request " "))))
@@ -598,21 +607,24 @@
                 (tearDown (lambda () (begin 
                     (smtp-disconnect smtp-connection))))
 
-                ; Check whether server did indeed start TLS
+                ; TODO: Check whether server did indeed start TLS
 
-                (test "starttls" (lambda () (begin 
+                (test "basic starttls" (lambda () (begin 
                     (server-set-extensions! server '("STARTTLS"))
                     (smtp-ehlo smtp-connection "")
                     (let
                         ((starttls-response (smtp-starttls smtp-connection '() '())))
-                        (assert-response-code starttls-response 220)))))
+                        (let-server-complete-handler)
+                        (assert-response-code starttls-response 220)
+                        (assert (server-tls-started? server) "Sending STARTTLS should result in a successful TLS connection on the server.")))))
 
                 (test "starttls without server support" (lambda () (begin 
                     (server-set-extensions! server '())
                     (smtp-ehlo smtp-connection "")
                     (let
                         ((starttls-response (smtp-starttls smtp-connection '() '())))
-                        (assert (smtp-extension-not-supported-error? starttls-response))))))
+                        (assert (smtp-extension-not-supported-error? starttls-response))
+                        (assert (not (server-tls-started? server)))))))
 
                 ; RFC 3207 TODO: add specific section
                 (test "After starttls extensions need to be refetched" (lambda () (begin 
@@ -623,7 +635,70 @@
                         ((starttls-response (smtp-starttls smtp-connection '() '()))
                          (ehlo-response (smtp-ehlo smtp-connection "")))
                         (assert-extensions smtp-connection ehlo-response '("FUNKY" "FOO"))))))
+                  
+            ))
 
+            ; 'automatic-starttls applies when the library supports automatically upgrading
+            ; a connection to TLS when the server supports it
+            (capability 'automatic-starttls (list
+            
+                (test "automatic starttls active and server supports starttls" (lambda () (begin
+                    (server-set-extensions! server '("STARTTLS"))
+                    (let 
+                        ((connection (smtp-connect-with-auto-starttls "localhost" (server-port server) 'automatic)))
+                        (let 
+                            ((ehlo-response (smtp-ehlo connection "")))
+                            (assert-response-code echo-response 220)
+                            (assert (server-tls-started? server)))))))
+
+                (test "automatic starttls active and server does not support starttls" (lambda () (begin
+                    (server-set-extensions! server '())
+                    (let 
+                        ((connection (smtp-connect-with-auto-starttls "localhost" (server-port server) 'automatic)))
+                        (let 
+                            ((ehlo-response (smtp-ehlo connection "")))
+                            (assert-response-code echo-response 220)
+                            (assert (not (server-tls-started? server))))))))
+
+                (test "automatic starttls not active and server does support starttls" (lambda () (begin
+                    (server-set-extensions! server '("STARTTLS"))
+                    (let 
+                        ((connection (smtp-connect-with-auto-starttls "localhost" (server-port server) 'never)))
+                        (let 
+                            ((ehlo-response (smtp-ehlo connection "")))
+                            (assert-response-code echo-response 220)
+                            (assert (not (server-tls-started? server))))))))
+
+                (test "automatic starttls not active and server does not support starttls" (lambda () (begin
+                    (server-set-extensions! server '())
+                    (let 
+                        ((connection (smtp-connect-with-auto-starttls "localhost" (server-port server) 'never)))
+                        (let 
+                            ((ehlo-response (smtp-ehlo connection "")))
+                            (assert-response-code echo-response 220)
+                            (assert (not (server-tls-started? server))))))))
+
+                ; 'required-starttls covers modes in which starttls should always be used and the connection
+                ; should be terminated in case the server does not support it
+                (capability 'required-starttls (list 
+
+                    (test "required starttls active and server supports starttls" (lambda() (begin
+                        (server-set-extensions! server '("STARTTLS"))
+                        (let 
+                            ((connection (smtp-connect-with-auto-starttls "localhost" (server-port server) 'required)))
+                            (let 
+                                ((ehlo-response (smtp-ehlo connection "")))
+                                (assert-response-code echo-response 220)
+                                (assert (server-tls-started? server)))))))
+
+                    (test "required starttls active and server does not support starttls" (lambda() (begin
+                        (server-set-extensions! server '())
+                        (let 
+                            ((connection (smtp-connect-with-auto-starttls "localhost" (server-port server) 'required)))
+                            (assert (smtp-error? connection))
+                            (assert (server-tls-started? server))))))
+                        
+                ))
             ))
 
             (capability 'auth (list
