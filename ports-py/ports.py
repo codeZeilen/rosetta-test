@@ -72,6 +72,9 @@ def ports_thread_kill(thread: threading.Thread):
 
 def ports_thread_join(thread: threading.Thread):
     thread.join()
+    
+def ports_thread_yield():
+    time.sleep(0)
 
 class PortsSuite(object):
 
@@ -101,6 +104,7 @@ class PortsSuite(object):
             "thread": ports_thread,
             "thread-wait-for-completion": ports_thread_join,
             "thread-sleep!": lambda x: time.sleep(x),
+            "thread-yield": ports_thread_yield,
         })
 
     def initialize_ports(self):
@@ -156,6 +160,9 @@ class PortsSuite(object):
     def generate_unittest_test_method(self, ports_test):
         return lambda testcase: self.run_test(ports_test)
     
+    def capability_identifier_matches_list(self, capability_identifier, capability_list):
+        return any([capability_identifier.startswith(capability) for capability in capability_list])
+    
     def run_test(self, ports_test):
         env = lispy.Env((lispy.Sym("current-test"),), (ports_test,), outer=self.lispy_env)
         self.eval(f"(test-run current-test)", env)
@@ -175,11 +182,11 @@ class PortsSuite(object):
             capability_identifier = self.generate_capability_identifier(test)
             if only and (test_name not in only):
                 continue
-            if only_capabilities and (capability_identifier not in only_capabilities):
+            if only_capabilities and not self.capability_identifier_matches_list(capability_identifier, only_capabilities):
                 continue
             if exclude and (test_name in exclude):
                 continue
-            if exclude_capabilities and (capability_identifier in exclude_capabilities):
+            if exclude_capabilities and self.capability_identifier_matches_list(capability_identifier, exclude_capabilities):
                 continue
             setattr(TestPortsUnittestContainer,
                     test_name,
