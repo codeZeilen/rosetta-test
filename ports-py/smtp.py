@@ -69,6 +69,10 @@ def socket_close(env, socket):
 def smtp_connect(env, host, port):
     return smtplib.SMTP(host, port)
 
+@smtp_suite.placeholder("smtp-connect-with-auto-starttls")
+def smtp_connect_with_auto_starttls(env, host, port, automatic_mode):
+    pass
+
 @smtp_suite.placeholder("smtp-secure-connect")
 def smtp_secure_connect(env, host, port, cafile):
     return smtp_secure_connect_with_timeout(env, host, port, cafile)
@@ -198,5 +202,5 @@ def tear_down(env):
         socket.close()
     sockets.clear()
 
-smtp_suite.run(exclude_capabilities=("root.commands.auth.xoauth2",), exclude=("test_CRLF_detection_in_MAIL_command","test_CRLF_detection_in_RCPT_command"))
+smtp_suite.run(exclude_capabilities=("root.commands.auth.xoauth2","root.commands.automatic-starttls",), exclude=("test_CRLF_detection_in_MAIL_command","test_CRLF_detection_in_RCPT_command"))
 #smtp_suite.run(only_capabilities=("root.commands.starttls"))# ("test_starttls","test_starttls_without_server_support","test_After_starttls_extensions_need_to_be_refetched",))
