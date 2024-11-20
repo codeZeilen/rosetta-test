@@ -53,13 +53,13 @@ def socket_port(env, socket):
 def socket_read(env, socket):
     "Read from the socket"
     assert socket.fileno() != -1, "Tried to read from an already closed socket"
-    result = socket.recv(4096).decode(encoding="ascii")
+    result = socket.recv(4096).decode(encoding="utf-8")
     return result
 
 @smtp_suite.placeholder("socket-write")
 def socket_write(env, socket: socketlib.socket, content):
     assert socket.fileno() != -1, "Tried to write on an already closed socket"
-    socket.sendall(content.encode(encoding="ascii"))
+    socket.sendall(content.encode(encoding="utf-8"))
     
 @smtp_suite.placeholder("socket-close")
 def socket_close(env, socket):
@@ -142,11 +142,13 @@ def smtp_auth_not_supported_error(env, result):
 def smtp_extension_not_supported_error(env, result):
     return type(result) == smtplib.SMTPNotSupportedError
 
-@smtp_suite.placeholder("smtp-mail")
-def smtp_mail(env, smtp, sender):
+@smtp_suite.placeholder("smtp-mail-with-options")
+def smtp_mail(env, smtp, sender, options=()):
     try:
-        return smtp.mail(sender)
+        return smtp.mail(sender, options=options)
     except ValueError as err:
+        return err
+    except smtplib.SMTPNotSupportedError as err:
         return err
 
 @smtp_suite.placeholder("smtp-rcpt")
@@ -202,5 +204,6 @@ def tear_down(env):
         socket.close()
     sockets.clear()
 
+#smtp_suite.run(only=("test_international_mailbox_name_with_SMTPUTF8_support",))
 smtp_suite.run(exclude_capabilities=("root.commands.auth.xoauth2","root.commands.automatic-starttls",), exclude=("test_CRLF_detection_in_MAIL_command","test_CRLF_detection_in_RCPT_command"))
 #smtp_suite.run(only_capabilities=("root.commands.starttls"))# ("test_starttls","test_starttls_without_server_support","test_After_starttls_extensions_need_to_be_refetched",))
