@@ -162,6 +162,8 @@ def smtp_rcpt(env, smtp, recipients, option_tuples):
         return list(map(lambda recipient_options: smtp.rcpt(recipient_options[0],options=recipient_options[1]), zip(recipients, options)))
     except ValueError as err:
         return err
+    except smtplib.SMTPNotSupportedError as err:
+        return err
 
 @smtp_suite.placeholder("smtp-rset")
 def smtp_rset(env, smtp):
