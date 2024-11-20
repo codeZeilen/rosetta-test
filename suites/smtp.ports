@@ -240,14 +240,18 @@
         ; Get arguments from a request
         (define (request-arguments request) (map string-trim (cdr (string-split request " "))))
 
-        ; Compile one options tuple (KEY VALUE|VALUES) to a string
+        ; Compile one option to a string, either from a tuple (KEY VALUE|VALUES) to "KEY=VALUE,VALUE"
+        ; or if already a string, simply return it.
         (define (compile-option-string option)
-            (string-append 
-                (first option)
-                "="
-                (if (list? (last option)) 
-                    (string-join (last option) ",") 
-                    (last option)))) 
+            (if (list? option)
+                (string-append 
+                    (first option)
+                    "="
+                    (if (list? (last option)) 
+                        (string-join (last option) ",") 
+                        (last option)))
+                ; If not a list, just retrun
+                option))
 
         ; Compile a list of option tuples to a list of strings
         (define (compile-options-strings options) 
@@ -427,14 +431,14 @@
                 (server-set-extensions! server '("SMTPUTF8" "8BITMIME")))
 
             (capability 'mail (list
-                (test "International mailbox name without SMTPUTF8 support" (lambda () (begin
+                (test "International mailbox in mail without SMTPUTF8 support" (lambda () (begin
                     (server-set-extensions! server '())
                     (smtp-ehlo smtp-connection "")
                     (let
                         ((mail-response (smtp-mail-with-options smtp-connection "χρήστης@παράδειγμα.ελ" '("SMTPUTF8"))))
                         (assert (smtp-error? mail-response))))))
 
-                (test "international mailbox name with SMTPUTF8 support" (lambda () (begin
+                (test "international mailbox in mail with SMTPUTF8 support" (lambda () (begin
                     (activate-smtputf8 server)
                     (smtp-ehlo smtp-connection "")
                     (let
@@ -445,8 +449,21 @@
                 ; TODO: Automatic SMTPUTF8 detection
             ))
 
-            ; Put all commands under this capability (rcpt, send_message), or the SMTPUTF8 logic under each command? I prefer this way of organizing it, as it is a separate concern, that needs to be dealt with for each command.
+            (capability 'rcpt (list
+                ; No test with server without SMTPUTF8 support, as the smtp-mail command would
+                ; already fail to initiate a mail transaction.
 
+                (test "international mailbox in rcpt with SMTPUTF8 support" (lambda () (begin
+                    (activate-smtputf8 server)
+                    (smtp-ehlo smtp-connection "")
+                    (smtp-mail-with-options smtp-connection "sender@sender.com" '("SMTPUTF8"))
+                    (let
+                        ((rcpt-response (smtp-rcpt smtp-connection '("χρήστης@παράδειγμα.ελ") '())))
+                        (assert-response-codes rcpt-response 250)
+                        (assert-last-request server "RCPT TO:<χρήστης@παράδειγμα.ελ>")))))
+            ))
+
+            ; Put all commands under this capability (rcpt, send_message), or the SMTPUTF8 logic under each command? I prefer this way of organizing it, as it is a separate concern, that needs to be dealt with for each command.
 
         ))
 
