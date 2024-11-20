@@ -24,7 +24,9 @@
         (placeholder '(smtp-disconnect connection) "Should close the connection")
         (placeholder '(smtp-send-message connection content from to-list) "Send a message to the server. The function should return a list corresponding to the responses from the server for each recipient in the to-list. If there is only a single response, a list with a single response should be returned.")
         (placeholder '(smtp-ehlo connection content) "Send an EHLO command to the server")
-        (placeholder '(smtp-mail connection from) "Send a MAIL command to the server")
+        (placeholder '(smtp-mail-with-options connection from options) "Send a MAIL command to the server, supplying optional options (provided as a list of strings, that can be joined using compile-options-string if necessary).")
+        (define (smtp-mail connection from) 
+            (smtp-mail-with-options connection from '()))
         (placeholder '(smtp-rcpt connection to-list options-list) "Send a RCPT command to the server. The to parameter should be a list of recipients. The function should return a list of responses from the server. Whether the RCPT commands are send by multiple invocations or a single one can be decided by the placeholder. The options list contains lists of options, one list of options per receipient. The list of options contains tuples with the option name as the first element, and the option value as the second. Clients may use the functions compile-options-strings, compile-options-string, and compile-option-string to compile the options list into key-value-strings that can be sent to the server.")
         (placeholder '(smtp-rset connection) "Send a RST command to the server")
         (placeholder '(smtp-starttls connection cert-file key-file) "Send a STARTTLS command to the server. The cert-file and key-file are optional.")
@@ -363,8 +365,8 @@
                     (let
                         ((mail-response (first (smtp-rcpt smtp-connection (list recipient-string) '()))))
                         (assert (smtp-error? mail-response) (string-append "Expected client to fail when CR or LF is in RCPT command: " recipient-string))))))
-
-            ))
+                    
+        ))
 
         ; This covers full scenarios for sending a message that may be covered by convenience functions or
         ; require bridge implementors to use the commands directly
@@ -403,6 +405,48 @@
                         ((response 
                             (smtp-send-message smtp-connection "message content" "sender@sender.to" '("user@recipient.to"))))
                         (assert-response-codes response response-code)))))
+
+        ))
+
+        (capability 'smtputf8 (list
+        
+            (define smtp-connection '())
+            (define (connect-smtp-server)
+                (set! smtp-connection (smtp-connect "localhost" (server-port server))))
+
+            (setup (lambda () (begin 
+                (set! server (start-mock-server))
+                (connect-smtp-server))))
+
+            (tearDown (lambda () (begin 
+                (smtp-disconnect smtp-connection)
+                (set! smtp-connection '()))))
+
+            ; RFC 6531 3.1 - Item 8
+            (define (activate-smtputf8 server) 
+                (server-set-extensions! server '("SMTPUTF8" "8BITMIME")))
+
+            (capability 'mail (list
+                (test "International mailbox name without SMTPUTF8 support" (lambda () (begin
+                    (server-set-extensions! server '())
+                    (smtp-ehlo smtp-connection "")
+                    (let
+                        ((mail-response (smtp-mail-with-options smtp-connection "χρήστης@παράδειγμα.ελ" '("SMTPUTF8"))))
+                        (assert (smtp-error? mail-response))))))
+
+                (test "international mailbox name with SMTPUTF8 support" (lambda () (begin
+                    (activate-smtputf8 server)
+                    (smtp-ehlo smtp-connection "")
+                    (let
+                        ((mail-response (smtp-mail-with-options smtp-connection "χρήστης@παράδειγμα.ελ" '("SMTPUTF8"))))
+                        (assert-response-code mail-response 250)
+                        (assert-last-request server "MAIL FROM:<χρήστης@παράδειγμα.ελ> SMTPUTF8")))))
+
+                ; TODO: Automatic SMTPUTF8 detection
+            ))
+
+            ; Put all commands under this capability (rcpt, send_message), or the SMTPUTF8 logic under each command? I prefer this way of organizing it, as it is a separate concern, that needs to be dealt with for each command.
+
 
         ))
 
