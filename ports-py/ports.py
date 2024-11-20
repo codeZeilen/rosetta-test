@@ -83,7 +83,7 @@ class PortsSuite(object):
         self.lispy_env = lispy.Env(outer=lispy.global_env)
         self.initialize_ports_primitives()
         self.initialize_ports()
-        with open(file_name, "r") as file:
+        with open(file_name, "r", encoding="utf-8") as file:
             self.suite = self.eval(file.read())
         
         self.suite_name, self.suite_version, self.sources, self.placeholders, self.root_capability = self.suite

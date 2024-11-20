@@ -94,7 +94,12 @@ def atom(token):
     'Numbers become numbers; #t and #f are booleans; "..." string; otherwise Symbol.'
     if token == '#t': return True
     elif token == '#f': return False
-    elif token[0] == '"': return token[1:-1].encode().decode('unicode_escape')
+    elif token[0] == '"': 
+        raw_string = token[1:-1]
+        raw_string = raw_string.replace('\\n', '\n')
+        raw_string = raw_string.replace('\\r', '\r')
+        raw_string = raw_string.replace('\\t', '\t')
+        return raw_string
     try: return int(token)
     except ValueError:
         try: return float(token)
