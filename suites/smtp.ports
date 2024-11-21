@@ -433,22 +433,62 @@
                 (server-set-extensions! server '("SMTPUTF8" "8BITMIME")))
 
             (capability 'mail (list
-                (test "International mailbox in mail without SMTPUTF8 support" (lambda () (begin
-                    (server-set-extensions! server '())
-                    (smtp-ehlo smtp-connection "")
-                    (let
-                        ((mail-response (smtp-mail-with-options smtp-connection "χρήστης@παράδειγμα.ελ" '("SMTPUTF8"))))
-                        (assert (smtp-error? mail-response))))))
 
-                (test "international mailbox in mail with SMTPUTF8 support" (lambda () (begin
-                    (activate-smtputf8 server)
-                    (smtp-ehlo smtp-connection "")
-                    (let
-                        ((mail-response (smtp-mail-with-options smtp-connection "χρήστης@παράδειγμα.ελ" '("SMTPUTF8"))))
-                        (assert-response-code mail-response 250)
-                        (assert-last-request server "MAIL FROM:<χρήστης@παράδειγμα.ελ> SMTPUTF8")))))
+                (capability 'mandatory-options (list
+                    (test "International mailbox in mail without SMTPUTF8 support" (lambda () (begin
+                        (server-set-extensions! server '())
+                        (smtp-ehlo smtp-connection "")
+                        (let
+                            ((mail-response (smtp-mail-with-options smtp-connection "χρήστης@παράδειγμα.ελ" '("SMTPUTF8"))))
+                            (assert (smtp-error? mail-response))))))
 
-                ; TODO: Automatic SMTPUTF8 detection
+                    (test "International mailbox in mail without SMTPUTF8 support and no option" (lambda () (begin
+                        (server-set-extensions! server '())
+                        (smtp-ehlo smtp-connection "")
+                        (let
+                            ((mail-response (smtp-mail-with-options smtp-connection "χρήστης@παράδειγμα.ελ" '())))
+                            (assert (smtp-error? mail-response))))))
+
+                    (test "international mailbox in mail with SMTPUTF8 support" (lambda () (begin
+                        (activate-smtputf8 server)
+                        (smtp-ehlo smtp-connection "")
+                        (let
+                            ((mail-response (smtp-mail-with-options smtp-connection "χρήστης@παράδειγμα.ελ" '("SMTPUTF8"))))
+                            (assert-response-code mail-response 250)
+                            (assert-last-request server "MAIL FROM:<χρήστης@παράδειγμα.ελ> SMTPUTF8")))))
+
+                    (test "international mailbox in mail with SMTPUTF8 support but no option" (lambda () (begin
+                        (activate-smtputf8 server)
+                        (smtp-ehlo smtp-connection "")
+                        (let
+                            ((mail-response (smtp-mail-with-options smtp-connection "χρήστης@παράδειγμα.ελ" '())))
+                            (assert (smtp-error? mail-response))))))
+                ))
+
+                (capability 'automatic-smtputf8-detection (list
+                    (test "International mailbox in mail without SMTPUTF8 support" (lambda () (begin
+                        (server-set-extensions! server '())
+                        (smtp-ehlo smtp-connection "")
+                        (let
+                            ((mail-response (smtp-mail smtp-connection "χρήστης@παράδειγμα.ελ")))
+                            (assert (smtp-error? mail-response))))))
+
+                    (test "international mailbox in mail with SMTPUTF8 support" (lambda () (begin
+                        (activate-smtputf8 server)
+                        (smtp-ehlo smtp-connection "")
+                        (let
+                            ((mail-response (smtp-mail smtp-connection "χρήστης@παράδειγμα.ελ")))
+                            (assert-response-code mail-response 250)
+                            (assert-last-request server "MAIL FROM:<χρήστης@παράδειγμα.ελ> SMTPUTF8")))))    
+
+                    (test "international mailbox in mail with SMTPUTF8 support and explicit option" (lambda () (begin
+                        (activate-smtputf8 server)
+                        (smtp-ehlo smtp-connection "")
+                        (let
+                            ((mail-response (smtp-mail-with-options smtp-connection "χρήστης@παράδειγμα.ελ" '("8BITMIME"))))
+                            (assert-response-code mail-response 250)
+                            (assert-last-request server "MAIL FROM:<χρήστης@παράδειγμα.ελ> 8BITMIME SMTPUTF8")))))
+                ))
             ))
 
             (capability 'rcpt (list
@@ -463,12 +503,126 @@
                         ((rcpt-response (smtp-rcpt smtp-connection '("χρήστης@παράδειγμα.ελ") '())))
                         (assert-response-codes rcpt-response 250)
                         (assert-last-request server "RCPT TO:<χρήστης@παράδειγμα.ελ>")))))
+
+                (test "international mailbox in rcpt with SMTPUTF8 support but no option" (lambda () (begin
+                    (activate-smtputf8 server)
+                    (smtp-ehlo smtp-connection "")
+                    (smtp-mail-with-options smtp-connection "sender@sender.com" '())
+                    (let
+                        ((rcpt-response (smtp-rcpt smtp-connection '("χρήστης@παράδειγμα.ελ") '())))
+                        (assert (smtp-error? rcpt-response))))))
             ))
 
             (capability 'send-message (list
             
-            
-            
+                (capability 'mandatory-options (list
+
+                    ; Recipient
+
+                    (test "international recipient mailbox in send-message without SMTPUTF8 support" (lambda () (begin
+                        (smtp-ehlo smtp-connection "")
+                        (let
+                            ((send-message-response (smtp-send-message-with-options 
+                                smtp-connection "message content" "sender@sender.com" '("χρήστης@παράδειγμα.ελ") '("SMTPUTF8") '())))
+                            (assert (smtp-error? send-message-response))))))
+
+                    (test "international recipient mailbox in send-message without SMTPUTF8 support and no option" (lambda () (begin
+                        (smtp-ehlo smtp-connection "")
+                        (let
+                            ((send-message-response (smtp-send-message-with-options 
+                                smtp-connection "message content" "sender@sender.com" '("χρήστης@παράδειγμα.ελ") '() '())))
+                            (assert (smtp-error? send-message-response))))))
+
+                    (test "international recipient mailbox in send-message with SMTPUTF8 support" (lambda () (begin
+                        (activate-smtputf8 server)
+                        (smtp-ehlo smtp-connection "")
+                        (let
+                            ((send-message-response (smtp-send-message-with-options 
+                                smtp-connection "message content" "sender@sender.com" '("χρήστης@παράδειγμα.ελ") '("SMTPUTF8") '())))
+                            (assert-response-codes send-message-response 250)
+                            (assert-any-request server "MAIL FROM:<sender@sender.com> SMTPUTF8")))))
+
+                    (test "international recipient mailbox in send-message with SMTPUTF8 support but no option" (lambda () (begin
+                        (activate-smtputf8 server)
+                        (smtp-ehlo smtp-connection "")
+                        (let
+                            ((send-message-response (smtp-send-message-with-options 
+                                smtp-connection "message content" "sender@sender.com" '("χρήστης@παράδειγμα.ελ") '() '())))
+                            (assert (smtp-error? send-message-response))))))
+
+                    ; Sender
+
+                    (test "international sender mailbox in send-message without SMTPUTF8 support" (lambda () (begin
+                        (smtp-ehlo smtp-connection "")
+                        (let
+                            ((send-message-response (smtp-send-message-with-options 
+                                smtp-connection "message content" "χρήστης@παράδειγμα.ελ" '("recipient@server.com") '("SMTPUTF8") '())))
+                            (assert (smtp-error? send-message-response))))))
+
+                    (test "international sender mailbox in send-message without SMTPUTF8 support and no option" (lambda () (begin
+                        (smtp-ehlo smtp-connection "")
+                        (let
+                            ((send-message-response (smtp-send-message-with-options 
+                                smtp-connection "message content" "χρήστης@παράδειγμα.ελ" '("recipient@server.com") '() '())))
+                            (assert (smtp-error? send-message-response))))))
+
+                    (test "international sender mailbox in send-message with SMTPUTF8 support" (lambda () (begin
+                        (activate-smtputf8 server)
+                        (smtp-ehlo smtp-connection "")
+                        (let
+                            ((send-message-response (smtp-send-message-with-options 
+                                smtp-connection "message content" "χρήστης@παράδειγμα.ελ" '("recipient@server.com") '("SMTPUTF8") '())))
+                            (assert-response-codes send-message-response 250)
+                            (assert-any-request server "MAIL FROM:<χρήστης@παράδειγμα.ελ> SMTPUTF8")))))
+
+                    (test "international sender mailbox in send-message with SMTPUTF8 support but no option" (lambda () (begin
+                        (activate-smtputf8 server)
+                        (smtp-ehlo smtp-connection "")
+                        (let
+                            ((send-message-response (smtp-send-message-with-options 
+                                smtp-connection "message content" "χρήστης@παράδειγμα.ελ" '("recipient@server.com") '() '())))
+                            (assert (smtp-error? send-message-response))))))
+                ))
+
+                (capability 'automatic-smtputf8-detection (list
+
+                    ; Recipient
+
+                    (test "international recipient mailbox in send-message without SMTPUTF8 support" (lambda () (begin
+                        (smtp-ehlo smtp-connection "")
+                        (let
+                            ((send-message-response (smtp-send-message 
+                                smtp-connection "message content" "sender@sender.com" '("χρήστης@παράδειγμα.ελ"))))
+                            (assert (smtp-error? send-message-response))))))  
+
+                    (test "international recipient mailbox in send-message with SMTPUTF8 support" (lambda () (begin
+                        (activate-smtputf8 server)
+                        (smtp-ehlo smtp-connection "")
+                        (let
+                            ((send-message-response (smtp-send-message 
+                                smtp-connection "message content" "sender@sender.com" '("χρήστης@παράδειγμα.ελ"))))
+                            (assert-response-codes send-message-response 250)
+                            (assert-any-request server "MAIL FROM:<sender@sender.com> SMTPUTF8")))))
+
+                    ; Sender
+
+                    (test "international sender mailbox in send-message without SMTPUTF8 support" (lambda () (begin
+                        (smtp-ehlo smtp-connection "")
+                        (let
+                            ((send-message-response (smtp-send-message 
+                                smtp-connection "message content" "χρήστης@παράδειγμα.ελ" '("recipient@server.com"))))
+                            (assert (smtp-error? send-message-response))))))
+
+                    (test "international sender mailbox in send-message with SMTPUTF8 support" (lambda () (begin
+                        (activate-smtputf8 server)
+                        (smtp-ehlo smtp-connection "")
+                        (let
+                            ((send-message-response (smtp-send-message 
+                                smtp-connection "message content" "χρήστης@παράδειγμα.ελ" '("recipient@server.com"))))
+                            (assert-response-codes send-message-response 250)
+                            (assert-any-request server "MAIL FROM:<χρήστης@παράδειγμα.ελ> SMTPUTF8")))))
+                ))
+
             ))
 
         ))
