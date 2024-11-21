@@ -189,11 +189,15 @@ def smtp_starttls(env, smtp, certfile=None, keyfile=None):
 @smtp_suite.placeholder("smtp-send-message-with-options")
 def smtp_send_message(env, smtp: smtplib.SMTP, message, sender, recipients, message_options, recipients_options):
     try:
-        responses_dict = smtp.sendmail(sender, recipients, message)
+        responses_dict = smtp.sendmail(sender, recipients, message, mail_options=message_options, rcpt_options=recipients_options)
     except smtplib.SMTPDataError as err:
         return err
     except smtplib.SMTPResponseException as err:
         return [(err.smtp_code, err.smtp_error)]
+    except smtplib.SMTPNotSupportedError as err:
+        return err
+    except UnicodeEncodeError as err:
+        return err
     return map(lambda r: responses_dict[r] if r in responses_dict else (250, ''), recipients)
      
 @smtp_suite.placeholder("smtp-error?")
@@ -207,5 +211,13 @@ def tear_down(env):
     sockets.clear()
 
 #smtp_suite.run(only=("test_international_mailbox_in_rcpt_with_SMTPUTF8_support",))
-smtp_suite.run(exclude_capabilities=("root.commands.auth.xoauth2","root.commands.automatic-starttls",), exclude=("test_CRLF_detection_in_MAIL_command","test_CRLF_detection_in_RCPT_command"))
+smtp_suite.run(
+        exclude_capabilities=(
+            "root.commands.auth.xoauth2",
+            "root.commands.automatic-starttls",
+            "root.smtputf8.mail.automatic-smtputf8-detection",
+            "root.smtputf8.send-message.automatic-smtputf8-detection"), 
+        exclude=(
+            "test_CRLF_detection_in_MAIL_command",
+            "test_CRLF_detection_in_RCPT_command"))
 #smtp_suite.run(only_capabilities=("root.commands.starttls"))# ("test_starttls","test_starttls_without_server_support","test_After_starttls_extensions_need_to_be_refetched",))
