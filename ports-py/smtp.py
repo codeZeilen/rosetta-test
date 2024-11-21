@@ -186,8 +186,8 @@ def smtp_starttls(env, smtp, certfile=None, keyfile=None):
         except smtplib.SMTPNotSupportedError as err:
             return err
 
-@smtp_suite.placeholder("smtp-send-message")
-def smtp_send_message(env, smtp: smtplib.SMTP, message, sender, recipients):
+@smtp_suite.placeholder("smtp-send-message-with-options")
+def smtp_send_message(env, smtp: smtplib.SMTP, message, sender, recipients, message_options, recipients_options):
     try:
         responses_dict = smtp.sendmail(sender, recipients, message)
     except smtplib.SMTPDataError as err:
@@ -206,6 +206,6 @@ def tear_down(env):
         socket.close()
     sockets.clear()
 
-#smtp_suite.run(only=("test_international_mailbox_name_with_SMTPUTF8_support",))
+#smtp_suite.run(only=("test_international_mailbox_in_rcpt_with_SMTPUTF8_support",))
 smtp_suite.run(exclude_capabilities=("root.commands.auth.xoauth2","root.commands.automatic-starttls",), exclude=("test_CRLF_detection_in_MAIL_command","test_CRLF_detection_in_RCPT_command"))
 #smtp_suite.run(only_capabilities=("root.commands.starttls"))# ("test_starttls","test_starttls_without_server_support","test_After_starttls_extensions_need_to_be_refetched",))
