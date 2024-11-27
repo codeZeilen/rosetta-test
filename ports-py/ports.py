@@ -150,8 +150,8 @@ class PortsSuite(object):
             placeholder.env = self.lispy_env
     
     def generate_test_name(self, ports_test):
-        test_name = "_".join(ports_test[1].split())
-        return f"test_{test_name}" #TODO: should be done in ports and should be full-test-name 
+        env = lispy.Env((lispy.Sym("current-test"),), (ports_test,), outer=self.lispy_env)
+        return self.eval(f"(test-full-name current-test)", env)
     
     def generate_capability_identifier(self, ports_test):
         env = lispy.Env((lispy.Sym("current-test"),), (ports_test,), outer=self.lispy_env)
@@ -177,17 +177,12 @@ class PortsSuite(object):
         tests = self.eval("(capability-all-tests root-capability)")
         
         test_suite = unittest.TestSuite()
-        for test in tests:
+        
+        env = lispy.Env((lispy.Sym("the-tests"),lispy.Sym("only"),lispy.Sym("only-capabilities"),lispy.Sym("exclude"),lispy.Sym("exclude-capabilities")), (tests,only,only_capabilities,exclude,exclude_capabilities), outer=self.lispy_env)
+        selected_tests = self.eval(f"(select-tests the-tests only only-capabilities exclude exclude-capabilities)", env)
+        
+        for test in selected_tests:
             test_name = self.generate_test_name(test)
-            capability_identifier = self.generate_capability_identifier(test)
-            if only and (test_name not in only):
-                continue
-            if only_capabilities and not self.capability_identifier_matches_list(capability_identifier, only_capabilities):
-                continue
-            if exclude and (test_name in exclude):
-                continue
-            if exclude_capabilities and self.capability_identifier_matches_list(capability_identifier, exclude_capabilities):
-                continue
             setattr(TestPortsUnittestContainer,
                     test_name,
                     self.generate_unittest_test_method(test))
