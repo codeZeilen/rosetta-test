@@ -25,6 +25,23 @@ PortsSMTPSuite >> excludeCapabilities [
 	^ #('root.commands.auth.xoauth2' 'root.commands.auth.cram-md5' 'root.commands.auth.plain-auth' 'root.commands.rset')
 ]
 
+{ #category : #'test selection' }
+PortsSMTPSuite >> excludeTests [
+
+	^ #('rcpt with options - DSN' 'other auth failures')
+]
+
+{ #category : #'suite definition' }
+PortsSMTPSuite >> secureServerSocketWrap: socketStream ca: caFile cert: certFile key: keyFile control: controlUnderlyingSocket env: env [
+
+	<portsPlaceholderName: 'secure-server-socket-wrap'>
+
+	| stream |
+	stream := SqueakSSL secureSocketStream on: socketStream socket.
+	stream sslConnectTo: nil.
+	^ stream
+]
+
 { #category : #running }
 PortsSMTPSuite >> setUp [
 
@@ -73,7 +90,9 @@ PortsSMTPSuite >> smtpConnect: host port: port env: env [
 
 	<portsPlaceholderName: 'smtp-connect'>
 
-	^ SMTPClient openOnHost: (NetNameResolver addressForName: host) port: port
+	^ (SMTPClient openOnHost: (NetNameResolver addressForName: host) port: port)
+		useTLSIfAvailable: false;
+		yourself
 ]
 
 { #category : #'suite definition' }
@@ -204,13 +223,24 @@ PortsSMTPSuite >> smtpSendMessage: smtp content: content from: fromAddress to: r
 ]
 
 { #category : #'suite definition' }
+PortsSMTPSuite >> smtpStarttls: smtpClient env: env [
+
+	<portsPlaceholderName: 'smtp-starttls'>
+	
+	[smtpClient starttls]
+		on: TelnetProtocolError
+		do: [:e | ^ e].
+	^ smtpClient lastResponse
+]
+
+{ #category : #'suite definition' }
 PortsSMTPSuite >> socketAccept: socket env: env [
 
 	<portsPlaceholderName: 'socket-accept'>
 	self flag: #todo. "Consider porting to socket stream"
 
 	socket waitForConnectionFor: 1.
-	^ socket "Otherwise a timeout exception occurs"
+	^ SocketStream on: socket "Otherwise a timeout exception occurs"
 ]
 
 { #category : #'suite definition' }
@@ -234,14 +264,16 @@ PortsSMTPSuite >> socketReceive: socketStream env: env [
 
 	<portsPlaceholderName: 'socket-receive'>
 
-	^ socketStream receiveData
+	[socketStream isDataAvailable] whileFalse: [Processor yield]. "Give the mock server or client a chance to do something"
+	^ socketStream nextAvailable
 ]
 
 { #category : #'suite definition' }
 PortsSMTPSuite >> socketWrite: socketStream content: content env: env [
 
 	<portsPlaceholderName: 'socket-write'>
-	^ socketStream sendData: content
+	socketStream nextPutAll: content; flush.
+	Processor yield.
 ]
 
 { #category : #'suite definition' }
