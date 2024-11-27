@@ -2,25 +2,33 @@
 
 ## Step 
  - SMTP Suite
-  - Refactor mock server to exist before process starts to control its operation by configuring the object first
-  - Rethink whether the starttls options for the connection in Ruby should be covered by dedicated tests or whether they are covered by the existing starttls tests
   - TLS Tests: Ruby has two ways to get an SMTP connection: SMTP.new + call methods on the smtp object + call .start OR SMTP.start directly (gotta work on those multiple placeholder things) 
-  - Build an assertion mechanism to assert the message received by the server in a structured form, (e.g. `'(MAIL "user1@sender.org")`) to abstract from how clients handle case and whitespace
  - SMTP Spec Ideas
   - 8BITMIME extension present or not
-  - SMTPUTF8?
   - Refactor auth tests to use common function
   - AUTH
     - Login can not ask for a password? Check with standard
     - Test initial response with data that is too long (do not send initial response in that case)
       - https://datatracker.ietf.org/doc/html/rfc2821#section-4.5.3.1
     - Test initial response with empty data (eg. "" as username)
+ - Refactorings
+  - Test selection should be done in Ports
+  - Refactor mock SMTP server to exist before process starts to control its operation by configuring the object first 
+  - Refactor SMTP auth method tests to use a procedure defined within the capability
+
+## Refactorings
 
 ## Roadmap
- - Create SMTP suite
- - Create Squeak/Smalltalk implementation
+ - Add Python tests to SMTP suite
+ - Improve Squeak/Smalltalk implementation
+ - Define base of Ports lang impl and implement the core Scheme procedures
+ - Implement library mechanism
+ - Ruby / Java implementations?
+ - Test suite for Ports itself?
+ - Integrate JSONSuite
 
 ## Design Challenges
+ - Challenge: Server response is an error, or client throws an error -> To which extent should the test suite distinguish between the two?
  - Reduce set of primitives (potentially use Gauche stdlib)
   - Load stdlib first then let implementations replace stuff with primitive (e.g. map, reverse)
  - Decide on exception vs return values for error cases
