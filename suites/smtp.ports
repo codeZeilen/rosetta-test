@@ -801,8 +801,6 @@
                         (assert-any-request server "RCPT TO:<user@recipient.to> NOTIFY=SUCCESS,FAILURE")
                         (assert-any-request server "RCPT TO:<user2@recipient.to> NOTIFY=NEVER")))))
                     
-                ))
-                
             ))
 
             (capability 'starttls (list
