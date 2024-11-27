@@ -92,6 +92,12 @@ class PortsSuite(object):
         if not env:
             env = self.lispy_env
         return lispy.eval(lispy.expand(lispy.parse(code), True), env)
+    
+    def eval_with_args(self, code, **kwargs):
+        env = lispy.Env(outer=self.lispy_env)
+        for key, value in kwargs.items():
+            env[lispy.Sym(key)] = value
+        return self.eval(code, env)
 
     def initialize_ports_primitives(self):
         self.lispy_env.update({
@@ -150,12 +156,10 @@ class PortsSuite(object):
             placeholder.env = self.lispy_env
     
     def generate_test_name(self, ports_test):
-        env = lispy.Env((lispy.Sym("current-test"),), (ports_test,), outer=self.lispy_env)
-        return self.eval(f"(test-full-name current-test)", env)
+        return self.eval_with_args("(test-full-name current_test)", current_test=ports_test)
     
     def generate_capability_identifier(self, ports_test):
-        env = lispy.Env((lispy.Sym("current-test"),), (ports_test,), outer=self.lispy_env)
-        return self.eval(f"(capability-full-name (test-capability current-test))", env)
+        return self.eval_with_args("(capability-full-name (test-capability current_test))", current_test=ports_test)
     
     def generate_unittest_test_method(self, ports_test):
         return lambda testcase: self.run_test(ports_test)
@@ -164,8 +168,7 @@ class PortsSuite(object):
         return any([capability_identifier.startswith(capability) for capability in capability_list])
     
     def run_test(self, ports_test):
-        env = lispy.Env((lispy.Sym("current-test"),), (ports_test,), outer=self.lispy_env)
-        self.eval(f"(test-run current-test)", env)
+        return self.eval_with_args("(test-run current_test)", current_test=ports_test)
     
     def run(self, only=None, only_capabilities=None, exclude=None, exclude_capabilities=None):
         self.ensure_placeholders_are_valid()
@@ -177,8 +180,9 @@ class PortsSuite(object):
         
         test_suite = unittest.TestSuite()
         
-        env = lispy.Env((lispy.Sym("the-tests"),lispy.Sym("only"),lispy.Sym("only-capabilities"),lispy.Sym("exclude"),lispy.Sym("exclude-capabilities")), (tests,only,only_capabilities,exclude,exclude_capabilities), outer=self.lispy_env)
-        selected_tests = self.eval(f"(select-tests the-tests only only-capabilities exclude exclude-capabilities)", env)
+        selected_tests = self.eval_with_args(
+            "(select-tests the_tests only only_capabilities exclude exclude_capabilities)", 
+            the_tests=tests, only=only, only_capabilities=only_capabilities, exclude=exclude, exclude_capabilities=exclude_capabilities)
         
         for test in selected_tests:
             test_name = self.generate_test_name(test)
