@@ -45,10 +45,9 @@
                 (cdr seq))))  
 
     (define (member element list)
-        (fold-right 
-            (lambda (x y) (or x y)) 
-            false 
-            (map (lambda (x) (equal? x element)) list)))
+        (any?
+            (lambda (x) (equal? x element))
+            list))
 
     (define (unique-list? lst)
         (if (null? lst) true

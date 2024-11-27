@@ -94,7 +94,8 @@
                 car
                 (server-auths server)))
         (define (server-has-response-code? server) (not (= (server-response-code server) "0")))
-        (define (let-server-complete-handler) (thread-sleep! 0.1))
+        (define (let-server-complete-handler)
+            (thread-sleep! 0.1))
         
         (define (create-server tls-enabled) (list 'server '() '() #f '() "0" '() '() tls-enabled #f (lambda (credentials connection success failure) '())))
         (define (server-stop server) (list-set! server 3 #t))
