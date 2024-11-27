@@ -46,6 +46,7 @@
 
         (define server '())
         (define (server-thread server) (list-ref server 1))
+        (define (server-socket server) (list-ref server 2))
         (define (server-port server) (socket-port (list-ref server 2)))
         (define (server-stopped? server) (list-ref server 3))
         (define (server-extensions server) (list-ref server 4))
@@ -57,6 +58,8 @@
 
         (define (server-set-thread! server new-thread) 
             (list-set! server 1 new-thread))
+        (define (server-set-socket! server new-socket) 
+            (list-set! server 2 new-socket))
         (define (server-set-extensions! server new-extensions) 
             (list-set! server 4 new-extensions))
         (define (server-set-response-code! server new-code) 
@@ -87,26 +90,30 @@
             (map 
                 car
                 (server-auths server)))
-        (define (server-stop server) (list-set! server 3 #t))
         (define (server-has-response-code? server) (not (= (server-response-code server) "0")))
         (define (let-server-complete-handler) (thread-sleep! 0.1))
         
-        (define (create-server thread port tls-enabled) (list 'server thread port #f '() "0" '() '() tls-enabled #f))
-
-        (define (start-mock-server) (basic-start-mock-server #f))
-        (define (basic-start-mock-server tls-enabled?) ; should return a server object
+        (define (create-server tls-enabled) (list 'server '() '() #f '() "0" '() '() tls-enabled #f))
+        (define (server-stop server) (list-set! server 3 #t))
+        (define (server-start server)
             (let 
                 ((socket (create-socket)))
-                (create-server 
+                (server-set-socket!
+                    server
+                    socket)
+                (server-set-thread! 
+                    server
                     (thread (lambda () 
-                        (mock-smtp-server socket tls-enabled?)))
-                    socket
-                    tls-enabled?)))
+                        (run-mock-smtp-server server))))
+                server))
+                
+        (define (start-mock-server)
+            (server-start (create-server #f)))
         (define (stop-mock-server) (begin
             (server-stop server)
             (thread-wait-for-completion (server-thread server))))
 
-        (define (mock-smtp-server socket tls-enabled?)
+        (define (run-mock-smtp-server server)
             (begin
                 (define CA_FILE "./smtp-fixtures/cacert.pem")
                 (define CERT_FILE "./smtp-fixtures/server.pem")
@@ -115,9 +122,9 @@
                 (define (init) (begin 
                     (set! 
                         connection 
-                        (if tls-enabled? 
-                            (secure-server-socket-wrap (socket-accept socket) CA_FILE CERT_FILE KEY_FILE #t) 
-                            (socket-accept socket)))
+                        (if (server-tls? server)
+                            (secure-server-socket-wrap (socket-accept (server-socket server)) CA_FILE CERT_FILE KEY_FILE #t) 
+                            (socket-accept (server-socket server))))
                     (if (null? connection)
                         #f
                         (begin 
@@ -125,7 +132,7 @@
                             #t))))
                 (define (close-sockets) (begin 
                     (socket-close connection)
-                    (socket-close socket)))
+                    (socket-close (server-socket server))))
                 (define (handle request-string) (begin
                     ; Log the request
                     (server-set-requests! 
@@ -321,7 +328,7 @@
             (define original-secure-server-socket-wrap '())
 
             (define start-tls-mock-server (lambda () (begin 
-                (set! server (basic-start-mock-server #t)))))
+                (set! server (server-start (create-server #t))))))
 
             (tearDown (lambda () (begin
                 (if (not (= original-secure-server-socket-wrap '()))
