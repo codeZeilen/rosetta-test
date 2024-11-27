@@ -72,8 +72,8 @@ PortsScheme >> evalExprs: element in: env [
 				^ x].
 			[#quote = x first] -> [ 
 				^ x second].
-			[#if = x first] -> [ 
-				x := ((self evalExprs: x second in: localEnv) ~= false) "Because Scheme treats all values as #t except for #f"
+			[#if = x first] -> [
+				x := (self evalExprs: x second in: localEnv) isPortsTrue "Scheme treats all values as #t except for #f and '()"
 					ifTrue: [x third]
 					ifFalse: [x fourth]].
 			[#cond = x first] -> [  

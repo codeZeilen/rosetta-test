@@ -25,22 +25,15 @@ PortsSuite class >> isAbstract [
 PortsSuite >> allTests [ 
 
 	self assert: self suite notNil.
-	allTests ifNil: [| testsFromSuite |
-		testsFromSuite := self 
-			schemeEval: '(capability-all-tests root-capability)' 
-			in: (PortsSchemeEnv new
-				at: #'root-capability' put: rootCapability;
-				parent: self portsEnvironment;
-				yourself).
-		allTests := OrderedCollection new.
-		allTests := testsFromSuite reject: [:test | |testName testCapabilityName|
-			testName := self testNameOf: test.
-			testCapabilityName := self capabilityIdentifierOf: test.
-			"If any of the following cases hold, do not add the test"
-			(self onlyTests notEmpty and: [(self onlyTests includes: testName) not])
-				or: [self onlyCapabilities notEmpty and: [(self onlyCapabilities includes: testCapabilityName) not]]
-				or: [self excludeTests notEmpty and: [self excludeTests includes: testName]]
-				or: [self excludeCapabilities notEmpty and: [self excludeCapabilities includes: testCapabilityName]]]].
+	allTests ifNil: [
+		allTests := self 
+			schemeEval: '(select-tests (capability-all-tests root-capability) only-tests only-capabilities exclude-tests exclude-capabilities)' 
+			with: (Dictionary newFrom: {
+				#'root-capability' -> rootCapability.
+				#'only-tests' -> self onlyTests.
+				#'only-capabilities' -> self onlyCapabilities.
+				#'exclude-tests' -> self excludeTests.
+				#'exclude-capabilities' -> self excludeCapabilities })].
 	^ allTests
 ]
 
@@ -49,10 +42,8 @@ PortsSuite >> capabilityIdentifierOf: aPortsTestObject [
 	
 	^ (self 
 		schemeEval: '(capability-full-name (test-capability the-test))' 
-		in: (PortsSchemeEnv new
-			at: #'the-test' put: aPortsTestObject;
-			parent: self portsEnvironment;
-			yourself)) asSymbol.
+		with: (Dictionary newFrom: {
+			#'the-test' -> aPortsTestObject})) asSymbol.
 ]
 
 { #category : #'test selection' }
@@ -185,10 +176,8 @@ PortsSuite >> portsRunTest: aPortsTest [
 	self assert: self suite notNil.
 	self 
 		schemeEval: '(test-run current-test)' 
-		in: (PortsSchemeEnv new
-			at: #'current-test' put: aPortsTest;
-			parent: self portsEnvironment;
-			yourself).
+		with: (Dictionary newFrom: {
+			#'current-test' -> aPortsTest}).
 ]
 
 { #category : #'private-scheme-evaluation' }
@@ -209,6 +198,22 @@ PortsSuite >> schemeEval: schemeSource in: anEnvironment [
 	^ self scheme 
 		evalString: schemeSource
 		in: anEnvironment
+]
+
+{ #category : #'private-scheme-evaluation' }
+PortsSuite >> schemeEval: schemeSource with: argumentDict [
+
+	| newEnv |
+	newEnv := PortsSchemeEnv new
+				parent: self portsEnvironment;
+				yourself.
+				
+	argumentDict keysAndValuesDo: [:key :value |
+		newEnv at: key put: value].
+
+	^ self scheme 
+		evalString: schemeSource
+		in: newEnv
 ]
 
 { #category : #accessing }
@@ -238,11 +243,9 @@ PortsSuite >> suiteSource [
 PortsSuite >> testNameOf: aPortsTestObject [ 
 	
 	^ self 
-		schemeEval: '(test-name the-test)' 
-		in: (PortsSchemeEnv new
-			at: #'the-test' put: aPortsTestObject;
-			parent: self portsEnvironment;
-			yourself).
+		schemeEval: '(test-full-name the-test)' 
+		with: (Dictionary newFrom: {
+			#'the-test' -> aPortsTestObject})
 ]
 
 { #category : #'running - timeout' }
