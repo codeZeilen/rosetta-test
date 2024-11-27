@@ -159,7 +159,7 @@
                         (socket-write connection "500\r\n")
                         (socket-write connection "250 2.1.0 OK\r\n")))
                 (define (rcpt args)
-                    (if (or (empty? args) (= (second (string-split (car args) ":")) "<invalid>")) ; TODO: will fail when options are present
+                    (if (or (empty? args) (= (second (string-split (car args) ":")) "<invalid>"))
                         (socket-write connection "500\r\n")
                         (socket-write connection "250 2.1.0 OK\r\n")))
                 (define (data-command args)
@@ -176,9 +176,9 @@
                         (set! connection secure-socket)))
                 (define (auth args)
                     (define (write-auth-failure-response) 
-                        (socket-write connection "535 5.7.8  Authentication credentials invalid\r\n"))  ; TODO: write correct response
+                        (socket-write connection "535 5.7.8  Authentication credentials invalid\r\n"))
                     (define (write-auth-success-response) 
-                        (socket-write connection "235 2.7.0 Authentication successful\r\n"))  ; TODO: write correct response
+                        (socket-write connection "235 2.7.0 Authentication successful\r\n"))
                     (let 
                         ((method (car args))
                          (credentials (if (> (length args) 1) (second args) "")))
@@ -718,7 +718,6 @@
                         (assert-response-code mail-response 250)
                         (assert-last-request server "MAIL FROM:<>")))))
 
-                ; TODO Should be a data test
                 (test "mail with invalid email address" (lambda () (begin 
                     (let
                         ((mail-response (smtp-mail smtp-connection "invalid")))
@@ -801,23 +800,9 @@
                         (assert-response-codes mail-responses 250)
                         (assert-any-request server "RCPT TO:<user@recipient.to> NOTIFY=SUCCESS,FAILURE")
                         (assert-any-request server "RCPT TO:<user2@recipient.to> NOTIFY=NEVER")))))
-
-                (test "rcpt with options" (lambda () (begin
-                    ))) ;TODO: add more tests for options
-
-
-                (capability 'rcpt-option-checking (list 
-                    ; RFC 2821 - 4.1.1.3
-                    ; The client MUST NOT transmit parameters other
-                    ; than those associated with a service extension offered by the server
-                    ; in its EHLO response.
-                    ; TODO
-                    (test "rcpt with invalid options" (lambda () (begin
-                        )))
                     
                 ))
                 
-
             ))
 
             (capability 'starttls (list
@@ -827,8 +812,6 @@
 
                 (tearDown (lambda () (begin 
                     (smtp-disconnect smtp-connection))))
-
-                ; TODO: Check whether server did indeed start TLS
 
                 (test "basic starttls" (lambda () (begin 
                     (server-set-extensions! server '("STARTTLS"))
@@ -847,7 +830,7 @@
                         (assert (smtp-extension-not-supported-error? starttls-response))
                         (assert (not (server-tls-started? server)))))))
 
-                ; RFC 3207 TODO: add specific section
+                ; RFC 3207 - 4.2
                 (test "After starttls extensions need to be refetched" (lambda () (begin 
                     (server-set-extensions! server '("STARTTLS"))
                     (smtp-ehlo smtp-connection "")
