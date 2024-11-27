@@ -11,8 +11,6 @@
     - Test initial response with data that is too long (do not send initial response in that case)
       - https://datatracker.ietf.org/doc/html/rfc2821#section-4.5.3.1
     - Test initial response with empty data (eg. "" as username)
- - Refactorings
-  - Test selection should be done in Ports
 
 ## Refactorings
 

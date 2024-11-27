@@ -14,7 +14,7 @@ PortsSMTPSuite >> createSocket: env [
 
 	| serverSocket |
 	serverSocket := Socket newTCP.
-	serverSocket listenOn: 4676 backlogSize: 1.
+	serverSocket listenOn: 4676 backlogSize: 4.
 	sockets add: serverSocket.
 	^ serverSocket
 ]
@@ -22,13 +22,13 @@ PortsSMTPSuite >> createSocket: env [
 { #category : #'test selection' }
 PortsSMTPSuite >> excludeCapabilities [
 
-	^ #('root.commands.auth.xoauth2' 'root.commands.auth.cram-md5' 'root.commands.auth.plain-auth' 'root.commands.rset')
+	^ #('root.commands.auth.xoauth2' 'root.commands.auth.cram-md5' 'root.commands.auth.plain-auth' 'root.commands.rset' 'root.smtputf8')
 ]
 
 { #category : #'test selection' }
 PortsSMTPSuite >> excludeTests [
 
-	^ #('rcpt with options - DSN' 'other auth failures')
+	^ #('test_rcpt_with_options_-_DSN' 'test_other_auth_failures')
 ]
 
 { #category : #'suite definition' }
@@ -153,9 +153,9 @@ PortsSMTPSuite >> smtpIsError: anObject env: env [
 ]
 
 { #category : #'suite definition' }
-PortsSMTPSuite >> smtpMail: smtp from: fromAddress env: env [
+PortsSMTPSuite >> smtpMail: smtp from: fromAddress mailOptions: options env: env [
 
-	<portsPlaceholderName: 'smtp-mail'>
+	<portsPlaceholderName: 'smtp-mail-with-options'>
 	
 	[smtp mailFrom: fromAddress]
 		on: SMTPValueError
@@ -193,6 +193,7 @@ PortsSMTPSuite >> smtpResponseCode: smtpResponse env: env [
 	<portsPlaceholderName: 'smtp-response-code'>
 	smtpResponse isString ifTrue: [^ (smtpResponse first: 3) asInteger].
 	(smtpResponse isKindOf: TelnetProtocolError) ifTrue: [^ smtpResponse code].
+	self error: 'Undefined case for smtpResponse object'
 ]
 
 { #category : #'suite definition' }
@@ -212,10 +213,9 @@ PortsSMTPSuite >> smtpRset: smtp env: env [
 ]
 
 { #category : #'suite definition' }
-PortsSMTPSuite >> smtpSendMessage: smtp content: content from: fromAddress to: recipientAddresses env: env [
+PortsSMTPSuite >> smtpSendMessage: smtp content: content from: fromAddress to: recipientAddresses mailOptions: mailOptions recipientOptions: recipientOptions env: env [
 
-	<portsPlaceholderName: 'smtp-send-message'>
-	
+	<portsPlaceholderName: 'smtp-send-message-with-options'>
 	[smtp mailFrom: fromAddress to: recipientAddresses text: content]
 		on: TelnetProtocolError
 		do: [:e | ^ {e}].
@@ -237,10 +237,12 @@ PortsSMTPSuite >> smtpStarttls: smtpClient env: env [
 PortsSMTPSuite >> socketAccept: socket env: env [
 
 	<portsPlaceholderName: 'socket-accept'>
+	| connectionSocket |
 	self flag: #todo. "Consider porting to socket stream"
 
-	socket waitForConnectionFor: 1.
-	^ SocketStream on: socket "Otherwise a timeout exception occurs"
+	connectionSocket := socket waitForAcceptFor: 1.
+	self assert: connectionSocket isConnected.
+	^ SocketStream on: connectionSocket "Otherwise a timeout exception occurs"
 ]
 
 { #category : #'suite definition' }
