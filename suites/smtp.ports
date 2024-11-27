@@ -55,6 +55,7 @@
         (define (server-requests server) (list-ref server 7))
         (define (server-tls? server) (list-ref server 8))
         (define (server-tls-started? server) (list-ref server 9)) ; Was a TLS connection started via STARTTLS?
+        (define (server-auth-proc server) (list-ref server 10))
 
         (define (server-set-thread! server new-thread) 
             (list-set! server 1 new-thread))
@@ -74,6 +75,8 @@
             (list-set! server 8 #f))
         (define (server-set-tls-started! server boolean) 
             (list-set! server 9 boolean))
+        (define (server-set-auth-proc! server proc)
+            (list-set! server 10 proc))
 
         (define (server-extensions-with-auth server) 
             (if (empty? (server-auths server))
@@ -93,7 +96,7 @@
         (define (server-has-response-code? server) (not (= (server-response-code server) "0")))
         (define (let-server-complete-handler) (thread-sleep! 0.1))
         
-        (define (create-server tls-enabled) (list 'server '() '() #f '() "0" '() '() tls-enabled #f))
+        (define (create-server tls-enabled) (list 'server '() '() #f '() "0" '() '() tls-enabled #f (lambda (credentials connection success failure) '())))
         (define (server-stop server) (list-set! server 3 #t))
         (define (server-start server)
             (let 
@@ -106,7 +109,7 @@
                     (thread (lambda () 
                         (run-mock-smtp-server server))))
                 server))
-                
+
         (define (start-mock-server)
             (server-start (create-server #f)))
         (define (stop-mock-server) (begin
@@ -187,43 +190,18 @@
                     (define (write-auth-success-response) 
                         (socket-write connection "235 2.7.0 Authentication successful\r\n"))
                     (let 
-                        ((method (car args))
+                        ((method (string-upcase (car args)))
                          (credentials (if (> (length args) 1) (second args) "")))
-                        (if (member (string-upcase method) (server-auth-methods server)) ; Check whether auth method is listed
-                            (cond
-                                ((= method "PLAIN") (begin
-                                    (if (= credentials "AGFjY291bnQAcGFzc3dvcmQ=")
-                                        (write-auth-success-response)
-                                        (write-auth-failure-response))))
-                                ((= method "XOAUTH2") (begin
-                                    (if (= credentials "dXNlcj1hY2NvdW50AWF1dGg9QmVhcmVyIHRva2VuAQE=")
-                                        (write-auth-success-response)
-                                        (write-auth-failure-response))))
-                                ((= method "CRAM-MD5") (begin
-                                    (socket-write connection "334 PDEyMzQ1Njc4OTAuMTIzNDVAc2VydmVybmFtZT4=\r\n")
-                                    (let 
-                                        ((cram-md5-response (string-trim (socket-receive connection))))
-                                        (if (= cram-md5-response "YWNjb3VudCAyYzBjMTgxZjkxOGU2ZGM5Mjg3Zjk3N2E1ODhiMzg1YQ==")
-                                            (write-auth-success-response)
-                                            (write-auth-failure-response)))))
-                                ((= method "LOGIN") (begin
-                                    (let 
-                                        ((login-user-response
-                                            (if (not (= credentials "")) 
-                                                credentials
-                                                (begin
-                                                    (socket-write connection "334 VXNlcm5hbWU6\r\n")
-                                                    (string-trim (socket-receive connection))))))
-                                        (socket-write connection "334 UGFzc3dvcmQ6\r\n")
-                                        (let 
-                                            ((login-password-response (string-trim (socket-receive connection)))) 
-                                            (if (and (= login-user-response "YWNjb3VudA==") (= login-password-response "cGFzc3dvcmQ="))
-                                                (write-auth-success-response)
-                                                (write-auth-failure-response))))))
-                                ; RFC 4954 - Section 4
-                                (else (socket-write connection "504 5.5.4 Command not implemented\r\n")))
+                        (if (and 
+                                (member method '("PLAIN" "LOGIN" "XOAUTH2" "CRAM-MD5")) ; Check whether we support auth method at all
+                                (member method (server-auth-methods server))) ; Check whether auth method is listed
+                            ((server-auth-proc server) 
+                                credentials 
+                                connection
+                                write-auth-success-response 
+                                write-auth-failure-response)
                             ; else case to capture non-supported methods early RFC 4954 - Section 4
-                            (socket-write connection "504 5.5.4 Command not implemented\r\n") )))
+                            (socket-write connection "504 5.5.4 Command not implemented\r\n"))))
                 (define (ehlo answer) 
                     (define (replace-last list element) (reverse (cons element (cdr (reverse list)))))
                     (let 
@@ -936,6 +914,14 @@
 
                 (capability 'plain-auth (list 
 
+                    (define (plain-auth-proc credentials connection success failure)
+                        (if (= credentials "AGFjY291bnQAcGFzc3dvcmQ=")
+                            (success)
+                            (failure)))
+
+                    (setup (lambda () 
+                        (server-set-auth-proc! server plain-auth-proc)))
+
                     (test "plain auth success" (lambda () (begin
                         (server-set-auths! server '((PLAIN ("account" "password"))))
                         (connect-and-ehlo-smtp-server)
@@ -963,6 +949,14 @@
                     ))
 
                 (capability 'xoauth2 (list 
+
+                    (define (xoauth2-auth-proc credentials connection success failure)
+                        (if (= credentials "dXNlcj1hY2NvdW50AWF1dGg9QmVhcmVyIHRva2VuAQE=")
+                            (success)
+                            (failure)))
+
+                    (setup (lambda () 
+                        (server-set-auth-proc! server xoauth2-auth-proc)))
 
                     (test "xoauth2 success" (lambda () (begin
                         (server-set-auths! server '((XOAUTH2 ("account" "token"))))
@@ -992,6 +986,17 @@
 
                 (capability 'cram-md5 (list 
 
+                    (define (cram-md5-auth-proc credentials connection success failure)
+                        (socket-write connection "334 PDEyMzQ1Njc4OTAuMTIzNDVAc2VydmVybmFtZT4=\r\n")
+                        (let 
+                            ((cram-md5-response (string-trim (socket-receive connection))))
+                            (if (= cram-md5-response "YWNjb3VudCAyYzBjMTgxZjkxOGU2ZGM5Mjg3Zjk3N2E1ODhiMzg1YQ==")
+                                (success)
+                                (failure))))
+
+                    (setup (lambda () 
+                        (server-set-auth-proc! server cram-md5-auth-proc)))
+
                     (test "cram-md5 success" (lambda () (begin
                         (server-set-auths! server '((CRAM-MD5 ("account" "password"))))
                         (connect-and-ehlo-smtp-server)
@@ -1020,6 +1025,24 @@
 
 
                 (capability 'login (list 
+
+                    (define (login-auth-proc credentials connection success failure)
+                        (let 
+                            ((login-user-response
+                                (if (not (= credentials "")) 
+                                    credentials
+                                    (begin
+                                        (socket-write connection "334 VXNlcm5hbWU6\r\n")
+                                        (string-trim (socket-receive connection))))))
+                            (socket-write connection "334 UGFzc3dvcmQ6\r\n")
+                            (let 
+                                ((login-password-response (string-trim (socket-receive connection)))) 
+                                (if (and (= login-user-response "YWNjb3VudA==") (= login-password-response "cGFzc3dvcmQ="))
+                                    (success)
+                                    (failure)))))
+
+                    (setup (lambda () 
+                        (server-set-auth-proc! server login-auth-proc)))
 
                     (test "login success" (lambda () (begin
                         (server-set-auths! server '((LOGIN ("account" "password"))))

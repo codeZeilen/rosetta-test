@@ -13,8 +13,6 @@
     - Test initial response with empty data (eg. "" as username)
  - Refactorings
   - Test selection should be done in Ports
-  - Refactor mock SMTP server to exist before process starts to control its operation by configuring the object first 
-  - Refactor SMTP auth method tests to use a procedure defined within the capability
 
 ## Refactorings
 
