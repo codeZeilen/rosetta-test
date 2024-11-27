@@ -76,7 +76,7 @@
     (define (ninth list) (list-ref list 8))
     (define (tenth list) (list-ref list 9))
     
-    (define string-join (lambda args ; accespts a list of strings and an optional delimiter
+    (define string-join (lambda args ; accepts a list of strings and an optional delimiter
         (let 
             ((str-list (first args))
              (delimiter (if (= (length args) 2) (car (cdr args)) "")))
@@ -84,7 +84,25 @@
                 (lambda (acc x) (string-append acc delimiter x))
                 (car str-list) 
                 (cdr str-list)))))
+
+    (define (string-prefix? prefix string)
+        (if (empty? prefix)
+            #t
+            (if (empty? string)
+                #f
+                (if (= (car prefix) (car string))
+                    (string-prefix? (cdr prefix) (cdr string))
+                    #f))))
+
+    (define (string-prefix-ci? prefix string)
+        (string-prefix? (string-downcase prefix) (string-downcase string)))
     
+    (define (any? pred lst)
+        (if (null? lst) #f
+            (if (pred (car lst)) 
+                #t
+                (any? pred (cdr lst)))))
+
 
     ;
     ; PORTS objects
@@ -222,6 +240,12 @@
     (define (test-fn test) (list-ref test 2))
     (define (test-capability test) (list-ref test 3))
     (define (test-set-capability! test capability) (list-set! test 3 capability))
+    (define (test-full-name test)
+        (string-join 
+            (append
+                '("test")
+                (map string-trim (string-split (test-name test) " ")))
+            "_"))
     (define (test-run test) 
         (if (is-data-test? test)
             (data-test-run test)
@@ -267,4 +291,23 @@
         tearDown-fn))
     (define (tearDown-fn tearDown) (list-ref tearDown 1))
     (define (tearDown-run tearDown) ((tearDown-fn tearDown)))
+
+    ; Executing suites
+    ;
+
+    (define (select-tests tests only-tests only-capabilities exclude-tests exclude-capabilities)
+        (define (test-capability-identifier-matches test capability-prefix-patterns)
+            (any? 
+                (lambda (capability-prefix-pattern) 
+                    (string-prefix? capability-prefix-pattern (capability-full-name (test-capability test))))
+                capability-prefix-patterns))
+        (filter 
+            (lambda (test)
+                (not (or
+                    ; The following are exclusion criteria, if one of them applies, the test should be excluded
+                    (and only-tests (not (member (test-full-name test) only-tests)))
+                    (and only-capabilities (not (test-capability-identifier-matches test only-capabilities)))
+                    (and exclude-tests (member (test-full-name test) exclude-tests))
+                    (and exclude-capabilities (test-capability-identifier-matches test exclude-capabilities)))))
+            tests))
 )
