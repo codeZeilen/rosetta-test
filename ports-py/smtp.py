@@ -217,7 +217,7 @@ smtp_suite.run(
             "root.commands.automatic-starttls",
             "root.smtputf8.mail.automatic-smtputf8-detection",
             "root.smtputf8.send-message.automatic-smtputf8-detection",
-            "root.crlf-injection-detection.commands",
+            "root.crlf-injection-detection.commands.detection",
             "root.crlf-injection-detection.send-message.detection"), 
         exclude=())
 #smtp_suite.run(only_capabilities=("root.commands.starttls"))# ("test_starttls","test_starttls_without_server_support","test_After_starttls_extensions_need_to_be_refetched",))
