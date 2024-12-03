@@ -347,19 +347,51 @@
 
             (capability 'commands (list
 
-                (data-test "CRLF detection in MAIL command"
-                    '(("foo\r\nbar") ("foo\nbar") ("foo\rbar")) 
-                    (lambda (sender-string) (begin 
-                        (let
-                            ((mail-response (smtp-mail smtp-connection sender-string)))
-                            (assert (smtp-error? mail-response) (string-append "Expected client to fail when CR or LF is in MAIL command: " sender-string))))))
+                (capability 'detection (list
 
-                (data-test "CRLF detection in RCPT command"
-                    '(("foo\r\nbar") ("foo\nbar") ("foo\rbar")) 
-                    (lambda (recipient-string) (begin 
-                        (let
-                            ((mail-response (first (smtp-rcpt smtp-connection (list recipient-string) '()))))
-                            (assert (smtp-error? mail-response) (string-append "Expected client to fail when CR or LF is in RCPT command: " recipient-string))))))
+                    (data-test "CRLF detection in MAIL command"
+                        '(("foo\r\nbar") ("foo\nbar") ("foo\rbar")) 
+                        (lambda (sender-string) (begin 
+                            (let
+                                ((mail-response (smtp-mail smtp-connection sender-string)))
+                                (assert (smtp-error? mail-response) (string-append "Expected client to fail when CR or LF is in MAIL command: " sender-string))))))
+
+                    (data-test "CRLF detection in RCPT command"
+                        '(("foo\r\nbar") ("foo\nbar") ("foo\rbar")) 
+                        (lambda (recipient-string) (begin 
+                            (let
+                                ((mail-response (first (smtp-rcpt smtp-connection (list recipient-string) '()))))
+                                (assert (smtp-error? mail-response) (string-append "Expected client to fail when CR or LF is in RCPT command: " recipient-string))))))
+                
+                ))
+
+                (capability 'mitigation (list
+
+                    (data-test "CRLF mitigation in MAIL command"
+                        '(("foo\r\nbar" "\r\n") ("foo\nbar" "\n") ("foo\rbar" "\r")) 
+                        (lambda (sender-string injection) (begin 
+                            (let
+                                ((mail-response (smtp-mail smtp-connection sender-string)))
+                                (assert-response-code mail-response 250)
+                                (assert 
+                                    (all? 
+                                        (lambda (c) (not (string-index c injection))) 
+                                        (server-requests-with-command server "MAIL"))
+                                    (string-append "Expected client to remove CR or LF or both from MAIL command: " sender-string))))))
+
+                    (data-test "CRLF mitigation in RCPT command"
+                        '(("foo\r\nbar" "\r\n") ("foo\nbar" "\n") ("foo\rbar" "\r")) 
+                        (lambda (recipient-string injection) (begin 
+                            (let
+                                ((rcpt-response (first (smtp-rcpt smtp-connection (list recipient-string) '()))))
+                                (assert-response-code rcpt-response 250)
+                                (assert 
+                                    (all? 
+                                        (lambda (c) (not (string-index c injection))) 
+                                        (server-requests-with-command server "RCPT")) 
+                                    (string-append "Expected client to remove CR or LF or both from MAIL command: " recipient-string))))))
+                
+                ))
             
             ))
 
@@ -404,7 +436,7 @@
                                         (server-requests-with-command server "MAIL"))
                                     (string-append "Expected client to remove CR or LF or both from sender of send-message: " sender-string))))))
                             
-                    (data-test "CRLF detection in send-message recipient"
+                    (data-test "CRLF mitigation in send-message recipient"
                         '(("foo\r\nbar@email.com" "\r\n") ("foo\nbar@email.com" "\n") ("foo\rbar@email.com" "\r")) 
                         (lambda (recipient-string injection) (begin 
                             (let
