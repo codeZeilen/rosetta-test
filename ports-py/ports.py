@@ -157,15 +157,9 @@ class PortsSuite(object):
     
     def generate_test_name(self, ports_test):
         return self.eval_with_args("(test-full-name current_test)", current_test=ports_test)
-    
-    def generate_capability_identifier(self, ports_test):
-        return self.eval_with_args("(capability-full-name (test-capability current_test))", current_test=ports_test)
-    
+        
     def generate_unittest_test_method(self, ports_test):
         return lambda testcase: self.run_test(ports_test)
-    
-    def capability_identifier_matches_list(self, capability_identifier, capability_list):
-        return any([capability_identifier.startswith(capability) for capability in capability_list])
     
     def run_test(self, ports_test):
         return self.eval_with_args("(test-run current_test)", current_test=ports_test)
