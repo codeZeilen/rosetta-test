@@ -102,6 +102,12 @@
                 #t
                 (any? pred (cdr lst)))))
 
+    (define (all? pred lst)
+        (if (null? lst) #t
+            (if (pred (car lst)) 
+                (all? pred (cdr lst))
+                #f)))
+
 
     ;
     ; PORTS objects

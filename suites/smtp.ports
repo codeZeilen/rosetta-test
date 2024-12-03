@@ -344,19 +344,43 @@
                 (smtp-disconnect smtp-connection)
                 (set! smtp-connection '()))))
 
-            (data-test "CRLF detection in MAIL command"
-                '(("foo\r\nbar") ("foo\nbar") ("foo\rbar")) 
-                (lambda (sender-string) (begin 
-                    (let
-                        ((mail-response (smtp-mail smtp-connection sender-string)))
-                        (assert (smtp-error? mail-response) (string-append "Expected client to fail when CR or LF is in MAIL command: " sender-string))))))
 
-            (data-test "CRLF detection in RCPT command"
-                '(("foo\r\nbar") ("foo\nbar") ("foo\rbar")) 
-                (lambda (recipient-string) (begin 
-                    (let
-                        ((mail-response (first (smtp-rcpt smtp-connection (list recipient-string) '()))))
-                        (assert (smtp-error? mail-response) (string-append "Expected client to fail when CR or LF is in RCPT command: " recipient-string))))))
+            (capability 'commands (list
+
+                (data-test "CRLF detection in MAIL command"
+                    '(("foo\r\nbar") ("foo\nbar") ("foo\rbar")) 
+                    (lambda (sender-string) (begin 
+                        (let
+                            ((mail-response (smtp-mail smtp-connection sender-string)))
+                            (assert (smtp-error? mail-response) (string-append "Expected client to fail when CR or LF is in MAIL command: " sender-string))))))
+
+                (data-test "CRLF detection in RCPT command"
+                    '(("foo\r\nbar") ("foo\nbar") ("foo\rbar")) 
+                    (lambda (recipient-string) (begin 
+                        (let
+                            ((mail-response (first (smtp-rcpt smtp-connection (list recipient-string) '()))))
+                            (assert (smtp-error? mail-response) (string-append "Expected client to fail when CR or LF is in RCPT command: " recipient-string))))))
+            
+            ))
+
+            (capability 'send-message (list
+
+                (data-test "CRLF detection in send-message sender"
+                    '(("foo\r\nbar@email.com") ("foo\nbar@email.com") ("foo\rbar@email.com")) 
+                    (lambda (sender-string) (begin 
+                        (let
+                            ((responses (smtp-send-message smtp-connection "message content" sender-string '("user@recipient.to"))))
+                            (display responses)
+                            (assert (all? smtp-error? responses) (string-append "Expected client to fail when CR or LF is in sender of send-message: " sender-string))))))
+                        
+                (data-test "CRLF detection in send-message recipient"
+                    '(("foo\r\nbar@email.com") ("foo\nbar@email.com") ("foo\rbar@email.com")) 
+                    (lambda (recipient-string) (begin 
+                        (let
+                            ((responses (smtp-send-message smtp-connection "message content" "sender@email.com" (list recipient-string))))
+                            (assert (all? smtp-error? responses) (string-append "Expected client to fail when CR or LF is in recipient of send-message: " recipient-string))))))
+            
+            ))
                     
         ))
 
