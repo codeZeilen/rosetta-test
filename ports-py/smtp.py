@@ -198,7 +198,7 @@ def smtp_send_message(env, smtp: smtplib.SMTP, message, sender, recipients, mess
         return err
     except UnicodeEncodeError as err:
         return err
-    return map(lambda r: responses_dict[r] if r in responses_dict else (250, ''), recipients)
+    return list(map(lambda r: responses_dict[r] if r in responses_dict else (250, ''), recipients))
      
 @smtp_suite.placeholder("smtp-error?")
 def smtp_error(env, result):
@@ -216,7 +216,8 @@ smtp_suite.run(
             "root.commands.auth.xoauth2",
             "root.commands.automatic-starttls",
             "root.smtputf8.mail.automatic-smtputf8-detection",
-            "root.smtputf8.send-message.automatic-smtputf8-detection"), 
+            "root.smtputf8.send-message.automatic-smtputf8-detection",
+            "root.crlf-injection-detection"), 
         exclude=(
             "test_CRLF_detection_in_MAIL_command",
             "test_CRLF_detection_in_RCPT_command"))
