@@ -14,6 +14,19 @@
             (if (= (length args) 1) (car args)
                 `(if (not ,(car args)) (or ,@(cdr args)) #t)))))
 
+    (define (map f lst) 
+        (if (empty? lst) 
+            '() 
+            (cons 
+                (f (car lst)) 
+                (map f (cdr lst)))))
+
+    (define (for-each f lst) 
+        (if (not (empty? lst)) 
+            (begin 
+                (f (car lst)) 
+                (for-each f (cdr lst)))))
+
     (define (reverse lst)
         (define (reverse-help lst res)
             (if (null? lst) res
