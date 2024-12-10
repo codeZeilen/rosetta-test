@@ -31,6 +31,7 @@
             (smtp-mail-with-options connection from '()))
         (placeholder '(smtp-rcpt connection to-list options-list) "Send a RCPT command to the server. The to parameter should be a list of recipients. The function should return a list of responses from the server. Whether the RCPT commands are send by multiple invocations or a single one can be decided by the placeholder. The options list contains lists of options, one list of options per receipient. The list of options contains tuples with the option name as the first element, and the option value as the second. Clients may use the functions compile-options-strings, compile-options-string, and compile-option-string to compile the options list into key-value-strings that can be sent to the server.")
         (placeholder '(smtp-rset connection) "Send a RST command to the server")
+        (placeholder '(smtp-vrfy connection content) "Send a VRFY command to the server with content being the string to verify")
         (placeholder '(smtp-starttls connection cert-file key-file) "Send a STARTTLS command to the server. The cert-file and key-file are optional.")
         (placeholder '(smtp-data connection content) "Send a DATA command to the server for transmitting the content. The content should be a string and not contain the SMTP data terminating sequence.")
         (placeholder '(smtp-error? response) "Returns true if the response represents an error of some kind. This does not include error responses from the server but rather errors in the client-server communication.")
@@ -774,6 +775,56 @@
                         ((rset-response (smtp-rset smtp-connection)))
                         (assert-response-code rset-response 250)))))
 
+                ))
+
+            (capability 'vrfy (list
+            
+                (setup (lambda () (begin 
+                    (connect-smtp-server)
+                    (smtp-ehlo smtp-connection ""))))
+
+                (tearDown (lambda () (begin 
+                    (smtp-disconnect smtp-connection))))
+
+                ; RFC 2821 - Section 3.5: https://datatracker.ietf.org/doc/html/rfc2821#section-3.5
+                (data-test "verify of a valid email address" 
+                    '(("250 The User <user@example.com>" "The User <user@example.com>")
+                      ("250 <user@example.com>" "<user@example.com>")
+                      ("250 user@example.com" "user@example.com"))
+                    (lambda (response expected-message) (begin 
+                        (server-set-response-code! server response)
+                        (let
+                            ((vrfy-response (smtp-vrfy smtp-connection "user@example.com")))
+                            (assert-response-code vrfy-response 250)
+                            (assert-equal expected-message (smtp-response-message vrfy-response))))))
+
+                (test "verify of an unknown user" (lambda () (begin 
+                    (server-set-response-code! server "550 No such user")
+                    (let
+                        ((vrfy-response (smtp-vrfy smtp-connection "nouser")))
+                        (assert-response-code vrfy-response 550)
+                        (assert-equal "No such user" (smtp-response-message vrfy-response))))))
+
+                (test "verify resulting in forwarding response" (lambda () (begin 
+                    )))
+
+                (test "verify resulting in mailbox disabled response" (lambda () (begin 
+                    )))
+
+                ; RFC 2821 - Section 3.5: https://datatracker.ietf.org/doc/html/rfc2821#section-3.5
+                (data-test "verify resulting in ambiguous user response" 
+                    '(("553 User ambiguous" "User ambiguous")
+                      ("553- Ambiguous;  Possibilities are\r\n553-Joe Smith <jsmith@foo.com>\r\n553 Melvin Smith <dweep@foo.com>" 
+                        "Ambiguous;  Possibilities are\nJoe Smith <jsmith@foo.com>\nMelvin Smith <dweep@foo.com>")
+                      ("553-Ambiguous;  Possibilities\r\n553- <jsmith@foo.com>\r\n553 <dweep@foo.com>" 
+                        "Ambiguous;  Possibilities\n<jsmith@foo.com>\n<dweep@foo.com>"))
+                    (lambda (response expected-message) (begin 
+                        (server-set-response-code! server response)
+                        (let
+                            ((vrfy-response (smtp-vrfy smtp-connection "smith")))
+                            (assert-response-code vrfy-response 553)
+                            (assert-equal expected-message (smtp-response-message vrfy-response))))))
+            
                 ))
 
             (capability 'mail (list
