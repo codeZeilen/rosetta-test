@@ -169,6 +169,10 @@ def smtp_rcpt(env, smtp, recipients, option_tuples):
 def smtp_rset(env, smtp):
     return smtp.rset()
 
+@smtp_suite.placeholder("smtp-vrfy")
+def smtp_vrfy(env, smtp, user):
+    return smtp.vrfy(user)
+
 @smtp_suite.placeholder("smtp-data")
 def smtp_data(env, smtp: smtplib.SMTP, content):
     try:
