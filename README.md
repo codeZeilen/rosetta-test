@@ -1,9 +1,34 @@
-# PorTS Sketches
+# PorTS [![Python Suites](https://github.com/codeZeilen/ports-prototype/actions/workflows/python-suites.yml/badge.svg)](https://github.com/codeZeilen/ports-prototype/actions/workflows/python-suites.yml)
 
-This repository contains sketches of PorTS test suites. They are neither complete nor runnable. Their purpose is to explore requirements and pitfalls for the design of the nonexistent PorTS language.
+With the PorTS project, you only have to write a test suite once for multiple implementations.
 
-## Structure
 
-- `fs.ports` and `fs.py`: A sketched test suite for file operations and the corresponding definitions of placeholders in Python. Useful for exploring how the definition of placeholders in a target language may work.
-- `mime-type.ports`: A sketched test suite for parsing and querying mime-type strings. Useful for exploring how PorTS may cover a variety of features in one test suite.
-- `promises-aplus.ports`: A sketched test suite for the [Promises/A+](https://promisesaplus.com/) specification. Useful for exploring how PorTS handles complex, in this case potentially concurrent, behavior.
+## Trying it out
+
+Currently, the best-supported language is Python. To get an idea of how to create and port PorTS test suites, try the Python version of the SMTP test suite, which runs against the SMTP implementation in the Python standard library.
+
+You can run the SMTP test suite in Python by executing
+
+```Python
+python3 ports-py/smtp.py
+```
+
+This will run the test suite from `/suites/smtp.ports` using the mappings in `/ports-py/smtp.py`.
+
+
+## Structure of the Repository
+
+- The core PorTS language (`/ports`)
+- PorTS interpreters for Python (`/ports-py`) and Smalltalk (`/ports-s`)
+- A full test suite for SMTP (`/suites/smtp.ports`)
+- A prototype test suite for file handlers (`/suites/fs.ports`)
+
+
+## How it Works (Overview)
+
+The test suites are written in the PorTS language. The parts that are implementation-specific are designated as _placeholders_. For every implementation that you want to test, you need to fill in these placeholders.
+
+Thus, if you want to execute a PorTS suite for your project, you need:
+
+  1. A _PorTS interpreter_ for your language
+  2. A _mapping_ that fills each placeholder with a function from the implementation. Often the mapping will not be 1:1, so you might need to write additional code to map the behavior to the expected behavior of the placeholder.
