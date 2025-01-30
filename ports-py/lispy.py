@@ -244,7 +244,7 @@ def add_globals(self):
      'append':op.add,  
      'list':lambda *x:list(x), 'list?': lambda x:isa(x,list), 'list-ref':op.getitem,
      'list-set!':op.setitem,
-     'map':lambda fn, l: list(map(fn, l)), 'for-each':lambda fn, l: [fn(x) for x in l],
+     'map':lambda fn, l: list(map(fn, l)), 'for-each':lambda fn, l: [fn(x) for x in l], # Added for performance reasons
      'error':lambda err_msg: primitive_error(err_msg),
      'raise':lambda err: primitive_raise(err),
      'with-exception-handler': lambda handler_fn, thunk_fn: primitive_error_handler(handler_fn, thunk_fn),

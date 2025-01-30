@@ -170,7 +170,7 @@ def smtp_rset(env, smtp):
     return smtp.rset()
 
 @smtp_suite.placeholder("smtp-vrfy")
-def smtp_vrfy(env, smtp, user):
+def smtp_vrfy(env, smtp : smtplib.SMTP, user):
     return smtp.vrfy(user)
 
 @smtp_suite.placeholder("smtp-data")
