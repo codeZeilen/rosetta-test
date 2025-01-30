@@ -57,6 +57,7 @@
         (define (server-tls? server) (list-ref server 8))
         (define (server-tls-started? server) (list-ref server 9)) ; Was a TLS connection started via STARTTLS?
         (define (server-auth-proc server) (list-ref server 10))
+        (define (server-message-data server) (list-ref server 11))
 
         (define (server-set-thread! server new-thread) 
             (list-set! server 1 new-thread))
@@ -78,6 +79,8 @@
             (list-set! server 9 boolean))
         (define (server-set-auth-proc! server proc)
             (list-set! server 10 proc))
+        (define (server-set-message-data! server data)
+            (list-set! server 11 data))
 
         (define (server-extensions-with-auth server) 
             (if (empty? (server-auths server))
@@ -98,7 +101,7 @@
         (define (let-server-complete-handler)
             (thread-sleep! 0.1))
         
-        (define (create-server tls-enabled) (list 'server '() '() #f '() "0" '() '() tls-enabled #f (lambda (credentials connection success failure) '())))
+        (define (create-server tls-enabled) (list 'server '() '() #f '() "0" '() '() tls-enabled #f (lambda (credentials connection success failure) '()) ""))
         (define (server-stop server) (list-set! server 3 #t))
         (define (server-start server)
             (let 
@@ -179,6 +182,7 @@
                         (socket-write connection "354 End data with <CR><LF>.<CR><LF>\r\n")
                         (let 
                             ((message-data (socket-receive connection))) 
+                            (server-set-message-data! server message-data)
                             (socket-write connection "250 2.0.0 OK\r\n"))))
                 (define (starttls args)
                     (socket-write connection "220 Ready to start TLS\r\n")
@@ -758,6 +762,12 @@
                         ((ehlo-response (smtp-ehlo smtp-connection "")))
                         (assert-response-code ehlo-response 550)))))
 
+                (test "two subsequent ehlos should be possible" (lambda () (begin
+                    (smtp-ehlo smtp-connection "")
+                    (let
+                        ((ehlo-response (smtp-ehlo smtp-connection "")))
+                        (assert-response-code ehlo-response 250)))))
+
                 ))
 
             (capability 'rset (list
@@ -774,6 +784,24 @@
                     (let
                         ((rset-response (smtp-rset smtp-connection)))
                         (assert-response-code rset-response 250)))))
+
+                ))
+
+            (capability 'help (list
+            
+                (setup (lambda () (begin 
+                    (connect-smtp-server)
+                    (smtp-ehlo smtp-connection ""))))
+
+                (tearDown (lambda () (begin 
+                    (smtp-disconnect smtp-connection))))
+
+                (test "basic help" (lambda () (begin
+                    (server-set-response-code! server "250 Supported commands: EHLO HELO MAIL")
+                    (let
+                        ((rset-response (smtp-rset smtp-connection)))
+                        (assert-response-code rset-response 250)
+                        (assert-equal "Supported commands: EHLO HELO MAIL" (smtp-response-message rset-response))))))
 
                 ))
 
@@ -797,6 +825,13 @@
                             ((vrfy-response (smtp-vrfy smtp-connection "user@example.com")))
                             (assert-response-code vrfy-response 250)
                             (assert-equal expected-message (smtp-response-message vrfy-response))))))
+
+                (test "verify of an email address with apparent validity" (lambda () (begin 
+                    (server-set-response-code! server "252 Cannot verify the user, but it will try to deliver the message anyway")
+                    (let
+                        ((vrfy-response (smtp-vrfy smtp-connection "user@otherserver.org")))
+                        (assert-response-code vrfy-response 252)
+                        (assert-equal "Cannot verify the user, but it will try to deliver the message anyway" (smtp-response-message vrfy-response))))))
 
                 (test "verify of an unknown user" (lambda () (begin 
                     (server-set-response-code! server "550 No such user")
@@ -880,6 +915,20 @@
                     (let
                         ((data-response (smtp-data smtp-connection "message content")))
                         (assert (smtp-error? data-response) "Expected client to fail when server does not acknowledge data correctly")))))
+
+                ; Dot-quoting prevents stray dots at the beginning of lines to cause problems
+                ; https://datatracker.ietf.org/doc/html/rfc2821#section-4.5.2
+                ; Definition of line: https://datatracker.ietf.org/doc/html/rfc5321#section-2.3.8
+                (data-test "DATA quotes dots at beginnings of lines"
+                    '((".first line\r\n.second.line\r\n..third" 
+                       "..first line\r\n..second.line\r\n...third\r\n.\r\n")
+                      (".first line\n.second.line"
+                       "..first line\r\n..second.line\r\n.\r\n"))
+                    (lambda (sent-content received-content) (begin
+                        (let
+                            ((data-response (smtp-data smtp-connection sent-content)))
+                            (assert-response-code data-response 250)
+                            (assert-equal received-content (server-message-data server))))))
 
                 )) 
 
