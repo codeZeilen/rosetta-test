@@ -32,6 +32,7 @@
         (placeholder '(smtp-rcpt connection to-list options-list) "Send a RCPT command to the server. The to parameter should be a list of recipients. The function should return a list of responses from the server. Whether the RCPT commands are send by multiple invocations or a single one can be decided by the placeholder. The options list contains lists of options, one list of options per receipient. The list of options contains tuples with the option name as the first element, and the option value as the second. Clients may use the functions compile-options-strings, compile-options-string, and compile-option-string to compile the options list into key-value-strings that can be sent to the server.")
         (placeholder '(smtp-rset connection) "Send a RST command to the server")
         (placeholder '(smtp-vrfy connection content) "Send a VRFY command to the server with content being the string to verify")
+        (placeholder '(smtp-help connection content) "Send a HELP command to the server with content being the string to get help for.")
         (placeholder '(smtp-expn connection content) "Send an EXPN command to the server with content being the list to expand. The response is an object that can be inspected with smtp-response-code and smtp-expn-response-users-list.")
         (placeholder '(smtp-expn-response-users-list response) "Return the list of users from the EXPN response")
         (placeholder '(smtp-starttls connection cert-file key-file) "Send a STARTTLS command to the server. The cert-file and key-file are optional.")
@@ -401,6 +402,15 @@
                                     (lambda () (smtp-vrfy smtp-connection address-string))
                                     (string-append "Expected client to fail when CR or LF is in EHLO hostname argument: " address-string)))))))
 
+                    (capability 'expn (list
+                        (data-test "CRLF detection in EXPN command"
+                            '(("email\r\nlist") ("email\nlist") ("email\rlist")) 
+                            (lambda (address-string) (begin
+                                (server-set-response-code! server "250") 
+                                (assert-crlf-injection-error 
+                                    (lambda () (smtp-expn smtp-connection address-string))
+                                    (string-append "Expected client to fail when CR or LF is in EXPN command: " address-string)))))))
+
                     (capability 'mail (list
                         (data-test "CRLF detection in MAIL command"
                             '(("foo\r\nbar") ("foo\nbar") ("foo\rbar")) 
@@ -438,7 +448,6 @@
                                     "EHLO"
                                     (string-append "Expected client to remove CR or LF or both from EHLO command: " hostname-string)))))))
 
-
                     (capability 'vrfy (list
                         (data-test "CRLF mitigation in VRFY command"
                             '(("email@\r\nemail" "\r\n") ("email@\nemail" "\n") ("email@\remail" "\r"))  
@@ -448,6 +457,27 @@
                                     injection
                                     "VRFY"
                                     (string-append "Expected client to remove CR or LF or both from VRFY command: " address-string)))))))
+
+                    (capability 'expn (list
+                        (data-test "CRLF mitigation in EXPN command"
+                            '(("email\r\nlist" "\r\n") ("email\nlist" "\n") ("email\rlist" "\r"))  
+                            (lambda (address-string injection) (begin 
+                                (server-set-response-code! server "250 foo@bar")
+                                (assert-crlf-injection-mitigation
+                                    (lambda () (smtp-expn smtp-connection address-string))
+                                    injection
+                                    "EXPN"
+                                    (string-append "Expected client to remove CR or LF or both from EXPN command: " address-string)))))))
+
+                    (capability 'help (list
+                        (data-test "CRLF mitigation in HELP command"
+                            '(("some\r\ncommand" "\r\n") ("some\ncommand" "\n") ("some\rcommand" "\r")) 
+                            (lambda (command-string injection) (begin 
+                                (assert-crlf-injection-mitigation
+                                    (lambda () (smtp-help smtp-connection command-string))
+                                    injection
+                                    "HELP"
+                                    (string-append "Expected client to remove CR or LF or both from HELP command: " command-string)))))))
 
                     (capability 'mail (list
                         (data-test "CRLF mitigation in MAIL command"
@@ -925,9 +955,9 @@
                 (test "basic help" (lambda () (begin
                     (server-set-response-code! server "250 Supported commands: EHLO HELO MAIL")
                     (let
-                        ((rset-response (smtp-rset smtp-connection)))
-                        (assert-response-code rset-response 250)
-                        (assert-equal "Supported commands: EHLO HELO MAIL" (smtp-response-message rset-response))))))
+                        ((help-response (smtp-help smtp-connection "")))
+                        (assert-response-code help-response 250)
+                        (assert-equal (smtp-response-message help-response) "Supported commands: EHLO HELO MAIL")))))
 
                 ))
 
