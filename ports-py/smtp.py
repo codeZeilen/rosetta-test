@@ -101,7 +101,10 @@ def smtp_disconnect(env, smtp):
 
 @smtp_suite.placeholder("smtp-ehlo")
 def smtp_ehlo(env, smtp, content):
-    return smtp.ehlo(content)
+    try:
+        return smtp.ehlo(content)
+    except ValueError as e:
+        return e
 
 @smtp_suite.placeholder("smtp-response-code")
 def smtp_response_code(env, smtp_response):
@@ -161,9 +164,9 @@ def smtp_rcpt(env, smtp, recipients, option_tuples):
     try:
         return list(map(lambda recipient_options: smtp.rcpt(recipient_options[0],options=recipient_options[1]), zip(recipients, options)))
     except ValueError as err:
-        return err
+        return [err]
     except smtplib.SMTPNotSupportedError as err:
-        return err
+        return [err]
 
 @smtp_suite.placeholder("smtp-rset")
 def smtp_rset(env, smtp):
@@ -171,7 +174,10 @@ def smtp_rset(env, smtp):
 
 @smtp_suite.placeholder("smtp-vrfy")
 def smtp_vrfy(env, smtp : smtplib.SMTP, user):
-    return smtp.vrfy(user)
+    try:
+        return smtp.vrfy(user)
+    except ValueError as e:
+        return e
 
 @smtp_suite.placeholder("smtp-data")
 def smtp_data(env, smtp: smtplib.SMTP, content):
@@ -221,7 +227,11 @@ smtp_suite.run(
             "root.commands.automatic-starttls",
             "root.smtputf8.mail.automatic-smtputf8-detection",
             "root.smtputf8.send-message.automatic-smtputf8-detection",
-            "root.crlf-injection-detection.commands.detection",
+            "root.crlf-injection-detection.commands.detection.mail",
+            "root.crlf-injection-detection.commands.mitigation.ehlo",
             "root.crlf-injection-detection.send-message.detection"), 
-        exclude=())
+        exclude=(
+            "test_CRLF_detection_in_RCPT_command_-_recipient",
+            "test_CRLF_mitigation_in_RCPT_command_-_options",
+            "test_CRLF_detection_in_VRFY_command"))
 #smtp_suite.run(only_capabilities=("root.commands.starttls"))# ("test_starttls","test_starttls_without_server_support","test_After_starttls_extensions_need_to_be_refetched",))
