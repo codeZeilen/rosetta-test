@@ -148,7 +148,8 @@ class PortsSuite(object):
         invalid_placeholders = [placeholder for placeholder in self.placeholders if not placeholder.is_valid()]
         if invalid_placeholders:
             invalid_placeholder_list = "\n".join([("- " + placeholder.name) for placeholder in invalid_placeholders])
-            raise Exception(f"Invalid placeholders:\n{invalid_placeholder_list}")
+            invalid_placeholders_suggestion = "\n\n".join(["@suite.placeholder(\"" + placeholder.name + "\")\ndef " + placeholder.name.replace("-", "_") + "(env,*args):\n\tpass" for placeholder in invalid_placeholders])
+            raise Exception(f"Invalid placeholders:\n{invalid_placeholder_list}\n\nFix based on:\n{invalid_placeholders_suggestion}")
             
     def install_placeholders(self):
         for placeholder in self.placeholders:
