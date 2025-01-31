@@ -157,6 +157,7 @@
                                 ((= command "AUTH") (auth args))
                                 ((= command "MAIL") (mail args))
                                 ((= command "RCPT") (rcpt args))
+                                ((= command "VRFY") (vrfy args))
                                 ((= command "DATA") (data-command args))
                                 ((= command "STARTTLS") (starttls args))
                                 (else (error "Command not found")))))))                
@@ -177,6 +178,8 @@
                     (if (or (empty? args) (= (second (string-split (car args) ":")) "<invalid>"))
                         (socket-write connection "500\r\n")
                         (socket-write connection "250 2.1.0 OK\r\n")))
+                (define (vrfy args)
+                    (socket-write connection "250\r\n"))
                 (define (data-command args)
                     (begin 
                         (socket-write connection "354 End data with <CR><LF>.<CR><LF>\r\n")
@@ -349,52 +352,118 @@
                 (smtp-disconnect smtp-connection)
                 (set! smtp-connection '()))))
 
+            (define (assert-crlf-injection-error test-function failure-description)
+                (let
+                    ((response (test-function)))
+                    (assert (smtp-error? response) failure-description)))
+
+            (define (assert-crlf-injection-mitigation test-function injection command failure-description)
+                (let
+                    ((response (test-function)))
+                    (assert-response-code response 250)
+                    (assert 
+                        (all? 
+                            (lambda (c) (not (string-index c injection))) 
+                            (server-requests-with-command server command))
+                        failure-description)))
+                
 
             (capability 'commands (list
 
                 (capability 'detection (list
 
-                    (data-test "CRLF detection in MAIL command"
-                        '(("foo\r\nbar") ("foo\nbar") ("foo\rbar")) 
-                        (lambda (sender-string) (begin 
-                            (let
-                                ((mail-response (smtp-mail smtp-connection sender-string)))
-                                (assert (smtp-error? mail-response) (string-append "Expected client to fail when CR or LF is in MAIL command: " sender-string))))))
+                    (capability 'ehlo (list
+                        (data-test "CRLF detection in EHLO command"
+                            '(("email.\r\nemail") ("email.\nemail") ("email\remail")) 
+                            (lambda (hostname-string) (begin 
+                                (assert-crlf-injection-error 
+                                    (lambda () (smtp-ehlo smtp-connection hostname-string))
+                                    (string-append "Expected client to fail when CR or LF is in EHLO hostname argument: " hostname-string)))))))
 
-                    (data-test "CRLF detection in RCPT command"
-                        '(("foo\r\nbar") ("foo\nbar") ("foo\rbar")) 
-                        (lambda (recipient-string) (begin 
-                            (let
-                                ((mail-response (first (smtp-rcpt smtp-connection (list recipient-string) '()))))
-                                (assert (smtp-error? mail-response) (string-append "Expected client to fail when CR or LF is in RCPT command: " recipient-string))))))
+                    (capability 'vrfy (list
+                        (data-test "CRLF detection in VRFY command"
+                            '(("email@\r\nemail") ("email@\nemail") ("email@\remail")) 
+                            (lambda (address-string) (begin 
+                                (assert-crlf-injection-error 
+                                    (lambda () (smtp-vrfy smtp-connection address-string))
+                                    (string-append "Expected client to fail when CR or LF is in EHLO hostname argument: " address-string)))))))
+
+                    (capability 'mail (list
+                        (data-test "CRLF detection in MAIL command"
+                            '(("foo\r\nbar") ("foo\nbar") ("foo\rbar")) 
+                            (lambda (sender-string) (begin 
+                                (assert-crlf-injection-error 
+                                    (lambda () (smtp-mail smtp-connection sender-string))
+                                    (string-append "Expected client to fail when CR or LF is in MAIL command: " sender-string)))))))
+
+                    (capability 'rcpt (list
+                        (data-test "CRLF detection in RCPT command - recipient"
+                            '(("foo\r\nbar") ("foo\nbar") ("foo\rbar")) 
+                            (lambda (recipient-string) (begin 
+                                (assert-crlf-injection-error 
+                                    (lambda () (first (smtp-rcpt smtp-connection (list recipient-string) '())))
+                                    (string-append "Expected client to fail when CR or LF is in RCPT command: " recipient-string)))))
+
+                        (data-test "CRLF detection in RCPT command - options"
+                            '((("X-OPTION\r\nX-INJECTED-1" "X-OPTION2\r\nX-INJECTED-2")) (("X-OPTION\nX-INJECTED-1" "X-OPTION2\nX-INJECTED-2")) (("X-OPTION\rX-INJECTED-1" "X-OPTION2\rX-INJECTED-2"))) 
+                            (lambda (options-list) (begin 
+                                (assert-crlf-injection-error 
+                                    (lambda () (first (smtp-rcpt smtp-connection (list "foo@bar.com") (list options-list))))
+                                    (string-append "Expected client to fail when CR or LF is in RCPT option argument: " options-list)))))))
                 
                 ))
 
                 (capability 'mitigation (list
 
-                    (data-test "CRLF mitigation in MAIL command"
-                        '(("foo\r\nbar" "\r\n") ("foo\nbar" "\n") ("foo\rbar" "\r")) 
-                        (lambda (sender-string injection) (begin 
-                            (let
-                                ((mail-response (smtp-mail smtp-connection sender-string)))
-                                (assert-response-code mail-response 250)
-                                (assert 
-                                    (all? 
-                                        (lambda (c) (not (string-index c injection))) 
-                                        (server-requests-with-command server "MAIL"))
-                                    (string-append "Expected client to remove CR or LF or both from MAIL command: " sender-string))))))
+                    (capability 'ehlo (list
+                        (data-test "CRLF mitigation in EHLO command"
+                            '(("email.\r\nemail" "\r\n") ("email.\nemail" "\n") ("email\remail" "\r")) 
+                            (lambda (hostname-string injection) (begin 
+                                (assert-crlf-injection-mitigation
+                                    (lambda () (smtp-ehlo smtp-connection hostname-string))
+                                    injection
+                                    "EHLO"
+                                    (string-append "Expected client to remove CR or LF or both from EHLO command: " hostname-string)))))))
 
-                    (data-test "CRLF mitigation in RCPT command"
-                        '(("foo\r\nbar" "\r\n") ("foo\nbar" "\n") ("foo\rbar" "\r")) 
-                        (lambda (recipient-string injection) (begin 
-                            (let
-                                ((rcpt-response (first (smtp-rcpt smtp-connection (list recipient-string) '()))))
-                                (assert-response-code rcpt-response 250)
-                                (assert 
-                                    (all? 
-                                        (lambda (c) (not (string-index c injection))) 
-                                        (server-requests-with-command server "RCPT")) 
-                                    (string-append "Expected client to remove CR or LF or both from MAIL command: " recipient-string))))))
+
+                    (capability 'vrfy (list
+                        (data-test "CRLF mitigation in VRFY command"
+                            '(("email@\r\nemail" "\r\n") ("email@\nemail" "\n") ("email@\remail" "\r"))  
+                            (lambda (address-string injection) (begin 
+                                (assert-crlf-injection-mitigation
+                                    (lambda () (smtp-vrfy smtp-connection address-string))
+                                    injection
+                                    "VRFY"
+                                    (string-append "Expected client to remove CR or LF or both from VRFY command: " address-string)))))))
+
+                    (capability 'mail (list
+                        (data-test "CRLF mitigation in MAIL command"
+                            '(("foo\r\nbar" "\r\n") ("foo\nbar" "\n") ("foo\rbar" "\r")) 
+                            (lambda (sender-string injection) (begin 
+                                (assert-crlf-injection-mitigation
+                                    (lambda () (smtp-mail smtp-connection sender-string))
+                                    injection
+                                    "MAIL"
+                                    (string-append "Expected client to remove CR or LF or both from MAIL command: " sender-string)))))))
+
+                    (capability 'rcpt (list
+                        (data-test "CRLF mitigation in RCPT command - recipient"
+                            '(("foo\r\nbar" "\r\n") ("foo\nbar" "\n") ("foo\rbar" "\r")) 
+                            (lambda (recipient-string injection) (begin
+                                (assert-crlf-injection-mitigation
+                                    (lambda () (first (smtp-rcpt smtp-connection (list recipient-string) '())))
+                                    injection
+                                    "RCPT"
+                                    (string-append "Expected client to remove CR or LF or both from RCPT command: " recipient-string)))))
+
+                        (data-test "CRLF mitigation in RCPT command - options"
+                            '((("X-OPTION\r\nX-INJECTED-1" "X-OPTION2\r\nX-INJECTED-2") "\r\n") (("X-OPTION\nX-INJECTED-1" "X-OPTION2\nX-INJECTED-2") "\n") (("X-OPTION\rX-INJECTED-1" "X-OPTION2\rX-INJECTED-2") "\r")) 
+                            (lambda (options-list injection) (begin
+                                (assert-crlf-injection-mitigation
+                                    (lambda () (first (smtp-rcpt smtp-connection (list "foo@bar.com") (list options-list))))
+                                    injection
+                                    "RCPT"
+                                    (string-append "Expected client to remove CR or LF or both from RCPT options argument: " options-list)))))))          
                 
                 ))
             
@@ -593,7 +662,7 @@
                     (smtp-ehlo smtp-connection "")
                     (smtp-mail-with-options smtp-connection "sender@sender.com" '())
                     (let
-                        ((rcpt-response (smtp-rcpt smtp-connection '("χρήστης@παράδειγμα.ελ") '())))
+                        ((rcpt-response (first (smtp-rcpt smtp-connection '("χρήστης@παράδειγμα.ελ") '()))))
                         (assert (smtp-error? rcpt-response))))))
             ))
 
