@@ -67,7 +67,10 @@ def socket_close(env, socket):
 
 @smtp_suite.placeholder("smtp-connect")
 def smtp_connect(env, host, port):
-    return smtplib.SMTP(host, port)
+    try:
+        return smtplib.SMTP(host, port)
+    except Exception as e:
+        return e
 
 @smtp_suite.placeholder("smtp-connect-with-auto-starttls")
 def smtp_connect_with_auto_starttls(env, host, port, automatic_mode):
@@ -116,7 +119,13 @@ def smtp_response_message(env, smtp_response):
 
 @smtp_suite.placeholder("smtp-extensions")
 def smtp_capabilities(env, smtp, ehlo_response):
-    return map(str.strip, smtp_response_message(env, ehlo_response).split("\n")[1:])
+    capabilities = []
+    for capability_string in map(str.strip, smtp_response_message(env, ehlo_response).split("\n")[1:]):
+        if " " in capability_string:
+            capabilities.append(capability_string.split(" "))
+        else:
+            capabilities.append(capability_string)
+    return capabilities
 
 @smtp_suite.placeholder("smtp-authenticate")
 def smtp_authenticate(env, smtp, method, credentials):
@@ -178,6 +187,17 @@ def smtp_vrfy(env, smtp : smtplib.SMTP, user):
         return smtp.vrfy(user)
     except ValueError as e:
         return e
+    
+@smtp_suite.placeholder("smtp-expn")
+def smtp_expn(env, smtp : smtplib.SMTP, list_name):
+    try:
+        return smtp.expn(list_name)
+    except Exception as e:
+        return e
+
+@smtp_suite.placeholder("smtp-expn-response-users-list")
+def smtp_expn_response_users_list(env, expn_response):
+    return expn_response[1].decode("utf-8").split("\n")
 
 @smtp_suite.placeholder("smtp-data")
 def smtp_data(env, smtp: smtplib.SMTP, content):
