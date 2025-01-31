@@ -188,6 +188,16 @@ def smtp_vrfy(env, smtp : smtplib.SMTP, user):
     except ValueError as e:
         return e
     
+@smtp_suite.placeholder("smtp-help")
+def smtp_help(env, smtp: smtplib.SMTP, command):
+    try:
+        # We have to manually construct a reply tuple, as
+        # .help only returns the help text, in contrast to all
+        # other low-level SMTP command methods.
+        return (250, smtp.help(command))
+    except Exception as e:
+        return e
+    
 @smtp_suite.placeholder("smtp-expn")
 def smtp_expn(env, smtp : smtplib.SMTP, list_name):
     try:
@@ -253,5 +263,7 @@ smtp_suite.run(
         exclude=(
             "test_CRLF_detection_in_RCPT_command_-_recipient",
             "test_CRLF_mitigation_in_RCPT_command_-_options",
-            "test_CRLF_detection_in_VRFY_command"))
+            "test_CRLF_detection_in_VRFY_command",
+            "test_CRLF_mitigation_in_HELP_command",
+            "test_CRLF_detection_in_EXPN_command"))
 #smtp_suite.run(only_capabilities=("root.commands.starttls"))# ("test_starttls","test_starttls_without_server_support","test_After_starttls_extensions_need_to_be_refetched",))
