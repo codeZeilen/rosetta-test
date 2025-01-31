@@ -32,12 +32,14 @@
         (placeholder '(smtp-rcpt connection to-list options-list) "Send a RCPT command to the server. The to parameter should be a list of recipients. The function should return a list of responses from the server. Whether the RCPT commands are send by multiple invocations or a single one can be decided by the placeholder. The options list contains lists of options, one list of options per receipient. The list of options contains tuples with the option name as the first element, and the option value as the second. Clients may use the functions compile-options-strings, compile-options-string, and compile-option-string to compile the options list into key-value-strings that can be sent to the server.")
         (placeholder '(smtp-rset connection) "Send a RST command to the server")
         (placeholder '(smtp-vrfy connection content) "Send a VRFY command to the server with content being the string to verify")
+        (placeholder '(smtp-expn connection content) "Send an EXPN command to the server with content being the list to expand. The response is an object that can be inspected with smtp-response-code and smtp-expn-response-users-list.")
+        (placeholder '(smtp-expn-response-users-list response) "Return the list of users from the EXPN response")
         (placeholder '(smtp-starttls connection cert-file key-file) "Send a STARTTLS command to the server. The cert-file and key-file are optional.")
         (placeholder '(smtp-data connection content) "Send a DATA command to the server for transmitting the content. The content should be a string and not contain the SMTP data terminating sequence.")
         (placeholder '(smtp-error? response) "Returns true if the response represents an error of some kind. This does not include error responses from the server but rather errors in the client-server communication.")
         (placeholder '(smtp-response-code response) "Return the response code from the server")
         (placeholder '(smtp-response-message response) "Return the response message from the server")
-        (placeholder '(smtp-extensions connection ehlo-response) "Return a list of extensions of the server, either from the connection or the ehlo response") ; This is already an interesting case, as the extensions may be derived from only a response or may be a property of the connection object
+        (placeholder '(smtp-extensions connection ehlo-response) "Return a list of extensions of the server, either from the connection or the ehlo response. The list can contain plain strings and tuples for extensions with parameters.") ; This is already an interesting case, as the extensions may be derived from only a response or may be a property of the connection object
         (placeholder '(smtp-extension-not-supported-error? response) "Did the command fail due to an unsupported extension?")
         (placeholder '(smtp-authenticate connection method credentials) "Run authentication and return the result (in case of an exception return exception object or a stand-in for the exception)")
         (placeholder '(smtp-auth-successful? "Was the authentication successful?"))
@@ -160,7 +162,7 @@
                                 ((= command "VRFY") (vrfy args))
                                 ((= command "DATA") (data-command args))
                                 ((= command "STARTTLS") (starttls args))
-                                (else (error "Command not found")))))))                
+                                (else (error "Command not found")))))))
                 (define (loop) (let 
                     ((request-string (socket-receive connection)))
                     (if (empty? request-string)
@@ -236,6 +238,13 @@
         ; Get arguments from a request
         (define (request-arguments request) (map string-trim (cdr (string-split request " "))))
 
+        ; Get all recorded requests with a certain command
+        (define (server-requests-with-command server command) 
+                        (filter 
+                            (lambda (request) 
+                                (= (string-upcase (request-command request)) command))
+                            (server-requests server)))
+
         ; Compile one option to a string, either from a tuple (KEY VALUE|VALUES) to "KEY=VALUE,VALUE"
         ; or if already a string, simply return it.
         (define (compile-option-string option)
@@ -307,6 +316,10 @@
 
             (test "Connect to server" (lambda () (begin 
                 (smtp-connect "localhost" (server-port server)))))
+
+            (test "Connect with non-numeric port is an error" (lambda () (begin
+                (assert (smtp-error? (smtp-connect "localhost" "not-a-port")))
+                (smtp-connect "localhost" (server-port server))))) ; Give the mock server a chance to terminate
 
         ))
 
@@ -469,6 +482,7 @@
             
             ))
 
+            ; TODO: Tests for CRLF in options
             (capability 'send-message (list
 
                 (capability 'detection (list
@@ -491,12 +505,6 @@
                 ))
 
                 (capability 'mitigation (list
-
-                    (define (server-requests-with-command server command) 
-                        (filter 
-                            (lambda (request) 
-                                (= (string-upcase (request-command request)) command))
-                            (server-requests server)))
 
                     (data-test "CRLF mitigation in send-message sender"
                         '(("foo\r\nbar@email.com" "\r\n") ("foo\nbar@email.com" "\n") ("foo\rbar@email.com" "\r")) 
@@ -544,13 +552,26 @@
                 (smtp-disconnect smtp-connection)
                 (set! smtp-connection '()))))
 
-            (test "Send a message" (lambda () (let
-                ((response (smtp-send-message smtp-connection "message content" "sender@sender.to" '("user@recipient.to"))))
-                (assert-response-codes response 250))))
+            (test "Send a message" (lambda () 
+                (let
+                    ((response (smtp-send-message smtp-connection "message content" "sender@sender.to" '("user@recipient.to"))))
+                    (assert-response-codes response 250))))
 
-            (test "Send a message to multiple recipients" (lambda () (let
-                ((response (smtp-send-message smtp-connection "message content" "sender@sender.to" '("user1@recipient.to" "user2@recipient.to"))))
-                (assert-response-codes response 250))))
+            (test "Send a message to multiple recipients" (lambda () 
+                (let
+                    ((response (smtp-send-message smtp-connection "message content" "sender@sender.to" '("user1@recipient.to" "user2@recipient.to"))))
+                    (assert-response-codes response 250))))
+
+            (test "Send a message with empty recipient" (lambda () 
+                (let
+                    ((response (smtp-send-message smtp-connection "message content" "<>" '("user@recipient.to"))))
+                    (assert-response-codes response 250)
+                    (assert
+                        (any?
+                            (lambda (request) 
+                                (string-prefix? "FROM:<>" (first (request-arguments request))))
+                            (server-requests-with-command server "MAIL"))
+                        (string-append "Expected client to send empty sender: " (server-requests-with-command server "MAIL"))))))
 
             (data-test "Failures during send message" 
                 '(("400 BUSY" 400)
@@ -825,6 +846,13 @@
                         (assert-response-code ehlo-response 250)
                         (assert-extensions smtp-connection ehlo-response (list "8BITMIME" "VERB"))))))
 
+                (test "server answers extension with parameter" (lambda () (begin
+                    (server-set-extensions! server (list "SIZE 2000"))
+                    (let
+                        ((ehlo-response (smtp-ehlo smtp-connection "")))
+                        (assert-response-code ehlo-response 250)
+                        (assert-extensions smtp-connection ehlo-response (list '("SIZE" "2000")))))))
+
                 (test "server answers ehlo with error code" (lambda () (begin
                     (server-set-response-code! server "550 not message")
                     (let
@@ -855,6 +883,35 @@
                         (assert-response-code rset-response 250)))))
 
                 ))
+
+            (capability 'expn (list
+            
+                (setup (lambda () (begin 
+                    (connect-smtp-server)
+                    (smtp-ehlo smtp-connection ""))))
+
+                (tearDown (lambda () (begin 
+                    (smtp-disconnect smtp-connection))))
+
+                (test "basic expn" (lambda () (begin
+                    (server-set-response-code! server "250-Jon Postel <Postel@isi.edu>\r\n250-Fred Fonebone <Fonebone@physics.foo-u.edu>\r\n250 Sam Q. Smith <SQSmith@specific.generic.com>")
+                    (let
+                        ((expn-response (smtp-expn smtp-connection "Example-People")))
+                        (assert-response-code expn-response 250)
+                        (assert-equal
+                            (smtp-expn-response-users-list expn-response)
+                            (list "Jon Postel <Postel@isi.edu>" "Fred Fonebone <Fonebone@physics.foo-u.edu>" "Sam Q. Smith <SQSmith@specific.generic.com>"))))))
+
+                (test "error expn" (lambda () (begin
+                    (server-set-response-code! server "550 Access Denied to You")
+                    (let
+                        ((expn-response (smtp-expn smtp-connection "Executive-Washroom-List")))
+                        (assert-response-code expn-response 550)))))
+
+
+                ; TODO CRLF injection tests for expn/help
+                ))
+
 
             (capability 'help (list
             
