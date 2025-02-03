@@ -37,12 +37,15 @@
         (placeholder '(smtp-expn-response-users-list response) "Return the list of users from the EXPN response")
         (placeholder '(smtp-starttls connection cert-file key-file) "Send a STARTTLS command to the server. The cert-file and key-file are optional.")
         (placeholder '(smtp-data connection content) "Send a DATA command to the server for transmitting the content. The content should be a string and not contain the SMTP data terminating sequence.")
+        (placeholder '(smtp-quit connection) "Send a QUIT command to the server")
         (placeholder '(smtp-error? response) "Returns true if the response represents an error of some kind. This does not include error responses from the server but rather errors in the client-server communication.")
         (placeholder '(smtp-response-code response) "Return the response code from the server")
         (placeholder '(smtp-response-message response) "Return the response message from the server")
         (placeholder '(smtp-extensions connection ehlo-response) "Return a list of extensions of the server, either from the connection or the ehlo response. The list can contain plain strings and tuples for extensions with parameters.") ; This is already an interesting case, as the extensions may be derived from only a response or may be a property of the connection object
         (placeholder '(smtp-extension-not-supported-error? response) "Did the command fail due to an unsupported extension?")
-        (placeholder '(smtp-authenticate connection method credentials) "Run authentication and return the result (in case of an exception return exception object or a stand-in for the exception)")
+        (placeholder '(smtp-authenticate-initial-response connection method credentials initial-response) "Run authentication and return the result (in case of an exception return exception object or a stand-in for the exception). The method is a string and the credentials are a list of strings. The initial-response is a Boolean value and denotes whether an initial response should be send.")
+        (define (smtp-authenticate connection method credentials)
+            (smtp-authenticate-initial-response connection method credentials #f))
         (placeholder '(smtp-auth-successful? "Was the authentication successful?"))
         ; The following two are also interesting as this is an advanced feature that might be moved to a dedicated capability, but then it shares the same situation as the other unsuccessful auth tests
         (placeholder '(smtp-auth-credentials-error? "Did the authentication fail due to wrong credentials?")) 
@@ -163,6 +166,7 @@
                                 ((= command "VRFY") (vrfy args))
                                 ((= command "DATA") (data-command args))
                                 ((= command "STARTTLS") (starttls args))
+                                ((= command "QUIT") (quit))
                                 (else (error "Command not found")))))))
                 (define (loop) (let 
                     ((request-string (socket-receive connection)))
@@ -183,6 +187,8 @@
                         (socket-write connection "250 2.1.0 OK\r\n")))
                 (define (vrfy args)
                     (socket-write connection "250\r\n"))
+                (define (quit) 
+                    (socket-write connection "221 Bye\r\n"))
                 (define (data-command args)
                     (begin 
                         (socket-write connection "354 End data with <CR><LF>.<CR><LF>\r\n")
@@ -203,12 +209,12 @@
                         (socket-write connection "235 2.7.0 Authentication successful\r\n"))
                     (let 
                         ((method (string-upcase (car args)))
-                         (credentials (if (> (length args) 1) (second args) "")))
+                         (initial-response (if (> (length args) 1) (second args) "")))
                         (if (and 
                                 (member method '("PLAIN" "LOGIN" "XOAUTH2" "CRAM-MD5")) ; Check whether we support auth method at all
                                 (member method (server-auth-methods server))) ; Check whether auth method is listed
                             ((server-auth-proc server) 
-                                credentials 
+                                initial-response 
                                 connection
                                 write-auth-success-response 
                                 write-auth-failure-response)
@@ -1265,9 +1271,15 @@
                 (capability 'plain-auth (list 
 
                     (define (plain-auth-proc credentials connection success failure)
-                        (if (= credentials "AGFjY291bnQAcGFzc3dvcmQ=")
-                            (success)
-                            (failure)))
+                        (let 
+                            ((credentials (if (not (= credentials ""))
+                                credentials
+                                (begin 
+                                    (socket-write connection "334 \r\n")
+                                    (string-trim (socket-receive connection))))))
+                            (if (= credentials "AGFjY291bnQAcGFzc3dvcmQ=")
+                                (success)
+                                (failure))))
 
                     (setup (lambda () 
                         (server-set-auth-proc! server plain-auth-proc)))
@@ -1296,8 +1308,21 @@
                             (assert (not (smtp-auth-successful? auth-result)))
                             (assert (smtp-auth-not-supported-error? auth-result))))))
 
+                    (capability 'initial-response (list
+
+                        (test "plain auth with initial response" (lambda () (begin
+                            (server-set-auths! server '((PLAIN ("account" "password"))))
+                            (connect-and-ehlo-smtp-server)
+                            (let 
+                                ((auth-result 
+                                    (smtp-authenticate-initial-response smtp-connection 'PLAIN '("account" "password") #t)))
+                                (assert (smtp-auth-successful? auth-result))))))
+
                     ))
 
+                ))
+
+                ; TODO: Implement initial response false and true tests
                 (capability 'xoauth2 (list 
 
                     (define (xoauth2-auth-proc credentials connection success failure)
@@ -1337,12 +1362,15 @@
                 (capability 'cram-md5 (list 
 
                     (define (cram-md5-auth-proc credentials connection success failure)
-                        (socket-write connection "334 PDEyMzQ1Njc4OTAuMTIzNDVAc2VydmVybmFtZT4=\r\n")
-                        (let 
-                            ((cram-md5-response (string-trim (socket-receive connection))))
-                            (if (= cram-md5-response "YWNjb3VudCAyYzBjMTgxZjkxOGU2ZGM5Mjg3Zjk3N2E1ODhiMzg1YQ==")
-                                (success)
-                                (failure))))
+                        (if (= credentials "")
+                            (begin
+                                (socket-write connection "334 PDEyMzQ1Njc4OTAuMTIzNDVAc2VydmVybmFtZT4=\r\n")
+                                (let 
+                                    ((cram-md5-response (string-trim (socket-receive connection))))
+                                    (if (= cram-md5-response "YWNjb3VudCAyYzBjMTgxZjkxOGU2ZGM5Mjg3Zjk3N2E1ODhiMzg1YQ==")
+                                        (success)
+                                        (failure))))
+                            (failure)))
 
                     (setup (lambda () 
                         (server-set-auth-proc! server cram-md5-auth-proc)))
@@ -1371,6 +1399,18 @@
                             (assert (not (smtp-auth-successful? auth-result)))
                             (assert (smtp-auth-not-supported-error? auth-result))))))
 
+                    (capability 'initial-response (list
+
+                        (test "cram-md5 initial response not supported and should be ignored" (lambda () (begin
+                            ; Test would fail, as mock auth procedure fails when inital response is provided
+                            (server-set-auths! server '((CRAM-MD5 ("account" "password"))))
+                            (connect-and-ehlo-smtp-server)
+                            (let 
+                                ((auth-result 
+                                    (smtp-authenticate-initial-response smtp-connection 'CRAM-MD5 '("account" "password") #t)))
+                                (assert (smtp-auth-successful? auth-result))))))
+
+                    ))
                 ))
 
 
@@ -1418,10 +1458,58 @@
                             (assert (not (smtp-auth-successful? auth-result)))
                             (assert (smtp-auth-not-supported-error? auth-result))))))
 
+                    (capability 'initial-response (list
+
+                        (test "login initial response" (lambda () (begin
+                            (server-set-auths! server '((LOGIN ("account" "password"))))
+                            (connect-and-ehlo-smtp-server)
+                            (let 
+                                ((auth-result 
+                                    (smtp-authenticate-initial-response smtp-connection 'LOGIN '("account" "password") #t)))
+                                (assert (smtp-auth-successful? auth-result))))))
+
+                    ))
+
+                ))
+
+                (capability 'buggy-auths (list
+                
+                    (define (buggy-auth-proc credentials connection success failure)
+                        (define (looping-auth count)
+                            (if (> count 0)
+                                (begin
+                                    (socket-write connection "334 VXNlcm5hbWU6\r\n")
+                                    (looping-auth (- count 1))))
+                        (looping-auth 10)))
+
+                    (setup (lambda () 
+                        (server-set-auth-proc! server buggy-auth-proc)))
+
+                    (test "buggy auth with too many challenges" (lambda () (begin
+                        (server-set-auths! server '((BUGGY ("account" "password"))))
+                        (connect-and-ehlo-smtp-server)
+                        (let 
+                            ((auth-result 
+                                (smtp-authenticate smtp-connection 'BUGGY (list "account" "password"))))
+                            (assert (not (smtp-auth-successful? auth-result)))))))
+                
                 ))
 
             ))
 
+            (capability 'quit (list
+            
+                (test "quit resets list of extensions, if it is stored in the connection" (lambda ()
+                    (begin
+                        (server-set-extensions! server '("8BITMIME"))
+                        (connect-smtp-server)
+                        (smtp-ehlo smtp-connection "")
+                        (smtp-quit smtp-connection)
+                        (assert-extensions smtp-connection '() '()))))
+
+            ))
+
         ))
+
     )
 )
