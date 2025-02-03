@@ -72,6 +72,10 @@ def smtp_connect(env, host, port):
     except Exception as e:
         return e
     
+@smtp_suite.placeholder("smtp-connected?")
+def smtp_connected(env, smtp: smtplib.SMTP):
+    return not smtp.sock is None
+    
 @smtp_suite.placeholder("smtp-quit")
 def smtp_quit(env, smtp: smtplib.SMTP):
     return smtp.quit()
@@ -115,11 +119,19 @@ def smtp_ehlo(env, smtp, content):
 
 @smtp_suite.placeholder("smtp-response-code")
 def smtp_response_code(env, smtp_response):
-    return smtp_response[0]
+    if isinstance(smtp_response, smtplib.SMTPResponseException):
+        return smtp_response.smtp_code
+    else:
+        return smtp_response[0]
 
 @smtp_suite.placeholder("smtp-response-message")
 def smtp_response_message(env, smtp_response):
-    return (smtp_response[1]).decode(encoding="ascii")
+    if isinstance(smtp_response, smtplib.SMTPResponseException):
+        return smtp_response.smtp_error
+    else:
+        return (smtp_response[1]).decode(encoding="ascii")
+    
+    
 
 @smtp_suite.placeholder("smtp-extensions")
 def smtp_capabilities(env, smtp: smtplib.SMTP, ehlo_response):
@@ -229,13 +241,15 @@ def smtp_send_message(env, smtp: smtplib.SMTP, message, sender, recipients, mess
     try:
         responses_dict = smtp.sendmail(sender, recipients, message, mail_options=message_options, rcpt_options=recipients_options)
     except smtplib.SMTPDataError as err:
-        return err
+        return [err]
     except smtplib.SMTPResponseException as err:
         return [(err.smtp_code, err.smtp_error)]
     except smtplib.SMTPNotSupportedError as err:
-        return err
+        return [err]
     except UnicodeEncodeError as err:
-        return err
+        return [err]
+    except smtplib.SMTPRecipientsRefused as err:
+        return list(err.recipients.values())
     return list(map(lambda r: responses_dict[r] if r in responses_dict else (250, ''), recipients))
      
 @smtp_suite.placeholder("smtp-error?")
@@ -263,5 +277,6 @@ smtp_suite.run(
             "test_CRLF_mitigation_in_RCPT_command_-_options",
             "test_CRLF_detection_in_VRFY_command",
             "test_CRLF_mitigation_in_HELP_command",
-            "test_CRLF_detection_in_EXPN_command"))
+            "test_CRLF_detection_in_EXPN_command",
+            "test_Handle_421_during_data_command"))
 #smtp_suite.run(only_capabilities=("root.commands.starttls"))# ("test_starttls","test_starttls_without_server_support","test_After_starttls_extensions_need_to_be_refetched",))
