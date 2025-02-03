@@ -22,6 +22,8 @@
         (placeholder '(smtp-secure-connect host port ca-file) "Should connect to an SMTP server via a secure connection (SSL/TLS) and return some representation of the connection.")
         (placeholder '(smtp-secure-connect-with-timeout host port ca-file timeout) "Same as smtp-secure-connect but the connection should be aborted if the handshake does not complete within the timeout.")
         (placeholder '(smtp-disconnect connection) "Should close the connection")
+        (placeholder '(smtp-connected? connection) "Should return true if the connection is still open")
+
         (placeholder '(smtp-send-message-with-options connection message-content from to-list message-options to-list-options) "Send a message to the server. The message-options and the to-list-options are optional. The to-list-options is a list of option tuple lists, one for each receiver. The function should return a list corresponding to the responses from the server for each recipient in the to-list. If there is only a single response, a list with a single response should be returned.")
         (define (smtp-send-message connection content from to-list)
             (smtp-send-message-with-options connection content from to-list  '() '()))
@@ -57,7 +59,7 @@
         (define (server-port server) (socket-port (list-ref server 2)))
         (define (server-stopped? server) (list-ref server 3))
         (define (server-extensions server) (list-ref server 4))
-        (define (server-response-code server) (list-ref server 5))
+        (define (server-response-codes server) (list-ref server 5))
         (define (server-auths server) (list-ref server 6))
         (define (server-requests server) (list-ref server 7))
         (define (server-tls? server) (list-ref server 8))
@@ -71,8 +73,8 @@
             (list-set! server 2 new-socket))
         (define (server-set-extensions! server new-extensions) 
             (list-set! server 4 new-extensions))
-        (define (server-set-response-code! server new-code) 
-            (list-set! server 5 new-code))
+        (define (server-set-response-codes! server new-codes) 
+            (list-set! server 5 new-codes))
         (define (server-set-auths! server new-auths) 
             (list-set! server 6 new-auths))
         (define (server-set-requests! server new-requests) 
@@ -103,11 +105,22 @@
             (map 
                 car
                 (server-auths server)))
-        (define (server-has-response-code? server) (not (= (server-response-code server) "0")))
+        (define (server-set-response-code! server new-code) 
+            (server-set-response-codes! server (list new-code)))
+        (define (server-has-response-code? server)
+            (not (empty? (server-response-codes server))))
+        (define (server-next-response-code server) 
+            (let 
+                ((response-codes (server-response-codes server)))
+                (if (empty? response-codes)
+                    (raise (error "No response codes available"))
+                    (begin
+                        (server-set-response-codes! server (cdr response-codes))
+                        (car response-codes)))))
         (define (let-server-complete-handler)
             (thread-sleep! 0.1))
         
-        (define (create-server tls-enabled) (list 'server '() '() #f '() "0" '() '() tls-enabled #f (lambda (credentials connection success failure) '()) ""))
+        (define (create-server tls-enabled) (list 'server '() '() #f '() '() '() '() tls-enabled #f (lambda (credentials connection success failure) '()) ""))
         (define (server-stop server) (list-set! server 3 #t))
         (define (server-start server)
             (let 
@@ -147,6 +160,10 @@
                 (define (close-sockets) (begin 
                     (socket-close connection)
                     (socket-close (server-socket server))))
+                (define (write-prepared-response-code-else alternative-branch) 
+                    (if (server-has-response-code? server) 
+                        (socket-write connection (string-append (server-next-response-code server) "\r\n")) 
+                        (alternative-branch)))
                 (define (handle request-string) (begin
                     ; Log the request
                     (server-set-requests! 
@@ -156,18 +173,19 @@
                     (let
                         ((command (string-upcase (request-command request-string)))
                          (args (request-arguments request-string)))
-                        (if (server-has-response-code? server)
-                            (socket-write connection (string-append (server-response-code server) "\r\n"))
-                            (cond 
-                                ((= command "EHLO") (ehlo (car args)))
-                                ((= command "AUTH") (auth args))
-                                ((= command "MAIL") (mail args))
-                                ((= command "RCPT") (rcpt args))
-                                ((= command "VRFY") (vrfy args))
-                                ((= command "DATA") (data-command args))
-                                ((= command "STARTTLS") (starttls args))
-                                ((= command "QUIT") (quit))
-                                (else (error "Command not found")))))))
+                        (write-prepared-response-code-else
+                            (lambda ()
+                                (cond 
+                                    ((= command "EHLO") (ehlo (car args)))
+                                    ((= command "AUTH") (auth args))
+                                    ((= command "MAIL") (mail args))
+                                    ((= command "RCPT") (rcpt args))
+                                    ((= command "VRFY") (vrfy args))
+                                    ((= command "DATA") (data-command args))
+                                    ((= command "STARTTLS") (starttls args))
+                                    ((= command "QUIT") (quit))
+                                    ((= command "RSET") (rset))
+                                    (else (error "Command not found"))))))))
                 (define (loop) (let 
                     ((request-string (socket-receive connection)))
                     (if (empty? request-string)
@@ -189,13 +207,17 @@
                     (socket-write connection "250\r\n"))
                 (define (quit) 
                     (socket-write connection "221 Bye\r\n"))
+                (define (rset)
+                    (socket-write connection "250 2.0.0 OK\r\n"))
                 (define (data-command args)
-                    (begin 
-                        (socket-write connection "354 End data with <CR><LF>.<CR><LF>\r\n")
-                        (let 
-                            ((message-data (socket-receive connection))) 
-                            (server-set-message-data! server message-data)
-                            (socket-write connection "250 2.0.0 OK\r\n"))))
+                    (write-prepared-response-code-else
+                        (lambda ()
+                            (socket-write connection "354 End data with <CR><LF>.<CR><LF>\r\n")))
+                    (let 
+                        ((message-data (socket-receive connection))) 
+                        (server-set-message-data! server message-data)
+                        (write-prepared-response-code-else (lambda () 
+                            (socket-write connection "250 2.0.0 OK\r\n")))))
                 (define (starttls args)
                     (socket-write connection "220 Ready to start TLS\r\n")
                     (let 
@@ -322,7 +344,7 @@
                 (set! server (start-mock-server)))))
 
             (test "Connect to server" (lambda () (begin 
-                (smtp-connect "localhost" (server-port server)))))
+                (assert (smtp-connected? (smtp-connect "localhost" (server-port server)))))))
 
             (test "Connect with non-numeric port is an error" (lambda () (begin
                 (assert (smtp-error? (smtp-connect "localhost" "not-a-port")))
@@ -609,6 +631,11 @@
                             (server-requests-with-command server "MAIL"))
                         (string-append "Expected client to send empty sender: " (server-requests-with-command server "MAIL"))))))
 
+            ; TODO
+            ;(test "Send message with a valid and an invalid recipient" (lambda () 
+            ;    (let
+            ;       ((response (smtp-send-message smtp-connection "message content" ""))))))
+
             (data-test "Failures during send message" 
                 '(("400 BUSY" 400)
                 ("502 SYNTAX ERROR" 502)
@@ -619,8 +646,41 @@
                     (server-set-response-code! server response)
                     (let
                         ((response 
-                            (smtp-send-message smtp-connection "message content" "sender@sender.to" '("user@recipient.to"))))
+                            (smtp-send-message smtp-connection "failure content" "sender@sender.to" '("user@recipient.to"))))
                         (assert-response-codes response response-code)))))
+
+            (capability 'handle-421 (list
+                ; As send-message handles multiple commands and responses, it also needs to deal with responses that
+                ; indicate that the connection has been terminated.
+                (test "Handle 421 during mail command" (lambda ()
+                    (server-set-response-code! server "421 Service not available")
+                    (let
+                        ((response (smtp-send-message smtp-connection "message content" "sender@sender.to" '("user@recipient.to"))))
+                        (assert-response-codes response 421)
+                        (assert (not (smtp-connected? smtp-connection)) "421 should have lead to client terminating connection."))))
+
+                (test "Handle 421 during rcpt command" (lambda ()
+                    (server-set-response-codes! server '("250 " "421 Service not available"))
+                    (let
+                        ((response (smtp-send-message smtp-connection "message content" "sender@sender.to" '("user@recipient.to"))))
+                        (assert-response-codes response 421)
+                        (assert (not (smtp-connected? smtp-connection)) "421 should have lead to client terminating connection."))))
+
+                (test "Handle 421 during data command" (lambda ()
+                    (server-set-response-codes! server '("250 " "250 " "421 Service not available"))
+                    (let
+                        ((response (smtp-send-message smtp-connection "message content" "sender@sender.to" '("user@recipient.to"))))
+                        (assert-response-codes response 421)
+                        (assert (not (smtp-connected? smtp-connection)) "421 should have lead to client terminating connection."))))
+
+                (test "Handle 421 at the end of data command" (lambda ()
+                    (server-set-response-codes! server '("250 " "250 " "354 " "421 Service not available"))
+                    (let
+                        ((response (smtp-send-message smtp-connection "message content" "sender@sender.to" '("user@recipient.to"))))
+                        (assert-response-codes response 421)
+                        (assert (not (smtp-connected? smtp-connection)) "421 should have lead to client terminating connection."))))
+
+            ))
 
         ))
 
@@ -732,66 +792,66 @@
                     (test "international recipient mailbox in send-message without SMTPUTF8 support" (lambda () (begin
                         (smtp-ehlo smtp-connection "")
                         (let
-                            ((send-message-response (smtp-send-message-with-options 
+                            ((send-message-responses (smtp-send-message-with-options 
                                 smtp-connection "message content" "sender@sender.com" '("χρήστης@παράδειγμα.ελ") '("SMTPUTF8") '())))
-                            (assert (smtp-error? send-message-response))))))
+                            (assert (all? smtp-error? send-message-responses))))))
 
                     (test "international recipient mailbox in send-message without SMTPUTF8 support and no option" (lambda () (begin
                         (smtp-ehlo smtp-connection "")
                         (let
-                            ((send-message-response (smtp-send-message-with-options 
+                            ((send-message-responses (smtp-send-message-with-options 
                                 smtp-connection "message content" "sender@sender.com" '("χρήστης@παράδειγμα.ελ") '() '())))
-                            (assert (smtp-error? send-message-response))))))
+                            (assert (all? smtp-error? send-message-responses))))))
 
                     (test "international recipient mailbox in send-message with SMTPUTF8 support" (lambda () (begin
                         (activate-smtputf8 server)
                         (smtp-ehlo smtp-connection "")
                         (let
-                            ((send-message-response (smtp-send-message-with-options 
+                            ((send-message-responses (smtp-send-message-with-options 
                                 smtp-connection "message content" "sender@sender.com" '("χρήστης@παράδειγμα.ελ") '("SMTPUTF8") '())))
-                            (assert-response-codes send-message-response 250)
+                            (assert-response-codes send-message-responses 250)
                             (assert-any-request server "MAIL FROM:<sender@sender.com> SMTPUTF8")))))
 
                     (test "international recipient mailbox in send-message with SMTPUTF8 support but no option" (lambda () (begin
                         (activate-smtputf8 server)
                         (smtp-ehlo smtp-connection "")
                         (let
-                            ((send-message-response (smtp-send-message-with-options 
+                            ((send-message-responses (smtp-send-message-with-options 
                                 smtp-connection "message content" "sender@sender.com" '("χρήστης@παράδειγμα.ελ") '() '())))
-                            (assert (smtp-error? send-message-response))))))
+                            (assert (all? smtp-error? send-message-responses))))))
 
                     ; Sender
 
                     (test "international sender mailbox in send-message without SMTPUTF8 support" (lambda () (begin
                         (smtp-ehlo smtp-connection "")
                         (let
-                            ((send-message-response (smtp-send-message-with-options 
+                            ((send-message-responses (smtp-send-message-with-options 
                                 smtp-connection "message content" "χρήστης@παράδειγμα.ελ" '("recipient@server.com") '("SMTPUTF8") '())))
-                            (assert (smtp-error? send-message-response))))))
+                            (assert (all? smtp-error? send-message-responses))))))
 
                     (test "international sender mailbox in send-message without SMTPUTF8 support and no option" (lambda () (begin
                         (smtp-ehlo smtp-connection "")
                         (let
-                            ((send-message-response (smtp-send-message-with-options 
+                            ((send-message-responses (smtp-send-message-with-options 
                                 smtp-connection "message content" "χρήστης@παράδειγμα.ελ" '("recipient@server.com") '() '())))
-                            (assert (smtp-error? send-message-response))))))
+                            (assert (all? smtp-error? send-message-responses))))))
 
                     (test "international sender mailbox in send-message with SMTPUTF8 support" (lambda () (begin
                         (activate-smtputf8 server)
                         (smtp-ehlo smtp-connection "")
                         (let
-                            ((send-message-response (smtp-send-message-with-options 
+                            ((send-message-responses (smtp-send-message-with-options 
                                 smtp-connection "message content" "χρήστης@παράδειγμα.ελ" '("recipient@server.com") '("SMTPUTF8") '())))
-                            (assert-response-codes send-message-response 250)
+                            (assert-response-codes send-message-responses 250)
                             (assert-any-request server "MAIL FROM:<χρήστης@παράδειγμα.ελ> SMTPUTF8")))))
 
                     (test "international sender mailbox in send-message with SMTPUTF8 support but no option" (lambda () (begin
                         (activate-smtputf8 server)
                         (smtp-ehlo smtp-connection "")
                         (let
-                            ((send-message-response (smtp-send-message-with-options 
+                            ((send-message-responses (smtp-send-message-with-options 
                                 smtp-connection "message content" "χρήστης@παράδειγμα.ελ" '("recipient@server.com") '() '())))
-                            (assert (smtp-error? send-message-response))))))
+                            (assert (all? smtp-error? send-message-responses))))))
                 ))
 
                 (capability 'automatic-smtputf8-detection (list
@@ -801,17 +861,17 @@
                     (test "international recipient mailbox in send-message without SMTPUTF8 support" (lambda () (begin
                         (smtp-ehlo smtp-connection "")
                         (let
-                            ((send-message-response (smtp-send-message 
+                            ((send-message-responses (smtp-send-message 
                                 smtp-connection "message content" "sender@sender.com" '("χρήστης@παράδειγμα.ελ"))))
-                            (assert (smtp-error? send-message-response))))))  
+                            (assert (all? smtp-error? send-message-responses))))))  
 
                     (test "international recipient mailbox in send-message with SMTPUTF8 support" (lambda () (begin
                         (activate-smtputf8 server)
                         (smtp-ehlo smtp-connection "")
                         (let
-                            ((send-message-response (smtp-send-message 
+                            ((send-message-responses (smtp-send-message 
                                 smtp-connection "message content" "sender@sender.com" '("χρήστης@παράδειγμα.ελ"))))
-                            (assert-response-codes send-message-response 250)
+                            (assert-response-codes send-message-responses 250)
                             (assert-any-request server "MAIL FROM:<sender@sender.com> SMTPUTF8")))))
 
                     ; Sender
@@ -819,17 +879,17 @@
                     (test "international sender mailbox in send-message without SMTPUTF8 support" (lambda () (begin
                         (smtp-ehlo smtp-connection "")
                         (let
-                            ((send-message-response (smtp-send-message 
+                            ((send-message-responses (smtp-send-message 
                                 smtp-connection "message content" "χρήστης@παράδειγμα.ελ" '("recipient@server.com"))))
-                            (assert (smtp-error? send-message-response))))))
+                            (assert (all? smtp-error? send-message-responses))))))
 
                     (test "international sender mailbox in send-message with SMTPUTF8 support" (lambda () (begin
                         (activate-smtputf8 server)
                         (smtp-ehlo smtp-connection "")
                         (let
-                            ((send-message-response (smtp-send-message 
+                            ((send-message-responses (smtp-send-message 
                                 smtp-connection "message content" "χρήστης@παράδειγμα.ελ" '("recipient@server.com"))))
-                            (assert-response-codes send-message-response 250)
+                            (assert-response-codes send-message-responses 250)
                             (assert-any-request server "MAIL FROM:<χρήστης@παράδειγμα.ελ> SMTPUTF8")))))
                 ))
 
