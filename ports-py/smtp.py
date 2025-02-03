@@ -50,7 +50,7 @@ def socket_port(env, socket):
     return socket.getsockname()[1]
 
 @smtp_suite.placeholder("socket-receive")
-def socket_read(env, socket):
+def socket_read(env, socket : socketlib.socket):
     "Read from the socket"
     assert socket.fileno() != -1, "Tried to read from an already closed socket"
     result = socket.recv(4096).decode(encoding="utf-8")
@@ -71,6 +71,10 @@ def smtp_connect(env, host, port):
         return smtplib.SMTP(host, port)
     except Exception as e:
         return e
+    
+@smtp_suite.placeholder("smtp-quit")
+def smtp_quit(env, smtp: smtplib.SMTP):
+    return smtp.quit()
 
 @smtp_suite.placeholder("smtp-connect-with-auto-starttls")
 def smtp_connect_with_auto_starttls(env, host, port, automatic_mode):
@@ -118,21 +122,15 @@ def smtp_response_message(env, smtp_response):
     return (smtp_response[1]).decode(encoding="ascii")
 
 @smtp_suite.placeholder("smtp-extensions")
-def smtp_capabilities(env, smtp, ehlo_response):
-    capabilities = []
-    for capability_string in map(str.strip, smtp_response_message(env, ehlo_response).split("\n")[1:]):
-        if " " in capability_string:
-            capabilities.append(capability_string.split(" "))
-        else:
-            capabilities.append(capability_string)
-    return capabilities
+def smtp_capabilities(env, smtp: smtplib.SMTP, ehlo_response):
+    return smtp.esmtp_features.keys()
 
-@smtp_suite.placeholder("smtp-authenticate")
-def smtp_authenticate(env, smtp, method, credentials):
+@smtp_suite.placeholder("smtp-authenticate-initial-response")
+def smtp_authenticate(env, smtp : smtplib.SMTP, method, credentials, initial_response):
     result = False
     if method in ("PLAIN", "XOAUTH2", "CRAM-MD5", "LOGIN"):
         try:
-            smtp.login(*credentials)
+            smtp.login(*credentials, initial_response_ok=initial_response)
             result = True
         except Exception as err:
             result = err
