@@ -5,6 +5,22 @@ import smtplib
 
 smtp_suite = ports.suite("suites/smtp.ports")
 
+
+#
+# Suite Lifecycle
+#
+
+@smtp_suite.tearDown()
+def tear_down(env):
+    for socket in sockets:
+        socket.close()
+    sockets.clear()
+
+
+#
+# Sockets
+#
+
 sockets = []
 
 @smtp_suite.placeholder("create-socket")
@@ -64,6 +80,11 @@ def socket_write(env, socket: socketlib.socket, content):
 @smtp_suite.placeholder("socket-close")
 def socket_close(env, socket):
     socket.close()
+    
+
+#
+# SMTP connection
+#
 
 @smtp_suite.placeholder("smtp-connect")
 def smtp_connect(env, host, port):
@@ -72,14 +93,6 @@ def smtp_connect(env, host, port):
     except Exception as e:
         return e
     
-@smtp_suite.placeholder("smtp-connected?")
-def smtp_connected(env, smtp: smtplib.SMTP):
-    return not smtp.sock is None
-    
-@smtp_suite.placeholder("smtp-quit")
-def smtp_quit(env, smtp: smtplib.SMTP):
-    return smtp.quit()
-
 @smtp_suite.placeholder("smtp-connect-with-auto-starttls")
 def smtp_connect_with_auto_starttls(env, host, port, automatic_mode):
     pass
@@ -109,6 +122,15 @@ def smtp_secure_connect_with_timeout(env, host, port, cafile, timeout=None):
 @smtp_suite.placeholder("smtp-disconnect")
 def smtp_disconnect(env, smtp):
     smtp.close()
+    
+@smtp_suite.placeholder("smtp-connected?")
+def smtp_connected(env, smtp: smtplib.SMTP):
+    return not smtp.sock is None
+
+
+#
+# Commands
+#
 
 @smtp_suite.placeholder("smtp-ehlo")
 def smtp_ehlo(env, smtp, content):
@@ -116,54 +138,14 @@ def smtp_ehlo(env, smtp, content):
         return smtp.ehlo(content)
     except ValueError as e:
         return e
-
-@smtp_suite.placeholder("smtp-response-code")
-def smtp_response_code(env, smtp_response):
-    if isinstance(smtp_response, smtplib.SMTPResponseException):
-        return smtp_response.smtp_code
-    else:
-        return smtp_response[0]
-
-@smtp_suite.placeholder("smtp-response-message")
-def smtp_response_message(env, smtp_response):
-    if isinstance(smtp_response, smtplib.SMTPResponseException):
-        return smtp_response.smtp_error
-    else:
-        return (smtp_response[1]).decode(encoding="ascii")
     
+@smtp_suite.placeholder("smtp-data")
+def smtp_data(env, smtp: smtplib.SMTP, content):
+    try:
+        return smtp.data(content)
+    except smtplib.SMTPDataError as err:
+        return err
     
-
-@smtp_suite.placeholder("smtp-extensions")
-def smtp_capabilities(env, smtp: smtplib.SMTP, ehlo_response):
-    return smtp.esmtp_features.keys()
-
-@smtp_suite.placeholder("smtp-authenticate-initial-response")
-def smtp_authenticate(env, smtp : smtplib.SMTP, method, credentials, initial_response):
-    result = False
-    if method in ("PLAIN", "XOAUTH2", "CRAM-MD5", "LOGIN"):
-        try:
-            smtp.login(*credentials, initial_response_ok=initial_response)
-            result = True
-        except Exception as err:
-            result = err
-    return result
-
-@smtp_suite.placeholder("smtp-auth-successful?")
-def smtp_auth_successful(env, result):
-    return result == True
-
-@smtp_suite.placeholder("smtp-auth-credentials-error?")
-def smtp_auth_credentials_error(env, result):
-    return type(result) == smtplib.SMTPAuthenticationError
-
-@smtp_suite.placeholder("smtp-auth-not-supported-error?")
-def smtp_auth_not_supported_error(env, result):
-    return type(result) == smtplib.SMTPNotSupportedError
-
-@smtp_suite.placeholder("smtp-extension-not-supported-error?")
-def smtp_extension_not_supported_error(env, result):
-    return type(result) == smtplib.SMTPNotSupportedError
-
 @smtp_suite.placeholder("smtp-mail-with-options")
 def smtp_mail(env, smtp, sender, options=()):
     try:
@@ -214,17 +196,10 @@ def smtp_expn(env, smtp : smtplib.SMTP, list_name):
         return smtp.expn(list_name)
     except Exception as e:
         return e
-
-@smtp_suite.placeholder("smtp-expn-response-users-list")
-def smtp_expn_response_users_list(env, expn_response):
-    return expn_response[1].decode("utf-8").split("\n")
-
-@smtp_suite.placeholder("smtp-data")
-def smtp_data(env, smtp: smtplib.SMTP, content):
-    try:
-        return smtp.data(content)
-    except smtplib.SMTPDataError as err:
-        return err
+    
+@smtp_suite.placeholder("smtp-quit")
+def smtp_quit(env, smtp: smtplib.SMTP):
+    return smtp.quit()
     
 @smtp_suite.placeholder("smtp-starttls")
 def smtp_starttls(env, smtp, certfile=None, keyfile=None):
@@ -235,6 +210,11 @@ def smtp_starttls(env, smtp, certfile=None, keyfile=None):
             return smtp.starttls()
         except smtplib.SMTPNotSupportedError as err:
             return err
+
+
+#
+# Send Message
+#
 
 @smtp_suite.placeholder("smtp-send-message-with-options")
 def smtp_send_message(env, smtp: smtplib.SMTP, message, sender, recipients, message_options, recipients_options):
@@ -252,17 +232,74 @@ def smtp_send_message(env, smtp: smtplib.SMTP, message, sender, recipients, mess
         return list(err.recipients.values())
     return list(map(lambda r: responses_dict[r] if r in responses_dict else (250, ''), recipients))
      
+    
+#
+# Response Accessors
+# 
+    
+@smtp_suite.placeholder("smtp-response-code")
+def smtp_response_code(env, smtp_response):
+    if isinstance(smtp_response, smtplib.SMTPResponseException):
+        return smtp_response.smtp_code
+    else:
+        return smtp_response[0]
+
+@smtp_suite.placeholder("smtp-response-message")
+def smtp_response_message(env, smtp_response):
+    if isinstance(smtp_response, smtplib.SMTPResponseException):
+        return smtp_response.smtp_error
+    else:
+        return (smtp_response[1]).decode(encoding="ascii")
+    
+@smtp_suite.placeholder("smtp-extensions")
+def smtp_capabilities(env, smtp: smtplib.SMTP, ehlo_response):
+    return smtp.esmtp_features.keys()     
+
+@smtp_suite.placeholder("smtp-expn-response-users-list")
+def smtp_expn_response_users_list(env, expn_response):
+    return expn_response[1].decode("utf-8").split("\n")
+
+@smtp_suite.placeholder("smtp-extension-not-supported-error?")
+def smtp_extension_not_supported_error(env, result):
+    return type(result) == smtplib.SMTPNotSupportedError
+
 @smtp_suite.placeholder("smtp-error?")
 def smtp_error(env, result):
     return isinstance(result, Exception)
-     
-@smtp_suite.tearDown()
-def tear_down(env):
-    for socket in sockets:
-        socket.close()
-    sockets.clear()
 
-#smtp_suite.run(only=("test_international_mailbox_in_rcpt_with_SMTPUTF8_support",))
+
+#
+# Authentication
+#
+
+@smtp_suite.placeholder("smtp-authenticate-initial-response")
+def smtp_authenticate(env, smtp : smtplib.SMTP, method, credentials, initial_response):
+    result = False
+    if method in ("PLAIN", "XOAUTH2", "CRAM-MD5", "LOGIN"):
+        try:
+            smtp.login(*credentials, initial_response_ok=initial_response)
+            result = True
+        except Exception as err:
+            result = err
+    return result
+
+@smtp_suite.placeholder("smtp-auth-successful?")
+def smtp_auth_successful(env, result):
+    return result == True
+
+@smtp_suite.placeholder("smtp-auth-credentials-error?")
+def smtp_auth_credentials_error(env, result):
+    return type(result) == smtplib.SMTPAuthenticationError
+
+@smtp_suite.placeholder("smtp-auth-not-supported-error?")
+def smtp_auth_not_supported_error(env, result):
+    return type(result) == smtplib.SMTPNotSupportedError
+
+
+#
+# Running
+#
+
 smtp_suite.run(
         exclude_capabilities=(
             "root.commands.auth.xoauth2",
@@ -279,4 +316,7 @@ smtp_suite.run(
             "test_CRLF_mitigation_in_HELP_command",
             "test_CRLF_detection_in_EXPN_command",
             "test_Handle_421_during_data_command"))
+
+#smtp_suite.run(only=("test_international_mailbox_in_rcpt_with_SMTPUTF8_support",))
+
 #smtp_suite.run(only_capabilities=("root.commands.starttls"))# ("test_starttls","test_starttls_without_server_support","test_After_starttls_extensions_need_to_be_refetched",))
