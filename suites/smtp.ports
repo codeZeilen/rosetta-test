@@ -8,15 +8,16 @@
         '("SMTP RFC 4954" "IETF" "https://tools.ietf.org/html/rfc4954"))
     
     (list 
+        ; Socket
         (placeholder '(create-socket) "Create a local network socket for the server to communicate through (it should already listen for new connections)")
         (placeholder '(socket-receive socket) "Read trimmed data from socket")
         (placeholder '(socket-write socket data) "Write data to socket")
         (placeholder '(socket-port socket) "Return the port of the socket")
         (placeholder '(socket-accept socket) "Accept a new connection on the socket")
         (placeholder '(socket-close socket) "Close the socket")
-
         (placeholder '(secure-server-socket-wrap socket ca-file cert-file key-file close-underlying-socket) "Should wrap an existing connected server socket with a secure socket (TLS/SSL) with the given configuration. Then the procedure should wait for the handshake (accept) to complete.")
 
+        ; SMTP connection
         (placeholder '(smtp-connect host port) "Should connect and return some representation of the connection.")
         (placeholder '(smtp-connect-with-auto-starttls host port starttls-mode) "Should connect and set the automatic starttls mode (which can be 'automatic (send starttls if available, otherwise do not), 'required (connect and send starttls, fail if server does not support it), 'never (do not automatically send starttls)). In case the connection results in an error (e.g. starttls mode is 'required but server does not support starttls), the error should be returned.")
         (placeholder '(smtp-secure-connect host port ca-file) "Should connect to an SMTP server via a secure connection (SSL/TLS) and return some representation of the connection.")
@@ -24,27 +25,34 @@
         (placeholder '(smtp-disconnect connection) "Should close the connection")
         (placeholder '(smtp-connected? connection) "Should return true if the connection is still open")
 
-        (placeholder '(smtp-send-message-with-options connection message-content from to-list message-options to-list-options) "Send a message to the server. The message-options and the to-list-options are optional. The to-list-options is a list of option tuple lists, one for each receiver. The function should return a list corresponding to the responses from the server for each recipient in the to-list. If there is only a single response, a list with a single response should be returned.")
-        (define (smtp-send-message connection content from to-list)
-            (smtp-send-message-with-options connection content from to-list  '() '()))
+        ; SMTP commands
         (placeholder '(smtp-ehlo connection content) "Send an EHLO command to the server")
         (placeholder '(smtp-mail-with-options connection from options) "Send a MAIL command to the server, supplying optional options (provided as a list of strings, that can be joined using compile-options-string if necessary).")
         (define (smtp-mail connection from) 
             (smtp-mail-with-options connection from '()))
         (placeholder '(smtp-rcpt connection to-list options-list) "Send a RCPT command to the server. The to parameter should be a list of recipients. The function should return a list of responses from the server. Whether the RCPT commands are send by multiple invocations or a single one can be decided by the placeholder. The options list contains lists of options, one list of options per receipient. The list of options contains tuples with the option name as the first element, and the option value as the second. Clients may use the functions compile-options-strings, compile-options-string, and compile-option-string to compile the options list into key-value-strings that can be sent to the server.")
+        (placeholder '(smtp-data connection content) "Send a DATA command to the server for transmitting the content. The content should be a string and not contain the SMTP data terminating sequence.")
         (placeholder '(smtp-rset connection) "Send a RST command to the server")
         (placeholder '(smtp-vrfy connection content) "Send a VRFY command to the server with content being the string to verify")
         (placeholder '(smtp-help connection content) "Send a HELP command to the server with content being the string to get help for.")
         (placeholder '(smtp-expn connection content) "Send an EXPN command to the server with content being the list to expand. The response is an object that can be inspected with smtp-response-code and smtp-expn-response-users-list.")
-        (placeholder '(smtp-expn-response-users-list response) "Return the list of users from the EXPN response")
         (placeholder '(smtp-starttls connection cert-file key-file) "Send a STARTTLS command to the server. The cert-file and key-file are optional.")
-        (placeholder '(smtp-data connection content) "Send a DATA command to the server for transmitting the content. The content should be a string and not contain the SMTP data terminating sequence.")
         (placeholder '(smtp-quit connection) "Send a QUIT command to the server")
-        (placeholder '(smtp-error? response) "Returns true if the response represents an error of some kind. This does not include error responses from the server but rather errors in the client-server communication.")
+        
+        ; Send Message
+        (placeholder '(smtp-send-message-with-options connection message-content from to-list message-options to-list-options) "Send a message to the server. The message-options and the to-list-options are optional. The to-list-options is a list of option tuple lists, one for each receiver. The function should return a list corresponding to the responses from the server for each recipient in the to-list. If there is only a single response, a list with a single response should be returned.")
+        (define (smtp-send-message connection content from to-list)
+            (smtp-send-message-with-options connection content from to-list  '() '()))
+        
+        ; Response accessors
         (placeholder '(smtp-response-code response) "Return the response code from the server")
         (placeholder '(smtp-response-message response) "Return the response message from the server")
+        (placeholder '(smtp-error? response) "Returns true if the response represents an error of some kind. This does not include error responses from the server but rather errors in the client-server communication.")
         (placeholder '(smtp-extensions connection ehlo-response) "Return a list of extensions of the server, either from the connection or the ehlo response. The list can contain plain strings and tuples for extensions with parameters.") ; This is already an interesting case, as the extensions may be derived from only a response or may be a property of the connection object
         (placeholder '(smtp-extension-not-supported-error? response) "Did the command fail due to an unsupported extension?")
+        (placeholder '(smtp-expn-response-users-list response) "Return the list of users from the EXPN response")
+
+        ; Authentication
         (placeholder '(smtp-authenticate-initial-response connection method credentials initial-response) "Run authentication and return the result (in case of an exception return exception object or a stand-in for the exception). The method is a string and the credentials are a list of strings. The initial-response is a Boolean value and denotes whether an initial response should be send.")
         (define (smtp-authenticate connection method credentials)
             (smtp-authenticate-initial-response connection method credentials #f))
