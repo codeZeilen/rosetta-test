@@ -15,6 +15,8 @@ def tear_down(env):
     for socket in sockets:
         socket.close()
     sockets.clear()
+    if "activated_8_bit_mime" in env:
+        del env["activated_8_bit_mime"]
 
 
 #
@@ -141,13 +143,18 @@ def smtp_ehlo(env, smtp, content):
     
 @smtp_suite.placeholder("smtp-data")
 def smtp_data(env, smtp: smtplib.SMTP, content):
+    if "activated_8_bit_mime" in env:
+        message_content = content.encode("utf-8")
+    else: 
+        message_content = content
     try:
-        return smtp.data(content)
+        return smtp.data(message_content)
     except smtplib.SMTPDataError as err:
         return err
     
 @smtp_suite.placeholder("smtp-mail-with-options")
 def smtp_mail(env, smtp, sender, options=()):
+    env["activated_8_bit_mime"] = True
     try:
         return smtp.mail(sender, options=options)
     except ValueError as err:
