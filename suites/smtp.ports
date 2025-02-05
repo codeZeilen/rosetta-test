@@ -711,11 +711,16 @@
 
             (capability 'manual-commands (list
 
-                ; 8BITMIME support by server
-                ; mail option send or not?
-                ; data includes non-ascii or not?
-
-
+                (test "full 8BITMIME scenario" (lambda () 
+                    (activate-8bitmime server)
+                    (smtp-ehlo smtp-connection "")
+                    (let ((mail-response (smtp-mail-with-options smtp-connection "sender@sender.com" '("BODY=8BITMIME"))))
+                        (assert-any-request server "MAIL FROM:<sender@sender.com> BODY=8BITMIME")
+                        (assert-response-code mail-response 250)
+                        (smtp-rcpt smtp-connection '("recipient@recipient.com") '())
+                        (let 
+                            ((data-response (smtp-data smtp-connection "¡a test message containing unicode!")))
+                            (assert-response-code mail-response 250)))))
 
             ))
 
