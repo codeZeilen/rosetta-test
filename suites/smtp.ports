@@ -692,6 +692,95 @@
 
         ))
 
+        (capability '8bitmime (list
+        
+            (define smtp-connection '())
+            (define (connect-smtp-server)
+                (set! smtp-connection (smtp-connect "localhost" (server-port server))))
+
+            (setup (lambda () (begin 
+                (set! server (start-mock-server))
+                (connect-smtp-server))))
+
+            (tearDown (lambda () (begin 
+                (smtp-disconnect smtp-connection)
+                (set! smtp-connection '()))))
+
+            (define (activate-8bitmime server) 
+                (server-set-extensions! server '("8BITMIME")))
+
+            (capability 'manual-commands (list
+
+                ; 8BITMIME support by server
+                ; mail option send or not?
+                ; data includes non-ascii or not?
+
+
+
+            ))
+
+            (capability 'send-message (list
+    
+                (capability 'mandatory-options (list
+
+                    ; 6152 - Section 3, end of section 
+                    (test "non-ascii content in send-message without 8BITMIME support" (lambda () (begin
+                        (smtp-ehlo smtp-connection "")
+                        (let
+                            ((send-message-responses (smtp-send-message-with-options 
+                                smtp-connection "¡a test message containing unicode!" "sender@sender.com" '("user@recipient.com") '("BODY=8BITMIME") '())))
+                            (assert (all? smtp-error? send-message-responses) "Client should not support sending 8BITMIME body when server does not support it")))))
+
+                    (test "non-ascii content in send-message without 8BITMIME support and no option" (lambda () (begin
+                        (smtp-ehlo smtp-connection "")
+                        (let
+                            ((send-message-responses (smtp-send-message-with-options 
+                                smtp-connection "¡a test message containing unicode!" "sender@sender.com" '("user@recipient.com") '() '())))
+                            (assert (all? smtp-error? send-message-responses))))))
+
+                    (test "non-ascii content in send-message with 8BITMIME support and option" (lambda () (begin
+                        (activate-8bitmime server)
+                        (smtp-ehlo smtp-connection "")
+                        (let
+                            ((send-message-responses (smtp-send-message-with-options 
+                                smtp-connection "¡a test message containing unicode!" "sender@sender.com" '("user@recipient.com") '("BODY=8BITMIME") '())))
+                            (assert-response-codes send-message-responses 250)
+                            (assert-any-request server "MAIL FROM:<sender@sender.com> BODY=8BITMIME")))))
+
+                    (test "non-ascii content in send-message with 8BITMIME support and no option" (lambda () (begin
+                        (activate-8bitmime server)
+                        (smtp-ehlo smtp-connection "")
+                        (let
+                            ((send-message-responses (smtp-send-message-with-options 
+                                smtp-connection "¡a test message containing unicode!" "sender@sender.com" '("user@recipient.com") '() '())))
+                            (assert (all? smtp-error? send-message-responses))))))
+                
+                ))
+
+                (capability 'automatic-8bitmime-detection (list
+
+                    (test "non-ascii content in send-message without 8BITMIME support" (lambda () (begin
+                        (smtp-ehlo smtp-connection "")
+                        (let
+                            ((send-message-responses (smtp-send-message-with-options 
+                                smtp-connection "¡a test message containing unicode!" "sender@sender.com" '("user@recipient.com") '() '())))
+                            (assert (all? smtp-error? send-message-responses))))))
+
+                    (test "non-ascii content in send-message with 8BITMIME support" (lambda () (begin
+                        (activate-8bitmime server)
+                        (smtp-ehlo smtp-connection "")
+                        (let
+                            ((send-message-responses (smtp-send-message-with-options 
+                                smtp-connection "¡a test message containing unicode!" "sender@sender.com" '("user@recipient.com") '() '())))
+                            (assert-response-codes send-message-responses 250)
+                            (assert-any-request server "MAIL FROM:<sender@sender.com> BODY=8BITMIME")))))
+                
+                ))
+
+            ))
+
+        ))
+
         (capability 'smtputf8 (list
         
             (define smtp-connection '())
@@ -706,7 +795,9 @@
                 (smtp-disconnect smtp-connection)
                 (set! smtp-connection '()))))
 
-            ; RFC 6531 3.1 - Item 8
+            ; RFC 6531 3.1 - Item 8 
+            ; 8BITMIME is required, as we would normally expect international mailboxes to also
+            ; appear in the message headers, thus the DATA content
             (define (activate-smtputf8 server) 
                 (server-set-extensions! server '("SMTPUTF8" "8BITMIME")))
 
@@ -759,13 +850,13 @@
                             (assert-response-code mail-response 250)
                             (assert-last-request server "MAIL FROM:<χρήστης@παράδειγμα.ελ> SMTPUTF8")))))    
 
-                    (test "international mailbox in mail with SMTPUTF8 support and explicit option" (lambda () (begin
+                    (test "international mailbox in mail with SMTPUTF8 support and an unrelated option" (lambda () (begin
                         (activate-smtputf8 server)
                         (smtp-ehlo smtp-connection "")
                         (let
-                            ((mail-response (smtp-mail-with-options smtp-connection "χρήστης@παράδειγμα.ελ" '("8BITMIME"))))
+                            ((mail-response (smtp-mail-with-options smtp-connection "χρήστης@παράδειγμα.ελ" '("RET=FULL"))))
                             (assert-response-code mail-response 250)
-                            (assert-last-request server "MAIL FROM:<χρήστης@παράδειγμα.ελ> 8BITMIME SMTPUTF8")))))
+                            (assert-last-request server "MAIL FROM:<χρήστης@παράδειγμα.ελ> RET=FULL SMTPUTF8")))))
                 ))
             ))
 
@@ -792,7 +883,11 @@
             ))
 
             (capability 'send-message (list
-            
+                ; The following tests do not include the BODY=8BITMIME options, as send-message 
+                ; sends the provided message body as-is. In particular, it does not generate 
+                ; message headers. Thereby the international characters do not reach the mail body
+                ; and no 8BITMIME option is required.
+
                 (capability 'mandatory-options (list
 
                     ; Recipient
