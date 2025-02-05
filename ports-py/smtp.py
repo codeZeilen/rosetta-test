@@ -218,7 +218,16 @@ def smtp_starttls(env, smtp, certfile=None, keyfile=None):
 
 @smtp_suite.placeholder("smtp-send-message-with-options")
 def smtp_send_message(env, smtp: smtplib.SMTP, message, sender, recipients, message_options, recipients_options):
+    # try:
+    #     # sendmail expects a ascii-only str or a bytes object, so we have to take
+    #     # care of converting the incoming str
+    #     try:
+    #         message_content = message.encode("ascii")
+    #     except UnicodeEncodeError:
+    #         message_content = message.encode("utf-8")
     try:
+        if "BODY=8BITMIME" in message_options:
+            message = message.encode("utf-8")
         responses_dict = smtp.sendmail(sender, recipients, message, mail_options=message_options, rcpt_options=recipients_options)
     except smtplib.SMTPDataError as err:
         return [err]
@@ -304,6 +313,7 @@ smtp_suite.run(
         exclude_capabilities=(
             "root.commands.auth.xoauth2",
             "root.commands.automatic-starttls",
+            "root.8bitmime.send-message.automatic-8bitmime-detection",
             "root.smtputf8.mail.automatic-smtputf8-detection",
             "root.smtputf8.send-message.automatic-smtputf8-detection",
             "root.crlf-injection-detection.commands.detection.mail",
@@ -315,7 +325,9 @@ smtp_suite.run(
             "test_CRLF_detection_in_VRFY_command",
             "test_CRLF_mitigation_in_HELP_command",
             "test_CRLF_detection_in_EXPN_command",
-            "test_Handle_421_during_data_command"))
+            "test_Handle_421_during_data_command",
+            # There is no check whether the server supports 8BITMIME
+            "test_non-ascii_content_in_send-message_without_8BITMIME_support"))
 
 #smtp_suite.run(only=("test_international_mailbox_in_rcpt_with_SMTPUTF8_support",))
 
