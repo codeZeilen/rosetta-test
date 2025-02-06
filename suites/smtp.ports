@@ -463,12 +463,13 @@
                                     (lambda () (first (smtp-rcpt smtp-connection (list recipient-string) '())))
                                     (string-append "Expected client to fail when CR or LF is in RCPT command: " recipient-string)))))
 
-                        (data-test "CRLF detection in RCPT command - options"
-                            '((("X-OPTION\r\nX-INJECTED-1" "X-OPTION2\r\nX-INJECTED-2")) (("X-OPTION\nX-INJECTED-1" "X-OPTION2\nX-INJECTED-2")) (("X-OPTION\rX-INJECTED-1" "X-OPTION2\rX-INJECTED-2"))) 
-                            (lambda (options-list) (begin 
-                                (assert-crlf-injection-error 
-                                    (lambda () (first (smtp-rcpt smtp-connection (list "foo@bar.com") (list options-list))))
-                                    (string-append "Expected client to fail when CR or LF is in RCPT option argument: " options-list)))))))
+                    (data-test "CRLF detection in RCPT command - options"
+                        '((("X-OPTION\r\nX-INJECTED-1" "X-OPTION2\r\nX-INJECTED-2")) (("X-OPTION\nX-INJECTED-1" "X-OPTION2\nX-INJECTED-2")) (("X-OPTION\rX-INJECTED-1" "X-OPTION2\rX-INJECTED-2"))) 
+                        (lambda (options-list) (begin 
+                            (assert-crlf-injection-error 
+                                (lambda () (first (smtp-rcpt smtp-connection (list "foo@bar.com") (list options-list))))
+                                (string-append "Expected client to fail when CR or LF is in RCPT option argument: " options-list)))))))
+
                 
                 ))
 
@@ -535,14 +536,14 @@
                                     "RCPT"
                                     (string-append "Expected client to remove CR or LF or both from RCPT command: " recipient-string)))))
 
-                        (data-test "CRLF mitigation in RCPT command - options"
-                            '((("X-OPTION\r\nX-INJECTED-1" "X-OPTION2\r\nX-INJECTED-2") "\r\n") (("X-OPTION\nX-INJECTED-1" "X-OPTION2\nX-INJECTED-2") "\n") (("X-OPTION\rX-INJECTED-1" "X-OPTION2\rX-INJECTED-2") "\r")) 
-                            (lambda (options-list injection) (begin
-                                (assert-crlf-injection-mitigation
-                                    (lambda () (first (smtp-rcpt smtp-connection (list "foo@bar.com") (list options-list))))
-                                    injection
-                                    "RCPT"
-                                    (string-append "Expected client to remove CR or LF or both from RCPT options argument: " options-list)))))))          
+                    (data-test "CRLF mitigation in RCPT command - options"
+                        '((("X-OPTION\r\nX-INJECTED-1" "X-OPTION2\r\nX-INJECTED-2") "\r\n") (("X-OPTION\nX-INJECTED-1" "X-OPTION2\nX-INJECTED-2") "\n") (("X-OPTION\rX-INJECTED-1" "X-OPTION2\rX-INJECTED-2") "\r")) 
+                        (lambda (options-list injection) (begin
+                            (assert-crlf-injection-mitigation
+                                (lambda () (first (smtp-rcpt smtp-connection (list "foo@bar.com") (list options-list))))
+                                injection
+                                "RCPT"
+                                (string-append "Expected client to remove CR or LF or both from RCPT options argument: " options-list)))))))          
                 
                 ))
             
@@ -1109,9 +1110,6 @@
                     (let
                         ((expn-response (smtp-expn smtp-connection "Executive-Washroom-List")))
                         (assert-response-code expn-response 550))))
-
-
-                ; TODO CRLF injection tests for expn/help
                 ))
 
 
