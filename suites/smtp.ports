@@ -548,7 +548,6 @@
             
             ))
 
-            ; TODO: Tests for CRLF in options
             (capability 'send-message (list
 
                 (capability 'detection (list
