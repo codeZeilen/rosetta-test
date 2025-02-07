@@ -648,8 +648,7 @@
                 '(("400 BUSY" 400)
                 ("502 SYNTAX ERROR" 502)
                 ("530 AUTH ERROR" 530)
-                ("520 FATAL ERROR" 520)
-                ("300 UNKNOWN" 300) )
+                ("520 FATAL ERROR" 520))
                 (lambda (response response-code) (begin 
                     (server-set-response-code! server response)
                     (let
