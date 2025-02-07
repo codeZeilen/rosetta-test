@@ -415,7 +415,7 @@ PortsScheme >> topEnvironment [
 				#raise -> [:args | args first signalerContext ifNil: [args first signal] ifNotNil: [args first pass]].
 				#error -> [:args | Error new messageText: args first; yourself].
 				#'is-placeholder?' -> [:args | self isPlaceholderP: args].
-				#'list?' -> [:args | args first isCollection].
+				#'list?' -> [:args | args first isCollection and: [args first isString not]].
 				#'string-upcase' -> [:args | args first asUppercase].
 				#'string-trim' -> [:args | args first withBlanksTrimmed].
 				#'string-split' -> [:args | args first findTokens: args second].
