@@ -11,14 +11,45 @@ Class {
 		'placeholders',
 		'allTests'
 	],
+	#classVars : [
+		'CacheTimestamp'
+	],
+	#classInstVars : [
+		'CachedTestNames',
+		'CacheTimestamp'
+	],
 	#category : #'PortsS-Core'
 }
+
+{ #category : #accessing }
+PortsSuite class >> allTestSelectors [
+
+	^ self testSelectors
+]
 
 { #category : #testing }
 PortsSuite class >> isAbstract [
 
 	^self name = #PortsSuite
 			
+]
+
+{ #category : #testing }
+PortsSuite class >> isTestClass [
+	^ true
+]
+
+{ #category : #accessing }
+PortsSuite class >> testSelectors [
+
+	| tempInstance |
+	tempInstance := self new.
+	CacheTimestamp ifNil: [CacheTimestamp := DateAndTime now].
+	(DateAndTime now - CacheTimestamp) > 2 seconds ifTrue: [
+		CacheTimestamp := DateAndTime now.
+		CachedTestNames := (tempInstance allTests collect: [:test |
+			(tempInstance testNameOf: test) asSymbol])].
+	^ CachedTestNames
 ]
 
 { #category : #running }
