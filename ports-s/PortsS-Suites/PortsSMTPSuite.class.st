@@ -22,7 +22,20 @@ PortsSMTPSuite >> createSocket: env [
 { #category : #'test selection' }
 PortsSMTPSuite >> excludeCapabilities [
 
-	^ #('root.commands.auth.xoauth2' 'root.commands.auth.cram-md5' 'root.commands.auth.plain-auth' 'root.commands.rset' 'root.smtputf8')
+	^ #(
+		"not implemented"
+		'root.commands.auth.xoauth2' 
+		'root.commands.auth.cram-md5' 
+		'root.commands.auth.plain-auth' 
+		'root.commands.rset' 
+		'root.commands.help' 
+		'root.commands.expn'
+		'root.commands.vrfy'
+		'root.smtputf8'
+		
+		"SqueakSSL does not work"
+		'root.commands.starttls'
+		'root.commands.automatic-starttls')
 ]
 
 { #category : #'test selection' }
@@ -133,7 +146,7 @@ PortsSMTPSuite >> smtpExtensionNotSupportedError: smtpResponse env: env [
 
 	<portsPlaceholderName: 'smtp-extension-not-supported-error?'>
 	
-	self shouldBeImplemented.
+	^ smtpResponse isKindOf: ProtocolClientError
 ]
 
 { #category : #'suite definition' }
@@ -157,7 +170,12 @@ PortsSMTPSuite >> smtpMail: smtp from: fromAddress mailOptions: options env: env
 
 	<portsPlaceholderName: 'smtp-mail-with-options'>
 	
-	[smtp mailFrom: fromAddress]
+	| optionStrings |
+	optionStrings := options 
+		collect: [:option | ((env at: 'compile-option-string') value: {option}) -> '']
+		as: Dictionary.
+	
+	[smtp mailFrom: fromAddress options: optionStrings]
 		on: SMTPValueError
 		do: [:e | ^ e]
 		on: TelnetProtocolError
