@@ -123,7 +123,8 @@ PortsSuite >> installPlaceholders [
 	placeholders do: [:placeholder | 
 		self portsEnvironment 
 			at: placeholder placeholderName asSymbol
-			put: placeholder]
+			put: placeholder.
+		placeholder env: self portsEnvironment]
 ]
 
 { #category : #'private-ports' }
@@ -148,8 +149,7 @@ PortsSuite >> newPortsEnvironment [
 			newThread resume.
 			newThread];
 		at: #'thread-wait-for-completion' put: [:args | args first terminate];
-		at: #'thread-sleep!' put: [:args | args first seconds wait].
-		
+		at: #'thread-sleep!' put: [:args | Processor yield. args first seconds wait].
 	
 	^ newEnvironment
 ]
