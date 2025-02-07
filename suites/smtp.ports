@@ -1214,6 +1214,13 @@
                         ((mail-response (smtp-mail smtp-connection "invalid")))
                         (assert-response-code mail-response 500))))
 
+                (test "mail with an option" (lambda () 
+                    (let
+                        ((mail-response (smtp-mail-with-options smtp-connection "sender@sender.com" '("SIZE=1234"))))
+                        (assert-response-code mail-response 250)
+                        (assert-last-request server "MAIL FROM:<sender@sender.com> SIZE=1234"))))
+                
+
                 ))
 
             (capability 'data (list
