@@ -218,14 +218,18 @@
                 (define (rset)
                     (socket-write connection "250 2.0.0 OK\r\n"))
                 (define (data-command args)
+                    (define (receive-all-data)
+                        (let 
+                            ((message-data (socket-receive connection))) 
+                            (server-set-message-data! server (string-append (server-message-data server) message-data))
+                            (if (not (string-suffix? "\r\n.\r\n" message-data))
+                                (receive-all-data))))
                     (write-prepared-response-code-else
                         (lambda ()
                             (socket-write connection "354 End data with <CR><LF>.<CR><LF>\r\n")))
-                    (let 
-                        ((message-data (socket-receive connection))) 
-                        (server-set-message-data! server message-data)
-                        (write-prepared-response-code-else (lambda () 
-                            (socket-write connection "250 2.0.0 OK\r\n")))))
+                    (receive-all-data)
+                    (write-prepared-response-code-else (lambda () 
+                        (socket-write connection "250 2.0.0 OK\r\n"))))
                 (define (starttls args)
                     (socket-write connection "220 Ready to start TLS\r\n")
                     (let 

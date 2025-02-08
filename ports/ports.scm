@@ -33,6 +33,12 @@
                 (reverse-help (cdr lst) (cons (car lst) res))))
         (reverse-help lst '()))
 
+    (define (string-reverse str)
+        (define (reverse-help str res)
+            (if (empty? str) res
+                (reverse-help (cdr str) (string-append (car str) res))))
+        (reverse-help str ""))
+
     (define (filter pred lst)
         (define (filter-help pred lst res)
             (if (null? lst) 
@@ -96,6 +102,12 @@
                 (lambda (acc x) (string-append acc delimiter x))
                 (car str-list) 
                 (cdr str-list)))))
+
+    (define (string-suffix? suffix string)
+        (string-prefix? (string-reverse suffix) (string-reverse string)))
+
+    (define (string-suffix-ci? suffix string)
+        (string-prefix-ci? (string-reverse suffix) (string-reverse string)))
 
     (define (string-prefix? prefix string)
         (if (empty? prefix)
