@@ -222,7 +222,7 @@
                         (let 
                             ((message-data (socket-receive connection))) 
                             (server-set-message-data! server (string-append (server-message-data server) message-data))
-                            (if (not (string-suffix? "\r\n.\r\n" message-data))
+                            (if (not (or (string-suffix? "\r\n.\r\n" message-data) (= ".\r\n" message-data)))
                                 (receive-all-data))))
                     (write-prepared-response-code-else
                         (lambda ()
