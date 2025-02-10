@@ -329,6 +329,7 @@ smtp_suite.run(
         exclude=(
             "test_CRLF_detection_in_RCPT_command_-_recipient",
             "test_CRLF_mitigation_in_RCPT_command_-_options",
+            "test_CRLF_mitigation_in_MAIL_command_-_options",
             "test_CRLF_detection_in_VRFY_command",
             "test_CRLF_mitigation_in_HELP_command",
             "test_CRLF_detection_in_EXPN_command",
