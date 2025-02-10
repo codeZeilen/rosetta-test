@@ -440,7 +440,7 @@
                             (lambda (address-string) (begin 
                                 (assert-crlf-injection-error 
                                     (lambda () (smtp-vrfy smtp-connection address-string))
-                                    (string-append "Expected client to fail when CR or LF is in EHLO hostname argument: " address-string)))))))
+                                    (string-append "Expected client to fail when CR or LF is in VRFY message argument: " address-string)))))))
 
                     (capability 'expn (list
                         (data-test "CRLF detection in EXPN command"
@@ -457,7 +457,16 @@
                             (lambda (sender-string) (begin 
                                 (assert-crlf-injection-error 
                                     (lambda () (smtp-mail smtp-connection sender-string))
-                                    (string-append "Expected client to fail when CR or LF is in MAIL command: " sender-string)))))))
+                                    (string-append "Expected client to fail when CR or LF is in MAIL command: " sender-string)))))
+                                    
+                                    
+                        (data-test "CRLF detection in MAIL command - options"
+                            '((("X-OPTION\r\nX-INJECTED-1" "X-OPTION2\r\nX-INJECTED-2")) (("X-OPTION\nX-INJECTED-1" "X-OPTION2\nX-INJECTED-2")) (("X-OPTION\rX-INJECTED-1" "X-OPTION2\rX-INJECTED-2"))) 
+                            (lambda (options-list) (begin 
+                                (assert-crlf-injection-error 
+                                    (lambda () (smtp-mail-with-options smtp-connection "foo@bar.com" options-list))
+                                    (string-append "Expected client to fail when CR or LF is in MAIL option argument: " options-list)))))))
+
 
                     (capability 'rcpt (list
                         (data-test "CRLF detection in RCPT command - recipient"
@@ -467,12 +476,12 @@
                                     (lambda () (first (smtp-rcpt smtp-connection (list recipient-string) '())))
                                     (string-append "Expected client to fail when CR or LF is in RCPT command: " recipient-string)))))
 
-                    (data-test "CRLF detection in RCPT command - options"
-                        '((("X-OPTION\r\nX-INJECTED-1" "X-OPTION2\r\nX-INJECTED-2")) (("X-OPTION\nX-INJECTED-1" "X-OPTION2\nX-INJECTED-2")) (("X-OPTION\rX-INJECTED-1" "X-OPTION2\rX-INJECTED-2"))) 
-                        (lambda (options-list) (begin 
-                            (assert-crlf-injection-error 
-                                (lambda () (first (smtp-rcpt smtp-connection (list "foo@bar.com") (list options-list))))
-                                (string-append "Expected client to fail when CR or LF is in RCPT option argument: " options-list)))))))
+                        (data-test "CRLF detection in RCPT command - options"
+                            '((("X-OPTION\r\nX-INJECTED-1" "X-OPTION2\r\nX-INJECTED-2")) (("X-OPTION\nX-INJECTED-1" "X-OPTION2\nX-INJECTED-2")) (("X-OPTION\rX-INJECTED-1" "X-OPTION2\rX-INJECTED-2"))) 
+                            (lambda (options-list) (begin 
+                                (assert-crlf-injection-error 
+                                    (lambda () (first (smtp-rcpt smtp-connection (list "foo@bar.com") (list options-list))))
+                                    (string-append "Expected client to fail when CR or LF is in RCPT option argument: " options-list)))))))
 
                 
                 ))
@@ -528,7 +537,16 @@
                                     (lambda () (smtp-mail smtp-connection sender-string))
                                     injection
                                     "MAIL"
-                                    (string-append "Expected client to remove CR or LF or both from MAIL command: " sender-string)))))))
+                                    (string-append "Expected client to remove CR or LF or both from MAIL command: " sender-string)))))
+
+                        (data-test "CRLF mitigation in MAIL command - options"
+                            '((("X-OPTION\r\nX-INJECTED-1" "X-OPTION2\r\nX-INJECTED-2") "\r\n") (("X-OPTION\nX-INJECTED-1" "X-OPTION2\nX-INJECTED-2") "\n") (("X-OPTION\rX-INJECTED-1" "X-OPTION2\rX-INJECTED-2") "\r")) 
+                            (lambda (options-list injection) (begin
+                                (assert-crlf-injection-mitigation
+                                    (lambda () (smtp-rcpt smtp-connection "foo@bar.com" options-list))
+                                    injection
+                                    "MAIL"
+                                    (string-append "Expected client to remove CR or LF or both from MAIL options argument: " options-list)))))))
 
                     (capability 'rcpt (list
                         (data-test "CRLF mitigation in RCPT command - recipient"
@@ -540,14 +558,14 @@
                                     "RCPT"
                                     (string-append "Expected client to remove CR or LF or both from RCPT command: " recipient-string)))))
 
-                    (data-test "CRLF mitigation in RCPT command - options"
-                        '((("X-OPTION\r\nX-INJECTED-1" "X-OPTION2\r\nX-INJECTED-2") "\r\n") (("X-OPTION\nX-INJECTED-1" "X-OPTION2\nX-INJECTED-2") "\n") (("X-OPTION\rX-INJECTED-1" "X-OPTION2\rX-INJECTED-2") "\r")) 
-                        (lambda (options-list injection) (begin
-                            (assert-crlf-injection-mitigation
-                                (lambda () (first (smtp-rcpt smtp-connection (list "foo@bar.com") (list options-list))))
-                                injection
-                                "RCPT"
-                                (string-append "Expected client to remove CR or LF or both from RCPT options argument: " options-list)))))))          
+                        (data-test "CRLF mitigation in RCPT command - options"
+                            '((("X-OPTION\r\nX-INJECTED-1" "X-OPTION2\r\nX-INJECTED-2") "\r\n") (("X-OPTION\nX-INJECTED-1" "X-OPTION2\nX-INJECTED-2") "\n") (("X-OPTION\rX-INJECTED-1" "X-OPTION2\rX-INJECTED-2") "\r")) 
+                            (lambda (options-list injection) (begin
+                                (assert-crlf-injection-mitigation
+                                    (lambda () (first (smtp-rcpt smtp-connection (list "foo@bar.com") (list options-list))))
+                                    injection
+                                    "RCPT"
+                                    (string-append "Expected client to remove CR or LF or both from RCPT options argument: " options-list)))))))
                 
                 ))
             
@@ -1178,9 +1196,9 @@
                 ; RFC 2821 - Section 3.5: https://datatracker.ietf.org/doc/html/rfc2821#section-3.5
                 (data-test "verify resulting in ambiguous user response" 
                     '(("553 User ambiguous" "User ambiguous")
-                      ("553- Ambiguous;  Possibilities are\r\n553-Joe Smith <jsmith@foo.com>\r\n553 Melvin Smith <dweep@foo.com>" 
+                      ("553-Ambiguous;  Possibilities are\r\n553-Joe Smith <jsmith@foo.com>\r\n553 Melvin Smith <dweep@foo.com>" 
                         "Ambiguous;  Possibilities are\nJoe Smith <jsmith@foo.com>\nMelvin Smith <dweep@foo.com>")
-                      ("553-Ambiguous;  Possibilities\r\n553- <jsmith@foo.com>\r\n553 <dweep@foo.com>" 
+                      ("553-Ambiguous;  Possibilities\r\n553-<jsmith@foo.com>\r\n553 <dweep@foo.com>" 
                         "Ambiguous;  Possibilities\n<jsmith@foo.com>\n<dweep@foo.com>"))
                     (lambda (response expected-message) (begin 
                         (server-set-response-code! server response)
