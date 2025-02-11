@@ -10,6 +10,7 @@ import re, sys, io
 from contextlib import redirect_stdout
 import threading
 from functools import reduce
+from fractions import Fraction
 
 class Symbol(str): pass
 
@@ -38,6 +39,10 @@ def parse(inport):
     # Backwards compatibility: given a str, convert it to an InPort
     if isinstance(inport, str): inport = InPort(io.StringIO(inport))
     return expand(read(inport), toplevel=True)
+
+def parseWithoutExpand(inport):
+    if isinstance(inport, str): inport = InPort(io.StringIO(inport))
+    return read(inport)
 
 eof_object = Symbol('#<eof-object>') # Note: uninterned; can't be read
 
@@ -90,10 +95,11 @@ def read(inport):
 
 quotes = {"'":_quote, "`":_quasiquote, ",":_unquote, ",@":_unquotesplicing}
 
-def atom(token):
+def atom(token: str):
     'Numbers become numbers; #t and #f are booleans; "..." string; otherwise Symbol.'
-    if token == '#t': return True
-    elif token == '#f': return False
+    lowerToken = token.lower()
+    if lowerToken == '#t' or lowerToken == '#true': return True
+    elif lowerToken == '#f' or lowerToken == '#false': return False
     elif token[0] == '"': 
         raw_string = token[1:-1]
         raw_string = raw_string.replace('\\n', '\n')
@@ -102,11 +108,9 @@ def atom(token):
         return raw_string
     try: return int(token)
     except ValueError:
-        try: return float(token)
+        try: return Fraction(token)
         except ValueError:
-            try: return complex(token.replace('i', 'j', 1))
-            except ValueError:
-                return Sym(token)
+            return Sym(token)
 
 def to_string(x):
     "Convert a Python object back into a Lisp-readable string."
@@ -115,7 +119,6 @@ def to_string(x):
     elif isa(x, Symbol): return x
     elif isa(x, str): return '"%s"' % x.replace('"',r'\"')
     elif isa(x, list): return '('+' '.join(list(map(to_string, x)))+')'
-    elif isa(x, complex): return str(x).replace('j', 'i')
     else: return str(x)
 
 def load(filename):
