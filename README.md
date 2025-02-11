@@ -32,3 +32,7 @@ Thus, if you want to execute a PorTS suite for your project, you need:
 
   1. A _PorTS interpreter_ for your language
   2. A _mapping_ that fills each placeholder with a function from the implementation. Often the mapping will not be 1:1, so you might need to write additional code to map the behavior to the expected behavior of the placeholder.
+
+
+## Acknowledgements
+- Syntax tests based on the corpus from [tree-sitter-scheme](https://github.com/6cdh/tree-sitter-scheme)
