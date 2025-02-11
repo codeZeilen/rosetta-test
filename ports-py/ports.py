@@ -109,7 +109,7 @@ class PortsSuite(object):
             "false": False,
             "thread": ports_thread,
             "thread-wait-for-completion": ports_thread_join,
-            "thread-sleep!": lambda x: time.sleep(x),
+            "thread-sleep!": lambda x: time.sleep(float(x)),
             "thread-yield": ports_thread_yield,
         })
 

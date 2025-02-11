@@ -111,7 +111,7 @@ def smtp_secure_connect_with_timeout(env, host, port, cafile, timeout=None):
     context.load_verify_locations(ports.fixture_path(cafile))
     if timeout:
         try:
-            result = smtplib.SMTP_SSL(host, port, context=context, timeout=timeout)
+            result = smtplib.SMTP_SSL(host, port, context=context, timeout=float(timeout))
         except TimeoutError as err:
             return err
     else:
