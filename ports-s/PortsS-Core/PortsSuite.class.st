@@ -9,7 +9,10 @@ Class {
 		'specName',
 		'sources',
 		'placeholders',
-		'allTests'
+		'allTests',
+		'placeholderFunctions',
+		'setupFunctions',
+		'teardownFunctions'
 	],
 	#classVars : [
 		'CacheTimestamp'
@@ -24,7 +27,7 @@ Class {
 { #category : #accessing }
 PortsSuite class >> allTestSelectors [
 
-	^ self testSelectors
+	^ [self testSelectors] on: Error do: [#()]
 ]
 
 { #category : #testing }
@@ -49,7 +52,7 @@ PortsSuite class >> testSelectors [
 		CacheTimestamp := DateAndTime now.
 		CachedTestNames := (tempInstance allTests collect: [:test |
 			(tempInstance testNameOf: test) asSymbol])].
-	^ CachedTestNames
+	^ CachedTestNames ifNil: [#()]
 ]
 
 { #category : #running }
@@ -75,6 +78,27 @@ PortsSuite >> capabilityIdentifierOf: aPortsTestObject [
 		schemeEval: '(capability-full-name (test-capability the-test))' 
 		with: (Dictionary newFrom: {
 			#'the-test' -> aPortsTestObject})) asSymbol.
+]
+
+{ #category : #'private-ports' }
+PortsSuite >> createPlaceholder: aConsCell [
+
+	| newPlaceholder |
+	newPlaceholder := PortsPlaceholder new
+		placeholderName: aConsCell first;
+		parameters: aConsCell second;
+		docString: aConsCell third;
+		env: self portsEnvironment.
+		
+	self portsEnvironment 
+		at: newPlaceholder placeholderName asSymbol
+		put: newPlaceholder.
+		
+	
+	newPlaceholder
+		function: (placeholderFunctions at: aConsCell first ifAbsent: nil).
+		
+	^ newPlaceholder
 ]
 
 { #category : #'test selection' }
@@ -118,13 +142,30 @@ PortsSuite >> fillPlaceholders [
 ]
 
 { #category : #running }
-PortsSuite >> installPlaceholders [
+PortsSuite >> gatherBridgeFunctions [
 
-	placeholders do: [:placeholder | 
-		self portsEnvironment 
-			at: placeholder placeholderName asSymbol
-			put: placeholder.
-		placeholder env: self portsEnvironment]
+	| placeholderMethods |
+	placeholderMethods := self class localMethods select: [:m | 
+			m pragmas anySatisfy: [:p | p keyword = #portsPlaceholderName:]]. 
+	placeholderMethods := placeholderMethods groupBy: [:m | 
+		m pragmas 
+			detect: [:p | p keyword = #portsPlaceholderName:]
+			ifFound: [:p | p argumentAt: 1]
+			ifNone: [self error]].
+	(placeholderMethods select: [:group | group size > 1]) keysAndValuesDo: [:placeholderName :methods | 
+		Notification signal: 'Duplicate placeholder method for: ' , placeholderName].
+		
+	placeholderFunctions := placeholderMethods collect: [:group | 
+		MessageSend 
+			receiver: self 
+			selector: group first selector].
+	
+]
+
+{ #category : #'private-ports' }
+PortsSuite >> isPlaceholderP: args [
+
+	^ args first isKindOf: PortsPlaceholder
 ]
 
 { #category : #'private-ports' }
@@ -134,6 +175,8 @@ PortsSuite >> newPortsEnvironment [
 	newEnvironment := PortsSchemeEnv new
 		parent: self scheme topEnvironment;
 		yourself.
+		
+	 self scheme evalString: self portsLibrarySource in: newEnvironment.
 
 	newEnvironment 
 		at: #assert put: [:args | 
@@ -142,14 +185,16 @@ PortsSuite >> newPortsEnvironment [
 				ifFalse: [self assert: args first]];
 		at: #'assert-equal' put: [:args | 
 			args size = 3
-				ifTrue: [self assert: args second equals: args first description: args third]
-				ifFalse: [self assert: args second equals: args first]];
+				ifTrue: [self assert: args first equals: args second description: args third]
+				ifFalse: [self assert: args first equals: args second]];
 		at: #thread put: [:args | | newThread |
 			newThread := [args first value: #()] newProcess.
 			newThread resume.
 			newThread];
 		at: #'thread-wait-for-completion' put: [:args | args first terminate];
-		at: #'thread-sleep!' put: [:args | Processor yield. args first seconds wait].
+		at: #'thread-sleep!' put: [:args | Processor yield. args first seconds wait];
+		at: #'create-placeholder' put: [:args | self createPlaceholder: args];
+		at: #'is-placeholder?' put: [:args | self isPlaceholderP: args].
 	
 	^ newEnvironment
 ]
@@ -185,7 +230,7 @@ PortsSuite >> portsEnvironment [
 { #category : #'private-ports' }
 PortsSuite >> portsLibrarySource [
 
-	^ (FileDirectory default / '..' / '..' / #ports) readOnlyFileNamed: 'ports.scm' do: [:portsFile |
+	^ (FileDirectory default / '..' / '..' / #ports / #ports) readOnlyFileNamed: 'ports.scm' do: [:portsFile |
 		portsFile contents]
 ]
 
@@ -251,16 +296,14 @@ PortsSuite >> schemeEval: schemeSource with: argumentDict [
 PortsSuite >> suite [
 	
 	 ^ rootCapability ifNil: [ | specData |
+		self gatherBridgeFunctions.
+		
 		specData := self schemeEval: self suiteSource.
 		specName := specData first.
 		version := specData second.
 		sources := specData third.
 		placeholders := specData fourth.
-		rootCapability := specData fifth.
-		
-		self 
-			fillPlaceholders;
-			installPlaceholders]
+		rootCapability := specData fifth.]
 ]
 
 { #category : #'suite definition' }
