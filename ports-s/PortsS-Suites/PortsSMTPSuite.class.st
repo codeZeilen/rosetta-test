@@ -30,8 +30,14 @@ PortsSMTPSuite >> excludeCapabilities [
 		'root.commands.rset' 
 		'root.commands.help' 
 		'root.commands.expn'
-		'root.commands.vrfy'
+		'root.crlf-injection-detection.commands.detection.expn'
 		'root.smtputf8'
+		'root.8bitmime.send-message.mandatory-options'
+	
+
+		"decided to detect"
+		'root.crlf-injection-detection.commands.mitigation'
+		'root.crlf-injection-detection.send-message.mitigation'
 		
 		"SqueakSSL does not work"
 		'root.commands.starttls'
@@ -41,17 +47,41 @@ PortsSMTPSuite >> excludeCapabilities [
 { #category : #'test selection' }
 PortsSMTPSuite >> excludeTests [
 
-	^ #('test_rcpt_with_options_-_DSN' 'test_other_auth_failures')
+	^ #('test_other_auth_failures'
+		'test_buggy_auth_with_too_many_challenges' "AUTH method not supported"
+		'test_Timeout_during_connect_to_server_with_TLS')
+]
+
+{ #category : #private }
+PortsSMTPSuite >> getResponse: smtp [
+
+	^ {smtp responseCode . smtp responseMessage}
 ]
 
 { #category : #'suite definition' }
-PortsSMTPSuite >> secureServerSocketWrap: socketStream ca: caFile cert: certFile key: keyFile control: controlUnderlyingSocket env: env [
+PortsSMTPSuite >> parseOptions: optionLists for: addresses [
+		
+	^ optionLists 
+		ifNotEmpty: [optionLists collect: [:optionList |
+			optionList
+				collect: [:option |
+					option isString 
+						ifTrue: [option -> '']
+						ifFalse: [option first -> option second]]
+				as: Dictionary]]
+		ifEmpty: [(1 to: addresses size) collect: [:i | Dictionary new]].
+
+	
+]
+
+{ #category : #'suite definition' }
+PortsSMTPSuite >> secureServerSocketWrap: socketStream ca: caFIlePath cert: certFilePath key: keyFilePath control: controlUnderlyingSocket env: env [
 
 	<portsPlaceholderName: 'secure-server-socket-wrap'>
 
 	| stream |
 	stream := SqueakSSL secureSocketStream on: socketStream socket.
-	stream sslConnectTo: nil.
+	stream sslAccept: SqueakSSL ensureSampleCertFile.
 	^ stream
 ]
 
@@ -85,17 +115,17 @@ PortsSMTPSuite >> smtpAuthSuccessful: authenticationResult env: env [
 ]
 
 { #category : #'suite definition' }
-PortsSMTPSuite >> smtpAuthenticate: smtp method: authMethod credentials: credentials env: env [
+PortsSMTPSuite >> smtpAuthenticate: smtp method: authMethod credentials: credentials useInitialResponse: aBoolean env: env [
 
-	<portsPlaceholderName: 'smtp-authenticate'>
+	<portsPlaceholderName: 'smtp-authenticate-initial-response'>
 	
-	authMethod = 'LOGIN' ifFalse: [self error]. "Only login will be tried by #login"
+	authMethod = 'LOGIN' ifFalse: [self error]. "Only login method will be tried by #login"
 	smtp user: credentials first.
 	smtp password: credentials second.
 	[smtp login]
 		on: TelnetProtocolError
 		do: [:e | ^ e].
-	^ smtp lastResponse
+	^ self getResponse: smtp
 ]
 
 { #category : #'suite definition' }
@@ -103,9 +133,19 @@ PortsSMTPSuite >> smtpConnect: host port: port env: env [
 
 	<portsPlaceholderName: 'smtp-connect'>
 
-	^ (SMTPClient openOnHost: (NetNameResolver addressForName: host) port: port)
+	[^ (SMTPClient openOnHost: (NetNameResolver addressForName: host) port: port)
 		useTLSIfAvailable: false;
-		yourself
+		yourself]
+			on: SocketPrimitiveFailed
+			do: [:ex | ^ ex]
+]
+
+{ #category : #'suite definition' }
+PortsSMTPSuite >> smtpConnected: smtpClient env: env [
+
+	<portsPlaceholderName: 'smtp-connected?'>
+
+	^ smtpClient isConnected
 ]
 
 { #category : #'suite definition' }
@@ -118,7 +158,7 @@ PortsSMTPSuite >> smtpData: smtp content: content env: env [
 		do: [:e | ^ e]
 		on: TelnetProtocolError
 		do: [:e | ^ e].
-	^ smtp lastResponse
+	^ self getResponse: smtp
 ]
 
 { #category : #'suite definition' }
@@ -137,8 +177,10 @@ PortsSMTPSuite >> smtpEhlo: smtp content: content env: env [
 	smtp localHostName: content.
 	[smtp initiateSession]
 		on: TelnetProtocolError
+		do: [:e | ^ e]
+		on: SMTPValueError
 		do: [:e | ^ e].
-	^ smtp lastResponse
+	^ self getResponse: smtp
 ]
 
 { #category : #'suite definition' }
@@ -162,7 +204,9 @@ PortsSMTPSuite >> smtpIsError: anObject env: env [
 
 	<portsPlaceholderName: 'smtp-error?'>
 	
-	^ (anObject isKindOf: TelnetProtocolError) or: [anObject isKindOf: SMTPValueError] 
+	^ (anObject isKindOf: TelnetProtocolError) 
+		or: [anObject isKindOf: SMTPValueError]
+		or: [anObject isKindOf: SocketPrimitiveFailed]
 ]
 
 { #category : #'suite definition' }
@@ -170,38 +214,34 @@ PortsSMTPSuite >> smtpMail: smtp from: fromAddress mailOptions: options env: env
 
 	<portsPlaceholderName: 'smtp-mail-with-options'>
 	
-	| optionStrings |
-	optionStrings := options 
-		collect: [:option | ((env at: 'compile-option-string') value: {option}) -> '']
-		as: Dictionary.
+	| optionsDict |
+	optionsDict := (self parseOptions: {options} for: {fromAddress}) first.
 	
-	[smtp mailFrom: fromAddress options: optionStrings]
+	[smtp mailFrom: fromAddress options: optionsDict]
 		on: SMTPValueError
 		do: [:e | ^ e]
 		on: TelnetProtocolError
 		do: [:e | ^ e].
-	^ smtp lastResponse
+	^ self getResponse: smtp
 ]
 
 { #category : #'suite definition' }
-PortsSMTPSuite >> smtpRcpt: smtp to: recipientAddresses options: optionTuples env: env [
+PortsSMTPSuite >> smtpRcpt: smtp to: recipientAddresses options: optionLists env: env [
 
 	<portsPlaceholderName: 'smtp-rcpt'>
 	| options |
 	
-	options := optionTuples 
-		ifNotEmpty: []
-		ifEmpty: [(1 to: recipientAddresses size) collect: [:i | {}]].
-
+	options := self parseOptions: optionLists for: recipientAddresses.
+	
 	^ recipientAddresses 
 		with: options 
 		collect: [:recipient :recipientOptions | | result |
-			[smtp recipient: recipient]
+			[smtp recipient: recipient options: recipientOptions]
 				on: SMTPValueError 
 				do: [:e | result := e]
 				on: TelnetProtocolError
 				do: [:e | result := e].
-			result ifNil: [result := smtp lastResponse].
+			result ifNil: [result := self getResponse: smtp].
 			result].
 ]
 
@@ -209,8 +249,9 @@ PortsSMTPSuite >> smtpRcpt: smtp to: recipientAddresses options: optionTuples en
 PortsSMTPSuite >> smtpResponseCode: smtpResponse env: env [
 
 	<portsPlaceholderName: 'smtp-response-code'>
-	smtpResponse isString ifTrue: [^ (smtpResponse first: 3) asInteger].
-	(smtpResponse isKindOf: TelnetProtocolError) ifTrue: [^ smtpResponse code].
+	smtpResponse isArray ifTrue: [^ smtpResponse first].
+	((smtpResponse isKindOf: TelnetProtocolError) or: [smtpResponse isKindOf: SMTPValueError]) ifTrue: [
+		^ smtpResponse code].
 	self error: 'Undefined case for smtpResponse object'
 ]
 
@@ -218,8 +259,8 @@ PortsSMTPSuite >> smtpResponseCode: smtpResponse env: env [
 PortsSMTPSuite >> smtpResponseMessage: smtpResponse env: env [
 
 	<portsPlaceholderName: 'smtp-response-message'>
-	smtpResponse isString ifTrue: [^ (smtpResponse allButFirst: 4) withBlanksTrimmed].
-	(smtpResponse isKindOf: TelnetProtocolError) ifTrue: [^ (smtpResponse response allButFirst: 4) withBlanksTrimmed].
+	smtpResponse isArray ifTrue: [^ smtpResponse second withUnixLineEndings].
+	(smtpResponse isKindOf: TelnetProtocolError) ifTrue: [^ smtpResponse protocolInstance responseMessage withUnixLineEndings].
 ]
 
 { #category : #'suite definition' }
@@ -236,8 +277,10 @@ PortsSMTPSuite >> smtpSendMessage: smtp content: content from: fromAddress to: r
 	<portsPlaceholderName: 'smtp-send-message-with-options'>
 	[smtp mailFrom: fromAddress to: recipientAddresses text: content]
 		on: TelnetProtocolError
+		do: [:e | ^ {e}]
+		on: SMTPValueError
 		do: [:e | ^ {e}].
-	^ {smtp lastResponse}
+	^ {self getResponse: smtp}
 ]
 
 { #category : #'suite definition' }
@@ -247,8 +290,23 @@ PortsSMTPSuite >> smtpStarttls: smtpClient env: env [
 	
 	[smtpClient starttls]
 		on: TelnetProtocolError
+		do: [:e | ^ e]
+		on: ProtocolClientError
 		do: [:e | ^ e].
-	^ smtpClient lastResponse
+	^ self getResponse: smtpClient
+]
+
+{ #category : #'suite definition' }
+PortsSMTPSuite >> smtpVrfy: smtp address: address env: env [
+
+	<portsPlaceholderName: 'smtp-vrfy'>
+
+	[smtp verify: address]
+		on: SMTPValueError
+		do: [:e | ^ e]
+		on: TelnetProtocolError
+		do: [:e | ^ e].
+	^ self getResponse: smtp
 ]
 
 { #category : #'suite definition' }
