@@ -36,3 +36,4 @@ Thus, if you want to execute a PorTS suite for your project, you need:
 
 ## Acknowledgements
 - Syntax tests based on the corpus from [tree-sitter-scheme](https://github.com/6cdh/tree-sitter-scheme)
+- JSON-RFC Suite tests are based on the [JSONTestSuite](https://github.com/nst/JSONTestSuite)

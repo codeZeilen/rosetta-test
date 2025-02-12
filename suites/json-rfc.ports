@@ -1,0 +1,55 @@
+(suite 
+	"JSON RFC" "0.1"
+    (sources 
+		'("JSONTestSuite" " Nicolas Seriot" "https://github.com/nst/JSONTestSuite")
+        '("RFC 8529" "IETF" "https://datatracker.ietf.org/doc/html/rfc8259"))
+ 
+    (list 
+        (placeholder '(parse json-string) "Parse the provide json-string. Return the object, a representation of a failed parse (null, empty list, empty string, false are all not suitable candidates, as they appear in the tests), or an error object.")
+        (placeholder '(list-json-test-files) "Return list of file names in suites/json-rfc-fixtures.")
+        (placeholder '(parse-success? parse-result) "Return a Boolean indicating, whether the parse-result represents a successful parse, or a failure/error.")
+        (placeholder '(file-contents file-name) "Return the contents of the fixture file with the given name.")
+        
+        (define (json-suite-tests prefix)
+            (let ((all-test-file-names (list-json-test-files)))
+                (let ((selected-test-file-names 
+                       (filter (lambda (test-file-name) (string-prefix? prefix test-file-name)) all-test-file-names)))
+                    (map 
+                        (lambda (test-file-name)
+                            (test test-file-name (lambda ()
+                                (let ((result (parse (file-contents test-file-name))))
+                                    (cond
+                                        ((string-prefix? "y" test-file-name)
+                                            (assert (parse-success? result) (string-append "Expected success on parsing '" (file-contents test-file-name) ", but got: " result)))
+                                        ((string-prefix? "n" test-file-name)
+                                            (assert (not (parse-success? result)) (string-append "Expected failure on parsing '" (file-contents test-file-name) ", but got: " result)))
+                                        (else 
+                                            (raise (error "unknown prefix"))))))))
+                        selected-test-file-names))))
+
+        ; Consider making this even more concise
+
+        (capability 'string (append 
+            (json-suite-tests "y_string_")
+            (json-suite-tests "n_string_")))
+
+        (capability 'number (append 
+            (json-suite-tests "y_number_")
+            (json-suite-tests "n_number_")))
+
+        (capability 'array (append 
+            (json-suite-tests "y_array_")
+            (json-suite-tests "n_array_")))
+
+        (capability 'object (append 
+            (json-suite-tests "y_object_")
+            (json-suite-tests "n_object_")))
+
+        (capability 'structure (append 
+            (json-suite-tests "y_structure_")
+            (json-suite-tests "n_structure_")))
+
+        (capability 'incomplete 
+            (json-suite-tests "n_incomplete_"))
+
+))
