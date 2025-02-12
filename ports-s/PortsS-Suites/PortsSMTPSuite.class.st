@@ -110,8 +110,7 @@ PortsSMTPSuite >> smtpAuthNotSupportedError: authenticationResult env: env [
 PortsSMTPSuite >> smtpAuthSuccessful: authenticationResult env: env [
 
 	<portsPlaceholderName: 'smtp-auth-successful?'>
-	
-	^ authenticationResult isString and: [(authenticationResult first: 3) asInteger = 235]
+	^ authenticationResult isArray and: [authenticationResult first = 235]
 ]
 
 { #category : #'suite definition' }
