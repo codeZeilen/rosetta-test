@@ -52,9 +52,6 @@ class Placeholder(PortsFunction):
         else:
             return None
 
-def create_placeholder(name, parameters, doc_string=""):
-    return Placeholder(name, parameters, doc_string)
-
 def ports_assert(value, msg=""):
     assert value, msg
     
@@ -84,9 +81,21 @@ class PortsSuite(object):
         self.initialize_ports_primitives()
         self.initialize_ports()
         with open(file_name, "r", encoding="utf-8") as file:
-            self.suite = self.eval(file.read())
+            self.suite_source = file.read()
         
-        self.suite_name, self.suite_version, self.sources, self.placeholders, self.root_capability = self.suite
+        self.suite_name = None
+        self.suite_version = None
+        self.sources = None
+        self.placeholders = None
+        self.root_capability = None
+        
+        self.placeholder_functions = {}
+        self.setUp_functions = []
+        self.tearDown_functions = []
+
+    def initialize_suite(self):
+        """Only called after the Python-side was set up and the suite is ready to run."""
+        self.suite_name, self.suite_version, self.sources, self.placeholders, self.root_capability = self.eval(self.suite_source)
 
     def eval(self, code, env=None):
         if not env:
@@ -98,10 +107,20 @@ class PortsSuite(object):
         for key, value in kwargs.items():
             env[lispy.Sym(key)] = value
         return self.eval(code, env)
+    
+    def create_placeholder(self, name, parameters, doc_string=""):
+        newPlaceholder = Placeholder(name, parameters, doc_string)
+        self.lispy_env[name] = newPlaceholder
+        newPlaceholder.env = self.lispy_env
+        
+        if name in self.placeholder_functions:
+            newPlaceholder.function = self.placeholder_functions[name]
+        
+        return newPlaceholder
 
     def initialize_ports_primitives(self):
         self.lispy_env.update({
-            "create-placeholder": create_placeholder,
+            "create-placeholder": lambda *args: self.create_placeholder(*args),
             "is-placeholder?": lambda x: isinstance(x, Placeholder),
             "assert": ports_assert,
             "assert-equal": ports_assert_eq,
@@ -119,28 +138,19 @@ class PortsSuite(object):
 
     def placeholder(self, name):
         def decorator(func):
-            try:
-                self.placeholder_named(name).function = func
-            except Exception as e:
-                raise Exception(f"Tried to fill placeholder {name}, but was not specified in suite.")
+            self.placeholder_functions[name] = func    
             return func
         return decorator
     
-    def placeholder_named(self, name):
-        for placeholder in self.placeholders:
-            if placeholder.name == name:
-                return placeholder
-        raise Exception(f"Placeholder {name} not found")
-    
     def setUp(self):
         def decorator(func):
-            self.root_capability[2].insert(0, PortsSetup(func, self.lispy_env))
+            self.setUp_functions.append(func)
             return func
         return decorator
     
     def tearDown(self):
         def decorator(func):
-            self.root_capability[3].append(PortsTearDown(func, self.lispy_env))
+            self.tearDown_functions.append(func)
             return func
         return decorator
     
@@ -148,13 +158,14 @@ class PortsSuite(object):
         invalid_placeholders = [placeholder for placeholder in self.placeholders if not placeholder.is_valid()]
         if invalid_placeholders:
             invalid_placeholder_list = "\n".join([("- " + placeholder.name) for placeholder in invalid_placeholders])
-            invalid_placeholders_suggestion = "\n\n".join(["@suite.placeholder(\"" + placeholder.name + "\")\ndef " + placeholder.name.replace("-", "_") + "(env,*args):\n\tpass" for placeholder in invalid_placeholders])
-            raise Exception(f"Invalid placeholders:\n{invalid_placeholder_list}\n\nFix based on:\n{invalid_placeholders_suggestion}")
-            
-    def install_placeholders(self):
-        for placeholder in self.placeholders:
-            self.lispy_env[placeholder.name] = placeholder
-            placeholder.env = self.lispy_env
+            invalid_placeholders_suggestion = "\n\n".join([f"@suite.placeholder(\"{placeholder.name}\")\ndef {placeholder.name.replace('-', '_')}(env,*args):\n\tpass" for placeholder in invalid_placeholders])
+            raise Exception(f"Empty placeholders:\n{invalid_placeholder_list}\n\nFix based on:\n{invalid_placeholders_suggestion}")
+        
+    def install_setUp_tearDown_functions(self):
+        for func in self.setUp_functions:
+            self.root_capability[2].insert(0, PortsSetup(func, self.lispy_env))
+        for func in self.tearDown_functions:
+            self.root_capability[2].insert(0, PortsTearDown(func, self.lispy_env))
     
     def generate_test_name(self, ports_test):
         return self.eval_with_args("(test-full-name current_test)", current_test=ports_test)
@@ -166,8 +177,9 @@ class PortsSuite(object):
         return self.eval_with_args("(test-run current_test)", current_test=ports_test)
     
     def run(self, only=None, only_capabilities=None, exclude=None, exclude_capabilities=None):
+        self.initialize_suite()
+        self.install_setUp_tearDown_functions()
         self.ensure_placeholders_are_valid()
-        self.install_placeholders()
         self.lispy_env.update({
             "root-capability": self.root_capability,
         })
