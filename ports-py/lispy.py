@@ -240,14 +240,12 @@ def add_globals(self):
     self.update({
      '+':op.add, '-':op.sub, '*':op.mul, '/':op.truediv, 'not':op.not_, 
      '>':op.gt, '<':op.lt, '>=':op.ge, '<=':op.le, '=':op.eq, 
-     'xor':op.xor, 'abs':abs,
      'equal?':op.eq, 'eq?':op.is_, 'length':len, 'cons':cons,
      'car':lambda x:x[0], 
-     'cdr':lambda x:x[1:], 
+     'cdr':lambda x:x[1:],
      'append':op.add,  
      'list':lambda *x:list(x), 'list?': lambda x:isa(x,list), 'list-ref':op.getitem,
      'list-set!':op.setitem,
-     'map':lambda fn, l: list(map(fn, l)), 'for-each':lambda fn, l: [fn(x) for x in l], # Added for performance reasons
      'error':lambda err_msg: primitive_error(err_msg),
      'raise':lambda err: primitive_raise(err),
      'with-exception-handler': lambda handler_fn, thunk_fn: primitive_error_handler(handler_fn, thunk_fn),
@@ -435,8 +433,21 @@ eval(parse("""(begin
 ;; More macros can also go here
 )"""))
 
+#
+# Loading the basic definitions 
+#
 with open("ports/stdlib.scm", "r") as f:
     eval(parse(f.read()), env=global_env)
+
+#
+# Overriding basic definitions for performance reasons
+#
+global_env.update({
+    'map':lambda fn, l: list(map(fn, l)), 
+    'for-each':lambda fn, l: [fn(x) for x in l],
+    'empty?':lambda ls:len(ls) == 0,
+})
+
 
 if __name__ == '__main__':
     repl()

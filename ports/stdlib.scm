@@ -4,6 +4,9 @@
     ; Standard library
     ;
 
+    ; Boolean
+    ;
+
     (define-macro and (lambda args 
         (if (null? args) #t
             (if (= (length args) 1) (car args)
@@ -13,6 +16,21 @@
         (if (null? args) #t
             (if (= (length args) 1) (car args)
                 `(if (not ,(car args)) (or ,@(cdr args)) #t)))))
+
+    (define-macro xor (lambda args 
+        (if (null? args) #f
+            (if (= (length args) 1) (car args)
+                `(if (not ,(car args)) (xor ,@(cdr args))
+                    (if (not (xor ,@(cdr args))) #t #f))))))
+
+    ; Numeric
+
+    (define (abs number) 
+        (if (< number 0) 
+            (0 - number) 
+            number))
+
+    ; Iteration
 
     (define (map f lst) 
         (if (empty? lst) 
@@ -26,18 +44,6 @@
             (begin 
                 (f (car lst)) 
                 (for-each f (cdr lst)))))
-
-    (define (reverse lst)
-        (define (reverse-help lst res)
-            (if (null? lst) res
-                (reverse-help (cdr lst) (cons (car lst) res))))
-        (reverse-help lst '()))
-
-    (define (string-reverse str)
-        (define (reverse-help str res)
-            (if (empty? str) res
-                (reverse-help (cdr str) (string-append (car str) res))))
-        (reverse-help str ""))
 
     (define (filter pred lst)
         (define (filter-help pred lst res)
@@ -63,16 +69,37 @@
                 (f init (car seq)) 
                 (cdr seq))))  
 
+    (define (any? pred lst)
+        (if (null? lst) #f
+            (if (pred (car lst)) 
+                #t
+                (any? pred (cdr lst)))))
+
+    (define (all? pred lst)
+        (if (null? lst) #t
+            (if (pred (car lst)) 
+                (all? pred (cdr lst))
+                #f))) 
+
+    ; List manipulation / querying
+    ;
+
+    (define (reverse lst)
+        (define (reverse-help lst res)
+            (if (null? lst) res
+                (reverse-help (cdr lst) (cons (car lst) res))))
+        (reverse-help lst '()))
+    
     (define (member element list)
         (any?
             (lambda (x) (equal? x element))
             list))
 
     (define (unique-list? lst)
-        (if (null? lst) #true
+        (if (null? lst) #t
             (if 
                 (member (car lst) (cdr lst)) 
-                false
+                #f
                 (unique-list? (cdr lst)))))
 
     (define (empty? lst)
@@ -94,6 +121,15 @@
     (define (ninth list) (list-ref list 8))
     (define (tenth list) (list-ref list 9))
     
+    ; String
+    ;
+
+    (define (string-reverse str)
+        (define (reverse-help str res)
+            (if (empty? str) res
+                (reverse-help (cdr str) (string-append (car str) res))))
+        (reverse-help str ""))
+
     (define string-join (lambda args ; accepts a list of strings and an optional delimiter
         (let 
             ((str-list (first args))
@@ -120,17 +156,5 @@
 
     (define (string-prefix-ci? prefix string)
         (string-prefix? (string-downcase prefix) (string-downcase string)))
-    
-    (define (any? pred lst)
-        (if (null? lst) #f
-            (if (pred (car lst)) 
-                #t
-                (any? pred (cdr lst)))))
-
-    (define (all? pred lst)
-        (if (null? lst) #t
-            (if (pred (car lst)) 
-                (all? pred (cdr lst))
-                #f))) 
     
 )

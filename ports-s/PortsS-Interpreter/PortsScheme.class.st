@@ -374,8 +374,6 @@ PortsScheme >> topEnvironment [
 	^ topEnvironment ifNil: [
 		topEnvironment := PortsSchemeEnv new
 			bindings: {
-				#true -> true.
-				#false -> false.
 				#+ -> [:args | args first + args second].
 				#- -> [:args | args first - args second].
 				#'string-append' -> [:args | (args collect: #asString) fold: #,].
@@ -388,7 +386,6 @@ PortsScheme >> topEnvironment [
 				#> -> [:args | args first > args second].
 				#< -> [:args | args first < args second].
 				#<= -> [:args | args first <= args second].
-				#abs -> [:args | args first abs].
 				#sqrt -> [:args | args first sqrt].
 				#inexact -> [:args | args first asFloat].
 				#length -> [:args | args first size].
@@ -399,8 +396,6 @@ PortsScheme >> topEnvironment [
 				#cons -> [:args | {args first} , args second "TODO: this is not right"].
 				#not -> [:args | args first not].
 				#apply -> [:args | args first value: args second].
-				#map -> [:args | args second collect: [:e | args first value: {e}]].
-				#'for-each' -> [:args | args second do: [:e | args first value: {e}]].
 				#'list-ref' -> [:args | args first at: args second + 1].
 				#'list-set!' -> [:args | args first at: args second + 1 put: args third].
 				#raise -> [:args | args first signalerContext ifNil: [args first signal] ifNotNil: [args first pass]].
@@ -414,6 +409,15 @@ PortsScheme >> topEnvironment [
 				#'with-exception-handler' -> [:args | [args second value: {}] on: Exception do: [:e | args first value: {e}]].
 				#display -> [:args | Transcript showln: args first]};
 			yourself.
+ 
+		"Loading basic definitions"
 		self evalString: self standardLibrarySource in: topEnvironment.
+ 
+		"Override some basic definitions for performance reasons" 
+		topEnvironment
+			at: #map put: [:args | args second collect: [:e | args first value: {e}]];
+			at: #'for-each' put: [:args | args second do: [:e | args first value: {e}]];
+			at: #filter put: [:args | args second select: [:e | args first value: {e}]];
+			at: #'empty?' put: [:args | args first isEmpty].
 		topEnvironment]
 ]
