@@ -362,6 +362,13 @@ PortsScheme >> portsLibrarySource [
 ]
 
 { #category : #evaluating }
+PortsScheme >> standardLibrarySource [
+
+	^ (FileDirectory default / '..' / '..' / #ports / #ports) readOnlyFileNamed: 'stdlib.scm' do: [:portsFile |
+		portsFile contents]
+]
+
+{ #category : #evaluating }
 PortsScheme >> topEnvironment [
 
 	^ topEnvironment ifNil: [
@@ -403,8 +410,10 @@ PortsScheme >> topEnvironment [
 				#'string-trim' -> [:args | args first withBlanksTrimmed].
 				#'string-split' -> [:args | args first findTokens: args second].
 				#'string-replace' -> [:args | args third copyReplaceAll: args first with: args second].
+				#'string-downcase' -> [:args | args first asLowercase].
 				#'with-exception-handler' -> [:args | [args second value: {}] on: Exception do: [:e | args first value: {e}]].
 				#display -> [:args | Transcript showln: args first]};
 			yourself.
+		self evalString: self standardLibrarySource in: topEnvironment.
 		topEnvironment]
 ]

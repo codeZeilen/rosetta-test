@@ -269,6 +269,9 @@ def add_globals(self):
 
 isa = isinstance
 
+#
+# Rest of stdlib is loaded at the end of this file
+#
 global_env = add_globals(Env())
 
 class LispyException(Exception):
@@ -431,6 +434,9 @@ eval(parse("""(begin
 
 ;; More macros can also go here
 )"""))
+
+with open("ports/stdlib.scm", "r") as f:
+    eval(parse(f.read()), env=global_env)
 
 if __name__ == '__main__':
     repl()
