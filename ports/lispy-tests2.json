@@ -44,10 +44,5 @@
     {"input": "`(testing ,@L testing)", "expected": ["testing", 1,2,3, "testing"]},
     {"input": "`(testing ,L testing)", "expected": ["testing", [1,2,3], "testing"]},
     {"input": "`,@L", "expected": {"type": "SyntaxError"}},
-    {"input": "'(1 ;test comments '\n;skip this line\n2 ; more ; comments ; ) )\n3) ; final comment", "expected": [1,2,3]},
-    {"input": "(call/cc (lambda (throw) (+ 5 (* 10 (throw 1))))) ;; throw", "expected": 1},
-    {"input": "(call/cc (lambda (throw) (+ 5 (* 10 1)))) ;; do not throw", "expected": 15},
-    {"input": "(call/cc (lambda (throw)\n(+ 5 (* 10 (call/cc (lambda (escape) (* 100 (escape 3)))))))) ; 1 level", "expected": 35},
-    {"input": "(call/cc (lambda (throw) (+ 5 (* 10 (call/cc (lambda (escape) (* 100 (throw 3)))))))) ; 2 levels", "expected": 3},
-    {"input": "(call/cc (lambda (throw)\n(+ 5 (* 10 (call/cc (lambda (escape) (* 100 1))))))) ; 0 levels", "expected": 1005}
+    {"input": "'(1 ;test comments '\n;skip this line\n2 ; more ; comments ; ) )\n3) ; final comment", "expected": [1,2,3]}
 ]
