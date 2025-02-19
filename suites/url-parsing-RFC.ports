@@ -159,6 +159,22 @@
             ; TODO: userinfo with percent encoded characters
 
             ; Port
+            ; The port subcomponent of authority is designated by an optional port
+            ; number in decimal following the host and delimited from it by a
+            ; single colon (":") character.
+            (test "authority with a port" (lambda ()
+                (assert-authority "domain.tld:80" "schema://domain.tld:80")
+                (assert-authority "1.1.1.1:8080" "schema://1.1.1.1:8080")
+                (assert-authority "[::1]:65535" "schema://[::1]:65535")))
+
+            (test "long port" (lambda ()
+                (assert-authority "domain.tld:65535" "schema://domain.tld:65535")))
+
+            (test "empty port" (lambda ()
+                (assert (or
+                    (= "domain.tld" (url-authority (url-parse "schema://domain.tld:")))
+                    (= "domain.tld:" (url-authority (url-parse "schema://domain.tld:")))))))
+
 
             (capability 'invalid (list
             
@@ -206,7 +222,13 @@
                     (assert-parse-error "scheme://prefix.[::1]:?")
                     (assert-parse-error "scheme://user@prefix.[v6a.ip]")
                     (assert-parse-error "scheme://user@[v6a.ip].suffix")))
+
+                ; TODO: Invalid userinfo
             
+                (test "invalid port - too many ports" (lambda ()
+                    (assert-parse-error "schema://domain.tld:80:80")
+                    (assert-parse-error "schema://domain.tld:80:80:80")))
+
             ))
 
         ))
