@@ -81,6 +81,9 @@
                 (all? pred (cdr lst))
                 #f))) 
 
+    (define (count pred lst)
+        (length (filter pred lst)))
+
     ; List manipulation / querying
     ;
 

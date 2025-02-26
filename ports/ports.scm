@@ -124,6 +124,28 @@
             (capability-run-tearDowns (capability-parent capability))
             '())))
 
+    ; Test Results 
+    ;
+    (define (test-result test result-symbol optional-exception) (list
+        'test-result
+        test
+        result-symbol
+        optional-exception))
+
+    (define (test-result-test test-result) (list-ref test-result 1))
+    (define (test-result-result test-result) (list-ref test-result 2))
+    (define (test-result-exception test-result) (list-ref test-result 3))
+
+    (define (is-failure? test-result) (equal? 'failure (test-result-result test-result)))
+    (define (is-error? test-result) (equal? 'error (test-result-result test-result)))
+    (define (is-success? test-result) (equal? 'success (test-result-result test-result)))
+
+    (define (short-hand-test-result test-result)
+        (cond
+            ((is-success? test-result) ".")
+            ((is-failure? test-result) "F")
+            ((is-error? test-result) "E")))
+
     ; Test 
     ;
 
@@ -172,6 +194,16 @@
         (list 'data-test name test-fn '() data))
     (define (data-test-data data-test) (list-ref data-test 4))
 
+    (define (test-run-with-result test) 
+    (with-exception-handler 
+        (lambda (e) 
+            (if (is-assertion-error? e)
+                (test-result test 'failure e)
+                (test-result test 'error e))
+            (raise e))
+        (lambda () 
+            (test-run test)
+            (test-result test 'success '()))))
 
     ; Setup/tearDown 
     ;
@@ -206,4 +238,26 @@
                     (and exclude-tests (member (test-full-name test) exclude-tests))
                     (and exclude-capabilities (test-capability-identifier-matches test exclude-capabilities)))))
             tests))
+
+    (define (display-test-results test-results)
+        (display "\nTests done - Results\n")
+        (let 
+            ((success-count (count is-success? test-results))
+             (failure-count (count is-failure? test-results))
+             (error-count (count is-error? test-results)))
+            (display (string-append "Success: " success-count ", Failure:" failure-count ", Errors:" error-count "\n"))))
+
+    (define (run-suite suite-name suite-version root-capability only-tests only-capabilities exclude-tests exclude-capabilities)
+        (display (string-append "Running suite: " suite-name " " suite-version "\n"))
+        (let 
+            ((tests (capability-all-tests root-capability)))
+            (let 
+                ((selected-tests (select-tests tests only-tests only-capabilities exclude-tests exclude-capabilities)))
+                (display-test-results 
+                    (map  
+                        (lambda (test)
+                            (let ((test-result (test-run-with-result test)))
+                                (display (short-hand-test-result test-result))
+                                test-result))
+                        selected-tests)))))
 )

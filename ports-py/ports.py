@@ -124,6 +124,7 @@ class PortsSuite(object):
             "is-placeholder?": lambda x: isinstance(x, Placeholder),
             "assert": ports_assert,
             "assert-equal": ports_assert_eq,
+            "is-assertion-error?": lambda e: isinstance(e, AssertionError),
             "true": True,
             "false": False,
             "thread": ports_thread,
