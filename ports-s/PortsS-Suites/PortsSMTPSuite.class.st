@@ -356,8 +356,7 @@ PortsSMTPSuite >> socketWrite: socketStream content: content env: env [
 { #category : #'suite definition' }
 PortsSMTPSuite >> suiteSource [
 
-	^ (FileDirectory default / '..' / '..' / #ports / 'suites') readOnlyFileNamed: 'smtp.ports' do: [:portsFile |
-		portsFile contents]
+	^ self readSuiteFileNamed: 'smtp.ports'
 ]
 
 { #category : #running }

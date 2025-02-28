@@ -43,6 +43,5 @@ PortsJSONRfcSuite >> parseSuccess: parseResult env: env [
 { #category : #'suite definition' }
 PortsJSONRfcSuite >> suiteSource [
 
-	^ (FileDirectory default / '..' / '..' / #ports / 'suites') readOnlyFileNamed: 'json-rfc.ports' do: [:portsFile |
-		portsFile contents]
+	^ self readSuiteFileNamed: 'json-rfc.ports'
 ]

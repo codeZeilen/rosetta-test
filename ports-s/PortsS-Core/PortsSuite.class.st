@@ -256,6 +256,14 @@ PortsSuite >> portsRunTest: aPortsTest [
 			#'current-test' -> aPortsTest}).
 ]
 
+{ #category : #'suite definition' }
+PortsSuite >> readSuiteFileNamed: suiteFileName [
+
+	^ ((FileDirectory on: ThisOSProcess thisOSProcess getCwd) / 'suites') 
+			readOnlyFileNamed: suiteFileName 
+			do: [:fs | fs contents]
+]
+
 { #category : #'private-scheme-evaluation' }
 PortsSuite >> scheme [
 

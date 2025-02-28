@@ -220,8 +220,10 @@ PortsScheme >> expandInclude: exprs [
 	| result |
 	result := #(begin) asOrderedCollection.
 	exprs copyWithoutFirst do: [:fileName |
-		FileStream fileNamed: '/home/patrick/code/ports/' , fileName do: [:fs |
-			result add: (self parseAndExpand: fs contents)]].
+		FileStream 
+			fileNamed: ThisOSProcess thisOSProcess getCwd,  FileDirectory slash , fileName 
+			do: [:fs |
+				result add: (self parseAndExpand: fs contents)]].
 	^ result
 	
 ]
@@ -379,15 +381,17 @@ PortsScheme >> parseAndExpand: aString [
 { #category : #evaluating }
 PortsScheme >> portsLibrarySource [
 
-	^ (FileDirectory default / '..' / '..' / #ports / #ports) readOnlyFileNamed: 'ports.scm' do: [:portsFile |
-		portsFile contents]
+	^ ((FileDirectory on: ThisOSProcess thisOSProcess getCwd) / #ports) 
+		readOnlyFileNamed: 'ports.scm' 
+		do: [:portsFile | portsFile contents]
 ]
 
 { #category : #evaluating }
 PortsScheme >> standardLibrarySource [
 
-	^ (FileDirectory default / '..' / '..' / #ports / #ports) readOnlyFileNamed: 'stdlib.scm' do: [:portsFile |
-		portsFile contents]
+	^ ((FileDirectory on: ThisOSProcess thisOSProcess getCwd) / #ports) 
+		readOnlyFileNamed: 'stdlib.scm' 
+		do: [:portsFile | portsFile contents]
 ]
 
 { #category : #evaluating }

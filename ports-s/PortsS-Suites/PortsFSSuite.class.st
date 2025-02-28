@@ -84,8 +84,7 @@ PortsFSSuite >> removeTestFile: fileName env: env [
 { #category : #'spec definition' }
 PortsFSSuite >> suiteSource [
 
-	^ (FileDirectory default / '..' / '..' / #ports / 'suites') readOnlyFileNamed: 'fs.ports' do: [:portsFile |
-		portsFile contents]
+	^ self readSuiteFileNamed: 'fs.ports'
 ]
 
 { #category : #running }
