@@ -19,8 +19,8 @@ def Sym(s, symbol_table={}):
     if s not in symbol_table: symbol_table[s] = Symbol(s)
     return symbol_table[s]
 
-_quote, _if, _cond, _set, _unset, _define, _lambda, _begin, _definemacro, = list(map(Sym, 
-"quote   if   cond   set!  variable-unset!  define   lambda   begin   define-macro".split()))
+_quote, _if, _cond, _set, _unset, _define, _lambda, _begin, _definemacro, _include, = list(map(Sym, 
+"quote   if   cond   set!  variable-unset!  define   lambda   begin   define-macro   include".split()))
 
 _quasiquote, _unquote, _unquotesplicing = list(map(Sym,
 "quasiquote   unquote   unquote-splicing".split()))
@@ -49,9 +49,11 @@ eof_object = Symbol('#<eof-object>') # Note: uninterned; can't be read
 class InPort(object):
     "An input port. Retains a line of chars."
     tokenizer = r"""\s*(,@|[('`,)]|"(?:[\\].|[^\\"])*"|;.*|[^\s('"`,;)]*)(.*)"""
+    
     def __init__(self, file):
         self.file = file
         self.line = ''
+        
     def next_token(self):
         "Return the next token, reading new text into line buffer if needed."
         while True:
@@ -349,6 +351,9 @@ def expand(x, toplevel=False):
     require(x, x!=[])                    # () => Error
     if not isa(x, list):                 # constant => unchanged
         return x
+    elif x[0] is _include:              # (include string1 string2 ...)
+        require(x, len(x)>1)
+        return expand_include(x)
     elif x[0] is _quote:                 # (quote exp)
         require(x, len(x)==2)
         return x
@@ -415,6 +420,17 @@ def expand_quasiquote(x):
         return [_append, x[0][1], expand_quasiquote(x[1:])]
     else:
         return [_cons, expand_quasiquote(x[0]), expand_quasiquote(x[1:])]
+    
+def expand_include(x):
+    result = [_begin]
+    for file_name in x[1:]:
+        with open(file_name, "r") as include_file:
+            include_result = parse(include_file.read())
+            if include_result:
+                result.append(include_result)
+            else:
+                raise LispyException("Could not include content of " + file_name)
+    return result
 
 def let(*args):
     args = list(args)
