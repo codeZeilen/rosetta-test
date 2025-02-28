@@ -125,8 +125,7 @@ PortsScheme >> evalString: aString [
 PortsScheme >> evalString: aString in: anEnvironment [
 
 	| exprs |
-	exprs := ((ULispReader for: ULisp new) readString: aString) arrayForm.
-	exprs := self expand: exprs topLevel: true.
+	exprs := self parseAndExpand: aString.
 	^ self evalExprs: exprs in: anEnvironment
 ]
 
@@ -144,6 +143,9 @@ PortsScheme >> expand: exprs topLevel: isTopLevel [
 		caseOf: {
 			[(self isList: exprs) not] -> ["literal"
 				^ exprs].
+			[#include = exprs first] -> [
+				self expr: exprs shouldFulfill: exprs size > 1.
+				^ self expandInclude: exprs].
 			[#quote = exprs first] -> [
 				self expr: exprs shouldFulfill: exprs size = 2.
 				^ exprs].
@@ -210,6 +212,18 @@ PortsScheme >> expandIf: exprs [
 		resultExprs := resultExprs , {nil}].
 	self expr: resultExprs shouldFulfill: resultExprs size = 4.
 	^ resultExprs collect: [:expr | self expand: expr]
+]
+
+{ #category : #'macro expansion' }
+PortsScheme >> expandInclude: exprs [
+
+	| result |
+	result := #(begin) asOrderedCollection.
+	exprs copyWithoutFirst do: [:fileName |
+		FileStream fileNamed: '/home/patrick/code/ports/' , fileName do: [:fs |
+			result add: (self parseAndExpand: fs contents)]].
+	^ result
+	
 ]
 
 { #category : #'macro expansion' }
@@ -352,6 +366,14 @@ PortsScheme >> macroLet: args [
 PortsScheme >> nullP: args [
 
 	^ args first isNil or: [args isCollection and: [args isEmpty]]
+]
+
+{ #category : #evaluating }
+PortsScheme >> parseAndExpand: aString [
+
+	| exprs |
+	exprs := ((ULispReader for: ULisp new) readString: aString) arrayForm.
+	^ self expand: exprs topLevel: true.
 ]
 
 { #category : #evaluating }
