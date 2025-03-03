@@ -3,23 +3,28 @@ package org.ports.lispy;
 import java.util.HashMap;
 import java.util.Map;
 
-public class Env {
-    private final Map<Symbol, Object> variables;
-    private final Env outer;
+public class PLEnv {
+    private final Map<PLSymbol, Object> variables;
+    private final PLEnv outer;
 
-    public Env(Symbol[] parameters, Object[] arguments, Env outer) {
+    public PLEnv(PLSymbol[] parameters, Object[] arguments, PLEnv outer) {
         this.variables = new HashMap<>();
         this.initializeVariables(parameters, arguments);
         this.outer = outer;
     }
 
-    public Env(Symbol[] parameters, Object[] arguments) {
+    public PLEnv(PLSymbol[] parameters, Object[] arguments) {
         this.variables = new HashMap<>();
         this.initializeVariables(parameters, arguments);
         this.outer = null;
     }
 
-    private void initializeVariables(Symbol[] parameters, Object[] arguments) {
+    public PLEnv() {
+        this.variables = new HashMap<>();
+        this.outer = null;
+    }
+
+    private void initializeVariables(PLSymbol[] parameters, Object[] arguments) {
         if(parameters.length != arguments.length) {
             throw new RuntimeException("Parameter count mismatch");
         }
@@ -28,11 +33,11 @@ public class Env {
         }
     }
 
-    public void setItem(Symbol key, Object value) {
+    public void setItem(PLSymbol key, Object value) {
         variables.put(key, value);
     }
 
-    public Object find(Symbol var) {
+    public Object find(PLSymbol var) {
         if (variables.containsKey(var)) {
             return variables.get(var);
         } else if (outer != null) {
@@ -42,7 +47,7 @@ public class Env {
         }
     }
 
-    public void unset(Symbol var) {
+    public void unset(PLSymbol var) {
         if (variables.containsKey(var)) {
             variables.remove(var);
         } else if (outer != null) {

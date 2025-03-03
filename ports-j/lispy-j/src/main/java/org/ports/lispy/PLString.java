@@ -1,15 +1,19 @@
 package org.ports.lispy;
 
-public class LispyString implements LispyExpression {
+public class PLString implements PLExpression {
 
     private String value;
 
-    public LispyString(String value) {
+    public PLString(String value) {
         this.value = value;
     }
 
-    public Object evaluate(Env env) {
+    public Object evaluate(PLEnv env) {
         return this;
+    };
+
+    public Boolean truthValue() {
+        return this.value.length() > 0;
     };
 
     public String toString() {

@@ -3,17 +3,17 @@ package org.ports.lispy;
 import java.util.HashMap;
 import java.util.Map;
 
-public class Symbol implements CharSequence, LispyExpression {
+public class PLSymbol implements CharSequence, PLExpression {
     private final String s; 
-    private static Map<String, Symbol> symbolTable = new HashMap<String, Symbol>();
+    private static Map<String, PLSymbol> symbolTable = new HashMap<String, PLSymbol>();
     
-    public Symbol(String s) {
+    public PLSymbol(String s) {
         this.s = s;
     }
 
-    public static Symbol Sym(String s) {
+    public static PLSymbol Sym(String s) {
         if (!symbolTable.containsKey(s)) {
-            symbolTable.put(s, new Symbol(s));
+            symbolTable.put(s, new PLSymbol(s));
         }
         return symbolTable.get(s);
     }
@@ -33,8 +33,12 @@ public class Symbol implements CharSequence, LispyExpression {
         return this.s.subSequence(arg0, arg1);
     }
 
-    public Object evaluate(Env env) {
+    public Object evaluate(PLEnv env) {
         return env.find(this);
+    }
+
+    public Boolean truthValue() {
+        return true;
     }
     
     public String toString() {
@@ -43,6 +47,13 @@ public class Symbol implements CharSequence, LispyExpression {
 
     public String toTypeString() {
         return "symbol";
+    }
+
+    public boolean equals(Object obj) {
+        if (obj instanceof PLSymbol) {
+            return this == obj;
+        }
+        return false;
     }
 
 }

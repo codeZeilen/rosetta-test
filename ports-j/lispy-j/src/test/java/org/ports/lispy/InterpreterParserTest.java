@@ -18,14 +18,12 @@ public class InterpreterParserTest  {
         List<DynamicTest> tests = new ArrayList<DynamicTest>();
         String fileContents = "";
 
-        // Open the test file in /home/patrick/code/ports/ports/syntax-tests.json and write the contents to fileContents file
         try {
-            fileContents = new String(Files.readAllBytes(Paths.get("/home/patrick/code/ports/ports/syntax-tests.json")));    
+            fileContents = new String(Files.readAllBytes(Paths.get("../../ports/syntax-tests.json")));
         } catch (Exception e) {
             return tests;
         }
         
-
         JSONArray testData = new JSONArray(fileContents);
         for(Object value : testData) {
             if(value.getClass() == String.class) {
@@ -33,8 +31,8 @@ public class InterpreterParserTest  {
             }
             JSONArray test = (JSONArray) value;
             tests.add(DynamicTest.dynamicTest(test.getString(0), () -> {
-                Interpreter interpreter = new Interpreter();
-                LispyExpression parseResult = interpreter.parse(test.getString(0));
+                PLInterpreter interpreter = new PLInterpreter();
+                PLExpression parseResult = interpreter.parse(test.getString(0));
                 Object expectation = test.get(1);
                 
                 assertTrue(this.checkParseResult(parseResult, expectation), "For: " + test.getString(0) + " expected " + expectation.toString() + " got " + parseResult.toTypeString());
@@ -43,26 +41,26 @@ public class InterpreterParserTest  {
         return tests;
     }
 
-    private boolean checkParseResult(LispyExpression parseResult, Object expectation) {
+    private boolean checkParseResult(PLExpression parseResult, Object expectation) {
         if(expectation.getClass() == String.class) {
             String expectedLabel = expectation.toString();
             if(expectedLabel.equals("Boolean")) {
-                return parseResult instanceof LispyBoolean;
+                return parseResult instanceof PLBoolean;
             } else if(expectedLabel.equals("Number")) {
-                return parseResult instanceof LispyFraction || parseResult instanceof LispyInteger;
+                return parseResult instanceof PLFraction || parseResult instanceof PLInteger;
             } else if(expectedLabel.equals("String")) {
-                return parseResult instanceof LispyString;
+                return parseResult instanceof PLString;
             } else if(expectedLabel.equals("Symbol")) {
-                return parseResult instanceof Symbol;
+                return parseResult instanceof PLSymbol;
             } else {
                 return false;
             }
         } else {
             JSONArray expectationArray = (JSONArray) expectation;
-            if(!(parseResult instanceof ListExpression)) {
+            if(!(parseResult instanceof PLList)) {
                 return false;
             } 
-            ListExpression listExpression = (ListExpression) parseResult;
+            PLList listExpression = (PLList) parseResult;
             if(listExpression.length() != expectationArray.length()) {
                 return false;
             }
