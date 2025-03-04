@@ -1,4 +1,3 @@
-package java;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -6,6 +5,7 @@ import java.io.InputStreamReader;
 import java.io.Reader;
 
 import java.math.BigInteger;
+import java.math.BigDecimal;
 
 /**
  * InputPort is to Scheme as InputStream is to Java.
@@ -264,16 +264,18 @@ public class InputPort extends SchemeUtils {
                 // Try potential numbers, but catch any format errors.
                 if (c == '.' || c == '+' || c == '-' || (c >= '0' && c <= '9')) {
                     String numString = buff.toString();
-                    if(numString.contains(".") && numString.length() > 1) {
+                    if((numString.contains(".") || numString.contains("e-")) && numString.length() > 1) {
                         // We need to manually check, as 2.0 might end up as 2 otherwise
                         try {
-                            return Double.valueOf(numString);
+                            // We use the detour through BigDecimal to get e notation parsing
+                            return new BigDecimal(numString).doubleValue();
                         } catch (NumberFormatException e2) {
                             ;
                         };
                     } else {
                         try {
-                            return new BigInteger(numString);
+                            // We use the detour through BigDecimal to get e notation parsing
+                            return new BigInteger(new BigDecimal(numString).toPlainString());
                         } catch (NumberFormatException e1) {
                             ;
                         }

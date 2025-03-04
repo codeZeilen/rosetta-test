@@ -1,4 +1,3 @@
-package java;
 
 /**
  * @author Peter Norvig, peter@norvig.com http://www.norvig.com

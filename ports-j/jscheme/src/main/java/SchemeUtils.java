@@ -1,10 +1,10 @@
-package java;
 
 /**  @author Peter Norvig, peter@norvig.com http://www.norvig.com 
  * Copyright 1998 Peter Norvig, see http://www.norvig.com/license.html **/
 
 import java.io.PrintWriter;
 import java.math.BigInteger;
+import java.rmi.server.ExportException;
 
 public abstract class SchemeUtils {
 
@@ -131,8 +131,7 @@ public abstract class SchemeUtils {
     }
 
     public static Object warn(String message) {
-        System.err.println("**** WARNING: " + message);
-        return "<warn>";
+        throw new RuntimeException(message);
     }
 
     //////////////// Basic manipulation Routines ////////////////

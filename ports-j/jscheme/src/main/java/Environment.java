@@ -1,4 +1,3 @@
-package java;
 
 /**
  * Environments allow you to look up the value of a variable, given
@@ -59,6 +58,9 @@ public class Environment extends SchemeUtils {
      * Add a new variable,value pair to this environment.
      */
     public Object define(Object var, Object val) {
+        if(!(var instanceof String)) {
+            error("Can only define symbols, got" + var + "instead.");
+        }
         vars = cons(var, vars);
         vals = cons(val, vals);
         if (val instanceof Procedure && ((Procedure) val).name.equals("anonymous procedure"))

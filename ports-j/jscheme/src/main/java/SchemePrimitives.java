@@ -1,4 +1,3 @@
-package java;
 
 /**
  * Holds a string representation of some Scheme code in <TT>CODE</tt>.

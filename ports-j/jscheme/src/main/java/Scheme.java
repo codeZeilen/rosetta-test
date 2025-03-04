@@ -1,4 +1,3 @@
-package java;
 
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -57,6 +56,7 @@ public class Scheme extends SchemeUtils {
                 output.print("> ");
                 output.flush();
                 if (input.isEOF(x = input.read())) return;
+                x = expand(x);
                 write(eval(x), output, true);
                 output.println();
                 output.flush();
@@ -85,6 +85,7 @@ public class Scheme extends SchemeUtils {
         Object x = null;
         for (; ; ) {
             if (in.isEOF(x = in.read())) return TRUE;
+            x = expand(x);
             eval(x);
         }
     }
@@ -106,7 +107,10 @@ public class Scheme extends SchemeUtils {
             } else {
                 Object fn = first(x);
                 Object args = rest(x);
-                if (fn == "quote") {             // QUOTE
+                if (fn == "quote") { // QUOTE
+                    if(rest(args) != null) {
+                        error("Quote only accepts one argument got " + args);
+                    }
                     return first(args);
                 } else if (fn == "begin") {      // BEGIN
                     for (; rest(args) != null; args = rest(args)) {
@@ -121,6 +125,9 @@ public class Scheme extends SchemeUtils {
                 } else if (fn == "set!") {       // SET!
                     return env.set(first(args), eval(second(args), env));
                 } else if (fn == "if") {         // IF
+                    if(length(args) > 3) {
+                        error("if accepts only three arguments at most got " + args);
+                    }
                     x = (truth(eval(first(args), env))) ? second(args) : third(args);
                 } else if (fn == "cond") {       // COND
                     x = reduceCond(args, env);
@@ -155,7 +162,7 @@ public class Scheme extends SchemeUtils {
      * Eval a String
      */
     public Object eval(String str) {
-        return eval((new InputPort(new StringReader(str))).read());
+        return eval(expand((new InputPort(new StringReader(str))).read()));
     }
 
     /**
@@ -189,6 +196,11 @@ public class Scheme extends SchemeUtils {
                     return list(third(clause), list("quote", result));
                 else return cons("begin", rest(clause));
         }
+    }
+
+
+    private Object expand(Object x) {
+        return x;
     }
 
 }

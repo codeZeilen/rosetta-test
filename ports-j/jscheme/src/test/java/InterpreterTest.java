@@ -1,4 +1,3 @@
-package java;
 
 import org.junit.jupiter.api.DynamicTest;
 import org.junit.jupiter.api.TestFactory;
@@ -19,10 +18,19 @@ public class InterpreterTest {
     
     @TestFactory
     Collection<DynamicTest> interpretationTests() {
+        return this.readTestsFrom("../../ports/lispy-tests.json");
+    }
+
+    @TestFactory
+    Collection<DynamicTest> interpretationTests2() {
+        return this.readTestsFrom("../../ports/lispy-tests2.json");
+    }
+
+    private Collection<DynamicTest> readTestsFrom(String path) {
         List<DynamicTest> tests = new ArrayList<DynamicTest>();
         String fileContents = "";
         try {
-            fileContents = new String(Files.readAllBytes(Paths.get("../../ports/lispy-tests.json")));    
+            fileContents = new String(Files.readAllBytes(Paths.get(path)));    
         } catch (Exception e) {
             return tests;
         }
@@ -31,11 +39,19 @@ public class InterpreterTest {
         for(Object value : allTestData) {
             JSONObject testData = (JSONObject) value;
             String input = testData.getString("input");
+            Object interpreterResult = null;
+            try {
+                interpreterResult = schemeInterpreter.eval(input);
+            } catch (RuntimeException e) {
+                interpreterResult = e;
+            }
+            final Object result = interpreterResult;
             tests.add(DynamicTest.dynamicTest(input, () -> {
-                Object result = schemeInterpreter.eval(input);
                 Object expectation = this.getExpectedFrom(testData);
                 if(expectation.toString().equals("null")) {
                     assertTrue(result == null, () -> "For: " + input + " expected null got " + result.toString());
+                } else if (expectation instanceof JSONObject && ((JSONObject) expectation).has("type")) {
+                    assertTrue(result instanceof Exception, "Expected exception for " + input);
                 } else {
                     assertTrue(result.equals(expectation), "For: " + input + " expected " + expectation.toString() + " got " + result.toString());
                 }

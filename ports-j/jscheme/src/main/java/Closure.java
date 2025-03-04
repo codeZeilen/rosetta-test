@@ -1,4 +1,3 @@
-package java;
 
 /**
  * A closure is a user-defined procedure.  It is "closed" over the

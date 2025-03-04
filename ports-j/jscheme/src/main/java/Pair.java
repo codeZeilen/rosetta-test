@@ -1,4 +1,3 @@
-package java;
 
 /**
  * A Pair has two fields, first and rest (or car and cdr).
