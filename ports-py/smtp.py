@@ -42,11 +42,15 @@ def create_socket(env):
 def socket_accept(env, server_socket: socketlib.socket):
     "Accept a connection from a client"
     try:
+        server_socket.settimeout(0.5)
         client_socket, address = server_socket.accept()
         sockets.append(client_socket)
         return client_socket
     except Exception as err:
-        return err
+        if(isinstance(err,TimeoutError)):
+            raise err
+        else:
+            return err
     
 @smtp_suite.placeholder("secure-server-socket-wrap")
 def secure_server_socket_wrap(env, connection, ca_file, cert_file, key_file, close_wrapped_socket):
