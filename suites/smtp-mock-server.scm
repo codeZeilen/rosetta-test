@@ -58,6 +58,7 @@
     ; Mock response codes can be set in three different ways:
     ; 1. By setting response code to be used indefinitely (server-set-response-code! server "250 ")
     ; 2. By setting response code for a specific command indefinitely (server-set-command-response-code! server "EHLO" "250 ")
+    ;     For DATA there are two special cases: "DATA MIDDLE" and "DATA END" to inject responses in the DATA exchange.
     ; 3. By adding a response code to the list of response codes (server-add-response-code! server "250 "), 
     ;     which will be used in order and removed from the list
     ; Sets response code to be used indefinitely
@@ -67,7 +68,7 @@
         (let
             ((response-pair (assq command (server-command-response-codes server))))
             (if (not response-pair)
-                (server-set-command-response-codes! server (append (server-command-response-codes server) (list (cons command new-code))))
+                (server-set-command-response-codes! server (append (server-command-response-codes server) (list (list command new-code))))
                 (list-set! response-pair 1 new-code))))
     (define (server-add-response-code! server new-code) 
         (server-set-response-codes! server (append (server-response-codes server) (list new-code))))
@@ -81,7 +82,7 @@
         (let
             ((response-pair (assq command (server-command-response-codes server))))
             (if (list? response-pair)
-                (cdr response-pair)
+                (second response-pair)
                 (server-next-response-code server))))
     (define (server-next-response-code server) 
         (let 
@@ -138,7 +139,10 @@
                 (socket-close (server-socket server))))
             (define (write-prepared-response-code-else command alternative-branch) 
                 (if (server-has-command-response-code? server command) 
-                    (socket-write connection (string-append (server-next-command-response-code server command) "\r\n")) 
+                    (let ((next-code (server-next-command-response-code server command)))
+                        (socket-write connection (string-append next-code "\r\n"))
+                        (if (string-prefix? "421" next-code)
+                            (close-sockets)))
                     (alternative-branch)))
             (define (handle request-string) (begin
                 ; Log the request
@@ -190,18 +194,22 @@
                 (define (receive-all-data)
                     (let 
                         ((message-data (socket-receive connection))) 
-                        (server-set-message-data! server (string-append (server-message-data server) message-data))
-                        (if (not (or (string-suffix? "\r\n.\r\n" message-data) (= ".\r\n" message-data)))
-                            (receive-all-data))))
+                        (if (empty? message-data)
+                            #f
+                            (begin
+                                (server-set-message-data! server (string-append (server-message-data server) message-data))
+                                (if (and (not (empty? message-data)) (not (or (string-suffix? "\r\n.\r\n" message-data) (= ".\r\n" message-data))))
+                                    (receive-all-data)
+                                    #t)))))
                 (write-prepared-response-code-else
-                    "DATA"
+                    "DATA MIDDLE"
                     (lambda ()
                         (socket-write connection "354 End data with <CR><LF>.<CR><LF>\r\n")))
-                (receive-all-data)
-                (write-prepared-response-code-else 
-                    "DATA"
-                    (lambda () 
-                        (socket-write connection "250 2.0.0 OK\r\n"))))
+                (if (receive-all-data)
+                    (write-prepared-response-code-else 
+                        "DATA END"
+                        (lambda () 
+                            (socket-write connection "250 2.0.0 OK\r\n")))))
             (define (starttls args)
                 (socket-write connection "220 Ready to start TLS\r\n")
                 (let 
