@@ -337,10 +337,6 @@ smtp_suite.run(
             "test_CRLF_detection_in_VRFY_command",
             "test_CRLF_mitigation_in_HELP_command",
             "test_CRLF_detection_in_EXPN_command",
-            "test_Handle_421_during_data_command",
             # There is no check whether the server supports 8BITMIME
-            "test_non-ascii_content_in_send-message_without_8BITMIME_support"))
-
-#smtp_suite.run(only=("test_international_mailbox_in_rcpt_with_SMTPUTF8_support",))
-
-#smtp_suite.run(only_capabilities=("root.commands.starttls"))# ("test_starttls","test_starttls_without_server_support","test_After_starttls_extensions_need_to_be_refetched",))
+            "test_non-ascii_content_in_send-message_without_8BITMIME_support"),
+        expected_failures=("test_Handle_421_during_data_command",))
