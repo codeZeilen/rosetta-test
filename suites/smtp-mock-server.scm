@@ -51,18 +51,23 @@
         (map 
             car
             (server-auths server)))
+    ; Sets response code to be used indefinitely
     (define (server-set-response-code! server new-code) 
-        (server-set-response-codes! server (list new-code)))
+        (server-set-response-codes! server new-code))
+    (define (server-add-response-code! server new-code) 
+        (server-set-response-codes! server (append (server-response-codes server) (list new-code))))
     (define (server-has-response-code? server)
         (not (empty? (server-response-codes server))))
     (define (server-next-response-code server) 
         (let 
             ((response-codes (server-response-codes server)))
-            (if (empty? response-codes)
-                (raise (error "No response codes available"))
-                (begin
-                    (server-set-response-codes! server (cdr response-codes))
-                    (car response-codes)))))
+            (if (list? response-codes)
+                (if (empty? response-codes)
+                    (raise (error "No response codes available"))
+                    (begin
+                        (server-set-response-codes! server (cdr response-codes))
+                        (car response-codes)))
+                response-codes))) ; Single response code
     (define (let-server-complete-handler)
         (thread-sleep! 0.1))
 
