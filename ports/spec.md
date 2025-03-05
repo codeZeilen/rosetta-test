@@ -2,7 +2,7 @@
 
 ## Lang 
 
-PorTS is a Scheme implementation that is compatible with R7RS-small, but does not implement all of R7RS-small by design.
+PorTS is a Scheme implementation that is compatible with R7RS-small, but does not, by design, implement all of R7RS-small.
 
 ### (TODO) Syntax
 
@@ -18,6 +18,7 @@ A PorTS language implementation should implement the following special forms:
  - lambda
  - begin
  - define-macro
+ - include (loads file relative to CWD)
 
 ### Macro Features
 PorTS does not support hygenic macros, as we expect macros to be almost exclusively used in standard library definitions.
@@ -46,6 +47,7 @@ PorTS does not support hygenic macros, as we expect macros to be almost exclusiv
 - >, <, >=, <=, =
 - abs
 - length
+<!-- - apply? -->
 
 <!-- 
 Should be ported to PorTS
@@ -56,7 +58,6 @@ Should be ported to PorTS
 - string-downcase
 - string-index, string-replace, string-trim
 - char-whitespace?
-- xor
 -->
 
 ### Core Procedures
@@ -67,5 +68,12 @@ A PorTS interpreter implementation should load the core procedures in the follow
  2. PorTS versions of core procedures
  3. primitive versions of core procedures
 
+### Data Types
+- Numeric: Integer, Fraction
+- String (Chars are single item Strings) (full Unicode)
+- Symbol
+- List
+- Pair
+- Boolean
 
 ## Library Backend
