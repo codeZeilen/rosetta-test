@@ -25,6 +25,10 @@ jobs:
     - name: Run SMTP Tests
       run: |
         python3 ports-py/smtp.py
-    - name: Run FS Tests
+    - name: Run Sendmail Tests for RedMail
       run: |
-        python3 ports-py/fs.py
+        pip install -r ports-py/sendmail-redmail.requirements.txt
+        python3 ports-py/sendmail-redmail.py
+    - name: Run JSON RFC Tests
+      run: |
+        python3 ports-py/json-rfc.py

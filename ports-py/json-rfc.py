@@ -29,4 +29,8 @@ def file_contents(env,file_name):
 # Running
 #
 
-suite.run()
+suite.run(exclude=(
+    # Python json accespts Infinity and NaN, although they are not allowed.
+    "test_n_number_infinity.json", 
+    "test_n_number_NaN.json", 
+    "test_n_number_minus_infinity.json"))
