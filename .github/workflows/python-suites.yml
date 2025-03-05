@@ -29,6 +29,10 @@ jobs:
       run: |
         pip install -r ports-py/sendmail-redmail.requirements.txt
         python3 ports-py/sendmail-redmail.py
+    - name: Run Sendmail Tests for Python Emails
+      run: |
+        pip install -r ports-py/sendmail-python-emails.requirements.txt
+        python3 ports-py/sendmail-python-emails.py
     - name: Run JSON RFC Tests
       run: |
         python3 ports-py/json-rfc.py
