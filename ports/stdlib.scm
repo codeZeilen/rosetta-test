@@ -123,6 +123,14 @@
     (define (eigth list) (list-ref list 7))
     (define (ninth list) (list-ref list 8))
     (define (tenth list) (list-ref list 9))
+
+    ; Associative lists
+    (define (assq object alist)
+        (if (null? alist) 
+            #f
+            (if (equal? (car (car alist)) object) 
+                (car alist)
+                (assq object (cdr alist)))))
     
     ; String
     ;
