@@ -76,4 +76,31 @@ A PorTS interpreter implementation should load the core procedures in the follow
 - Pair
 - Boolean
 
-## Library Backend
+
+## Ports Testing Library
+
+### Required mechanisms
+- Declaring which suite is to be used
+- Filling placeholders, e.g. by implementing methods and adding annotations, or a dictionary mapping placeholder names to function identifiers
+- Starting the execution of the test suite, by calling `run-suite` with the required parameters
+
+
+### Optional mechanisms
+- Warning when placeholders are not defined
+- Proposing snippets to fill placeholders quickly
+- Selecting/excluding tests and capabilities (only, exclude for tests and capabilities)
+- Expected failures
+- Integration with host test runner
+
+
+### Required interface from the Ports Testing Library
+- Loading the ports.scm definitions
+- Defining ports primitives
+ - assert
+ - is-assertion-error?
+ - create-placeholder
+ - is-placeholder?
+ - thread
+ - thread-wait-for-completion
+ - thread-sleep!
+ - thread-yield
