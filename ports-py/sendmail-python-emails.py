@@ -94,20 +94,20 @@ def socket_close(env, socket):
 # SMTP connection
 #
 
-@sendmail_suite.placeholder("smtp-connect")
-def smtp_connect(env, host, port):
+@sendmail_suite.placeholder("sendmail-connect")
+def sendmail_connect(env, host, port):
     return SMTPBackend(host=host, port=port)
     
-@sendmail_suite.placeholder("smtp-connect-with-auto-starttls")
-def smtp_connect_with_auto_starttls(env, host, port, automatic_mode):
+@sendmail_suite.placeholder("sendmail-connect-with-auto-starttls")
+def sendmail_connect_with_auto_starttls(env, host, port, automatic_mode):
     pass
 
-@sendmail_suite.placeholder("smtp-secure-connect")
-def smtp_secure_connect(env, host, port, cafile):
+@sendmail_suite.placeholder("sendmail-secure-connect")
+def sendmail_secure_connect(env, host, port, cafile):
     pass
 
-@sendmail_suite.placeholder("smtp-secure-connect-with-timeout")
-def smtp_secure_connect_with_timeout(env, host, port, cafile, timeout=None):
+@sendmail_suite.placeholder("sendmail-secure-connect-with-timeout")
+def sendmail_secure_connect_with_timeout(env, host, port, cafile, timeout=None):
     pass
     # context = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
     # context.check_hostname = False
@@ -125,12 +125,12 @@ def smtp_secure_connect_with_timeout(env, host, port, cafile, timeout=None):
     # else:
     #     return result
 
-@sendmail_suite.placeholder("smtp-disconnect")
-def smtp_disconnect(env, sender):
+@sendmail_suite.placeholder("sendmail-disconnect")
+def sendmail_disconnect(env, sender):
     sender.close()
     
-@sendmail_suite.placeholder("smtp-connected?")
-def smtp_connected(env, sender):
+@sendmail_suite.placeholder("sendmail-connected?")
+def sendmail_connected(env, sender):
     pass
 
 
@@ -138,8 +138,8 @@ def smtp_connected(env, sender):
 # Send Message
 #
 
-@sendmail_suite.placeholder("smtp-send-message-with-options")
-def smtp_send_message(env, sender:SMTPBackend, message, sender_address, recipient_addresses, message_options, recipients_options):
+@sendmail_suite.placeholder("sendmail-send-message-with-options")
+def sendmail_send_message(env, sender:SMTPBackend, message, sender_address, recipient_addresses, message_options, recipients_options):
     try:
         message = emails.Message(text=message,
                                  subject="Test",

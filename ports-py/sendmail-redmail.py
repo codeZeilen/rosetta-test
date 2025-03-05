@@ -94,8 +94,8 @@ def socket_close(env, socket):
 # SMTP connection
 #
 
-@sendmail_suite.placeholder("smtp-connect")
-def smtp_connect(env, host, port):
+@sendmail_suite.placeholder("sendmail-connect")
+def sendmail_connect(env, host, port):
     try:
         sender = EmailSender(host=host, port=port, use_starttls=False)
         sender.connect()
@@ -103,16 +103,16 @@ def smtp_connect(env, host, port):
     except Exception as e:
         return e
     
-@sendmail_suite.placeholder("smtp-connect-with-auto-starttls")
-def smtp_connect_with_auto_starttls(env, host, port, automatic_mode):
+@sendmail_suite.placeholder("sendmail-connect-with-auto-starttls")
+def sendmail_connect_with_auto_starttls(env, host, port, automatic_mode):
     pass
 
-@sendmail_suite.placeholder("smtp-secure-connect")
-def smtp_secure_connect(env, host, port, cafile):
+@sendmail_suite.placeholder("sendmail-secure-connect")
+def sendmail_secure_connect(env, host, port, cafile):
     pass
 
-@sendmail_suite.placeholder("smtp-secure-connect-with-timeout")
-def smtp_secure_connect_with_timeout(env, host, port, cafile, timeout=None):
+@sendmail_suite.placeholder("sendmail-secure-connect-with-timeout")
+def sendmail_secure_connect_with_timeout(env, host, port, cafile, timeout=None):
     pass
     # context = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
     # context.check_hostname = False
@@ -130,15 +130,15 @@ def smtp_secure_connect_with_timeout(env, host, port, cafile, timeout=None):
     # else:
     #     return result
 
-@sendmail_suite.placeholder("smtp-disconnect")
-def smtp_disconnect(env, sender):
+@sendmail_suite.placeholder("sendmail-disconnect")
+def sendmail_disconnect(env, sender):
     try:
         sender.close()
     except smtplib.SMTPServerDisconnected:
         pass # We are good apparently
     
-@sendmail_suite.placeholder("smtp-connected?")
-def smtp_connected(env, sender: EmailSender):
+@sendmail_suite.placeholder("sendmail-connected?")
+def sendmail_connected(env, sender: EmailSender):
     return sender.is_alive
 
 
@@ -146,8 +146,8 @@ def smtp_connected(env, sender: EmailSender):
 # Send Message
 #
 
-@sendmail_suite.placeholder("smtp-send-message-with-options")
-def smtp_send_message(env, sender: EmailSender, message, sender_address, recipient_addresses, message_options, recipients_options):
+@sendmail_suite.placeholder("sendmail-send-message-with-options")
+def sendmail_send_message(env, sender: EmailSender, message, sender_address, recipient_addresses, message_options, recipients_options):
     try:
         sender.send(sender=sender_address,
                        receivers=recipient_addresses,
