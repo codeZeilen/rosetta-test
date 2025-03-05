@@ -125,8 +125,6 @@ class PortsSuite(object):
             "assert": ports_assert,
             "assert-equal": ports_assert_eq,
             "is-assertion-error?": lambda e: isinstance(e, AssertionError),
-            "true": True,
-            "false": False,
             "thread": ports_thread,
             "thread-wait-for-completion": ports_thread_join,
             "thread-sleep!": lambda x: time.sleep(float(x)),
@@ -177,7 +175,7 @@ class PortsSuite(object):
     def run_test(self, ports_test):
         return self.eval_with_args("(test-run current_test)", current_test=ports_test)
     
-    def run(self, only=None, only_capabilities=None, exclude=None, exclude_capabilities=None):
+    def run(self, only=None, only_capabilities=None, exclude=None, exclude_capabilities=None, expected_failures=[]):
         self.initialize_suite()
         self.install_setUp_tearDown_functions()
         self.ensure_placeholders_are_valid()
@@ -197,7 +195,10 @@ class PortsSuite(object):
             setattr(TestPortsUnittestContainer,
                     test_name,
                     self.generate_unittest_test_method(test))
-            test_suite.addTest(TestPortsUnittestContainer(test_name))
+            test_case = TestPortsUnittestContainer(test_name)
+            if test_name in expected_failures:
+                unittest.expectedFailure(test_case)
+            test_suite.addTest(test_case)
         unittest.TextTestRunner().run(test_suite)
 
 
