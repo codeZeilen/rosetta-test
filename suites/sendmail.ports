@@ -238,8 +238,8 @@
                 (test "Handle 421 at start of data command" (lambda ()
                     (server-set-command-response-code! server "DATA" "421 Service not available")
                     (let
-                        ((response (smtp-send-message smtp-connection "message content" "sender@sender.to" '("user@recipient.to"))))
-                        (assert-response-codes response 421)
+                        ((responses (smtp-send-message smtp-connection "message content" "sender@sender.to" '("user@recipient.to"))))
+                        (assert (all? send-error? responses))
                         (assert (not (smtp-connected? smtp-connection)) "421 should have lead to client terminating connection."))))
 
                 (test "Handle 421 during data command" (lambda ()
