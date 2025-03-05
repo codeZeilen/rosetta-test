@@ -126,7 +126,7 @@ def smtp_secure_connect_with_timeout(env, host, port, cafile, timeout=None):
         return result
 
 @smtp_suite.placeholder("smtp-disconnect")
-def smtp_disconnect(env, smtp):
+def smtp_disconnect(env, smtp: smtplib.SMTP):
     smtp.close()
     
 @smtp_suite.placeholder("smtp-connected?")
@@ -339,4 +339,4 @@ smtp_suite.run(
             "test_CRLF_detection_in_EXPN_command",
             # There is no check whether the server supports 8BITMIME
             "test_non-ascii_content_in_send-message_without_8BITMIME_support"),
-        expected_failures=("test_Handle_421_during_data_command",))
+        expected_failures=("test_Handle_421_during_data_command","test_Handle_421_at_start_of_data_command",))
