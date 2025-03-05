@@ -88,8 +88,8 @@ A PorTS interpreter implementation should load the core procedures in the follow
 ### Optional mechanisms
 - Warning when placeholders are not defined
 - Proposing snippets to fill placeholders quickly
-- Selecting/excluding tests and capabilities (only, exclude for tests and capabilities)
-- Expected failures
+- Selecting/excluding tests and capabilities (only, exclude for tests and capabilities) to denote that a certain features is not supported at all
+- Expected failures to denote that a feature should be supported but is currently not passing the marked tests
 - Integration with host test runner
 
 
