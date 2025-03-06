@@ -22,6 +22,9 @@ const _include = Sym('include');
 const _quasiquote = Sym('quasiquote');
 const _unquote = Sym('unquote');
 const _unquotesplicing = Sym('unquote-splicing');
+const _append = Sym('append');
+const _cons = Sym('cons');
+const _let = Sym('let');
 
 // Procedure class
 class Procedure {
@@ -82,6 +85,131 @@ class Env extends Map {
 const isPair = x => Array.isArray(x) && x.length > 0;
 const cons = (x, y) => [x, ...y];
 const isa = (x, type) => typeof x === type || x instanceof type;
+
+// Macro table for storing macros
+const macro_table = new Map();
+
+// Require helper function for syntax checking
+function require(x, predicate, msg = "wrong length") {
+  if (!predicate) throw new SyntaxError(`${x}: ${msg}`);
+}
+
+// Expand quasiquote expressions
+function expand_quasiquote(x) {
+  if (!isPair(x)) {
+    return [_quote, x];
+  }
+  require(x, x[0] !== _unquotesplicing, "can't splice here");
+  if (x[0] === _unquote) {
+    require(x, x.length === 2);
+    return x[1];
+  } else if (isPair(x[0]) && x[0][0] === _unquotesplicing) {
+    require(x[0], x[0].length === 2);
+    return [_append, x[0][1], expand_quasiquote(x.slice(1))];
+  } else {
+    return [_cons, expand_quasiquote(x[0]), expand_quasiquote(x.slice(1))];
+  }
+}
+
+// Expand include expressions
+function expand_include(x) {
+  const result = [_begin];
+  for (let i = 1; i < x.length; i++) {
+    const filename = x[i];
+    try {
+      const content = readFileSync(filename, 'utf8');
+      const parsed = parse(content);
+      if (parsed) {
+        result.push(parsed);
+      } else {
+        throw new Error(`Could not include content of ${filename}`);
+      }
+    } catch (err) {
+      throw new Error(`Error including file ${filename}: ${err.message}`);
+    }
+  }
+  return result;
+}
+
+// Expand expressions - handles macros and special forms
+function expand(x, toplevel = false) {
+  require(x, x.length !== 0);  // () => Error
+  
+  if (!Array.isArray(x)) {  // constant => unchanged
+    return x;
+  } else if (x[0] === _include) {  // (include string1 string2 ...)
+    require(x, x.length > 1);
+    return expand_include(x);
+  } else if (x[0] === _quote) {  // (quote exp)
+    require(x, x.length === 2);
+    return x;
+  } else if (x[0] === _if) {
+    if (x.length === 3) x.push(null);  // (if t c) => (if t c null)
+    require(x, x.length === 4);
+    return x.map(expand);
+  } else if (x[0] === _set) {
+    require(x, x.length === 3);
+    const variable = x[1];
+    require(x, typeof variable === 'symbol', "can set! only a symbol");
+    return [_set, variable, expand(x[2])];
+  } else if (x[0] === _define || x[0] === _definemacro) {
+    require(x, x.length >= 3);
+    const [def, v, ...body] = x;
+    if (Array.isArray(v) && v.length > 0) {  // (define (f args) body)
+      const [f, ...args] = v;                //  => (define f (lambda (args) body))
+      return expand([def, f, [_lambda, args, ...body]]);
+    } else {
+      require(x, x.length === 3);
+      require(x, typeof v === 'symbol', "can define only a symbol");
+      const exp = expand(x[2]);
+      if (def === _definemacro) {
+        require(x, toplevel, "define-macro only allowed at top level");
+        const proc = evaluate(exp);
+        require(x, typeof proc === 'function', "macro must be a procedure");
+        macro_table.set(v, proc);  // (define-macro v proc)
+        return null;               //  => null; add v:proc to macro_table
+      }
+      return [_define, v, exp];
+    }
+  } else if (x[0] === _begin) {
+    if (x.length === 1) return null;  // (begin) => null
+    return x.map(xi => expand(xi, toplevel));
+  } else if (x[0] === _lambda) {  // (lambda (x) e1 e2)
+    require(x, x.length >= 3);    //  => (lambda (x) (begin e1 e2))
+    const [_, vars, ...body] = x;
+    require(x, 
+      (Array.isArray(vars) && vars.every(v => typeof v === 'symbol')) || 
+      typeof vars === 'symbol', 
+      "illegal lambda argument list");
+    const exp = body.length === 1 ? body[0] : [_begin, ...body];
+    return [_lambda, vars, expand(exp)];
+  } else if (x[0] === _quasiquote) {  // `x => expand_quasiquote(x)
+    require(x, x.length === 2);
+    return expand_quasiquote(x[1]);
+  } else if (typeof x[0] === 'symbol' && macro_table.has(x[0])) {
+    return expand(macro_table.get(x[0])(...x.slice(1)), toplevel);  // (m arg...)
+  } else {                          //        => macroexpand if m is a macro
+    return x.map(expand);           // (f arg...) => expand each
+  }
+}
+
+// Let macro implementation
+function letMacro(...args) {
+  const x = [_let, ...args];
+  require(x, args.length > 1);
+  const [bindings, ...body] = args;
+  require(x, bindings.every(b => 
+    Array.isArray(b) && b.length === 2 && typeof b[0] === 'symbol'
+  ), "illegal binding list");
+  
+  const vars = bindings.map(b => b[0]);
+  const vals = bindings.map(b => b[1]);
+  
+  return [[_lambda, vars, ...body.map(expand)], ...vals.map(expand)];
+}
+
+// Initialize the macro table with the let macro
+macro_table.set(_let, letMacro);
 
 // Global environment setup
 const globalEnv = new Env();
@@ -193,14 +321,21 @@ function evaluate(x, env = globalEnv) {
   }
 }
 
+// Add parse function that includes expansion
+export function parse(inport) {
+  const parsed = parseWithoutExpand(inport);
+  return expand(parsed, true);
+}
+
 // Public API
 export function evalSchemeString(str) {
-  return evaluate(parseWithoutExpand(str));
+  return evaluate(parse(str));
 }
 
 export function evalScheme(list) {
-  return evaluate(list);
+  return evaluate(expand(list, true));
 }
+
 
 function main() {
     console.log(evalSchemeString("(+ (* 2 3) 2)")); // Should output 3
