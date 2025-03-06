@@ -39,13 +39,13 @@ function parseTokens(tokens) {
     } else if (token === ')') {
         throw new Error("Unexpected ')'");
     } else if (token === "'") {
-        return [Symbol("quote"), parseTokens(tokens)];
+        return [Symbol.for("quote"), parseTokens(tokens)];
     } else if (token === "`") {
-        return [Symbol("quasiquote"), parseTokens(tokens)];
+        return [Symbol.for("quasiquote"), parseTokens(tokens)];
     } else if (token === ",") {
-        return [Symbol("unquote"), parseTokens(tokens)];
+        return [Symbol.for("unquote"), parseTokens(tokens)];
     } else if (token === ",@") {
-        return [Symbol("unquote-splicing"), parseTokens(tokens)];
+        return [Symbol.for("unquote-splicing"), parseTokens(tokens)];
     } else {
         return parseAtom(token);
     }
@@ -73,9 +73,9 @@ function parseAtom(token) {
     }
     numberParseTry = parseFloat(token); // TODO: This should try to parse a fraction instead
     if (!isNaN(numberParseTry) && isFinite(token)) {
-        return new Fraction(token);
+        return numberParseTry; // Replace Fraction with native float for now
     } 
-    return Symbol(token);
+    return Symbol.for(token); // Use native JavaScript Symbol.for()
 };
 
 export function parseWithoutExpand(inputString) {
@@ -107,7 +107,7 @@ function main() {
         } else if (target === "Character") {
             return typeof structure === 'string' && structure.length === 1;
         } else if (target === "Symbol") {
-            return Object.prototype.toString.call(structure) === '[object Symbol]';
+            return typeof structure === 'symbol';
         } else if (target === "Number") {
             return typeof structure === 'number';
         }
