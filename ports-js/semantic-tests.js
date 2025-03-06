@@ -26,7 +26,9 @@ function matches(result, target) {
             return match;
         }
     }
-
+    if (typeof result === 'symbol') {
+        return valueToString(result) == target;
+    }
 
     return result == target;
 }
@@ -39,7 +41,7 @@ function valueToString(value) {
             `${Symbol.keyFor(value)}` : 
             value.toString();
     }
-    
+
     if (value === null) return 'null';
     if (value === undefined) return 'undefined';
     
@@ -84,6 +86,6 @@ for (const entry of testTable) {
     if (matches(evalResult, entry.expected)) {
         console.log(`✅: ${input}`);
     } else {
-        console.log(`❌: ${input} got ${valueToString(evalResult)} instead`);
+        console.log(`❌: ${input} got ${valueToString(evalResult)}[${typeof evalResult}] instead of ${valueToString(entry.expected)}[${typeof entry.expected}]`);
     }
 }
