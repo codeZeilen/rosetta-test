@@ -8,11 +8,27 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 // Helper function to check if result matches expected output
-function matches(structure, target) {
+function matches(result, target) {
     if (target && typeof target === 'object' && 'type' in target) {
-        return structure instanceof Error;
+        return result instanceof Error;
     }
-    return structure === target;
+    if (target instanceof Array) {
+        if (!(result instanceof Array)) {
+            return false;
+        }
+        if (result.length !== target.length) {
+            return false;
+        } else {
+            let match = true;
+            for (let i = 0; i < target.length; i++) {
+                match = match && matches(result[i], target[i]);
+            }
+            return match;
+        }
+    }
+
+
+    return result == target;
 }
 
 // Helper function to safely convert any value to string representation
@@ -20,7 +36,7 @@ function valueToString(value) {
     if (typeof value === 'symbol') {
         // Extract the symbol's description
         return Symbol.keyFor(value) ? 
-            `Symbol(${Symbol.keyFor(value)})` : 
+            `${Symbol.keyFor(value)}` : 
             value.toString();
     }
     
