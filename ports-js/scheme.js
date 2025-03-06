@@ -133,7 +133,7 @@ function expand_include(x) {
 
 // Expand expressions - handles macros and special forms
 function expand(x, toplevel = false) {
-  require(x, x.length !== 0);  // () => Error
+  require(x, !Array.isArray(x) || x.length !== 0);  // () => Error
   
   if (!Array.isArray(x)) {  // constant => unchanged
     return x;
@@ -146,7 +146,7 @@ function expand(x, toplevel = false) {
   } else if (x[0] === _if) {
     if (x.length === 3) x.push(null);  // (if t c) => (if t c null)
     require(x, x.length === 4);
-    return x.map(expand);
+    return x.map(ea => expand(ea));
   } else if (x[0] === _set) {
     require(x, x.length === 3);
     const variable = x[1];
@@ -189,7 +189,7 @@ function expand(x, toplevel = false) {
   } else if (typeof x[0] === 'symbol' && macro_table.has(x[0])) {
     return expand(macro_table.get(x[0])(...x.slice(1)), toplevel);  // (m arg...)
   } else {                          //        => macroexpand if m is a macro
-    return x.map(expand);           // (f arg...) => expand each
+    return x.map(ea => expand(ea));           // (f arg...) => expand each
   }
 }
 
@@ -205,7 +205,7 @@ function letMacro(...args) {
   const vars = bindings.map(b => b[0]);
   const vals = bindings.map(b => b[1]);
   
-  return [[_lambda, vars, ...body.map(expand)], ...vals.map(expand)];
+  return [[_lambda, vars, ...body.map(ea => expand(ea))], ...vals.map(ea => expand(ea))];
 }
 
 // Initialize the macro table with the let macro
