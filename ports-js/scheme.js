@@ -1,6 +1,6 @@
 import { parseWithoutExpand } from './parser.js';
 
-import { readFileSync } from 'fs';
+import { readFile, readFileSync } from 'fs';
 import URL from 'url';
 
 // Use JavaScript native Symbol instead of custom implementation
@@ -360,6 +360,8 @@ export function evalScheme(list) {
 
 addGlobals(globalEnv);
 
+var stdlibConent = readFileSync('ports/stdlib.scm', 'utf8')
+evalSchemeString(stdlibConent);
 
 function main() {
     console.log(evalSchemeString("(+ (* 2 3) 2)")); // Should output 3
