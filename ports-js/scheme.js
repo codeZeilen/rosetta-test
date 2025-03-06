@@ -203,7 +203,12 @@ function expand(x, toplevel = false) {
     require(x, x.length === 2);
     return expand_quasiquote(x[1]);
   } else if (typeof x[0] === 'symbol' && macro_table.has(x[0])) {
-    return expand(macro_table.get(x[0]).call(...x.slice(1)), toplevel);  // (m arg...)
+    var proc = macro_table.get(x[0])
+    if (proc instanceof Procedure) {
+        return expand(proc.call(...x.slice(1)), toplevel);  // (m arg...)
+    } else {
+        return expand(proc(...x.slice(1)), toplevel);  // (m arg...)
+    }
   } else {                          //        => macroexpand if m is a macro
     return x.map(ea => expand(ea));           // (f arg...) => expand each
   }
@@ -282,8 +287,6 @@ function addGlobals(env) {
   return env;
 }
 
-addGlobals(globalEnv);
-
 // Evaluation function
 function evaluate(x, env = globalEnv) {
   while (true) {
@@ -354,6 +357,8 @@ export function evalSchemeString(str) {
 export function evalScheme(list) {
   return evaluate(expand(list, true));
 }
+
+addGlobals(globalEnv);
 
 
 function main() {
