@@ -360,8 +360,7 @@ export function evalScheme(list) {
 
 addGlobals(globalEnv);
 
-var stdlibConent = readFileSync('ports/stdlib.scm', 'utf8')
-evalSchemeString(stdlibConent);
+evalSchemeString(readFileSync('ports/stdlib.scm', 'utf8'));
 
 function main() {
     console.log(evalSchemeString("(+ (* 2 3) 2)")); // Should output 3
