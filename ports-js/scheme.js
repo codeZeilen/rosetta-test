@@ -26,6 +26,22 @@ const _append = Sym('append');
 const _cons = Sym('cons');
 const _let = Sym('let');
 
+
+function asString(expr) {
+    if (typeof expr === 'symbol') {
+        return Symbol.keyFor(expr) || expr.toString();
+    } else if (Array.isArray(expr)) {
+        return `(${expr.map(asString).join(' ')})`;
+    } else if (expr === true) {
+        return '#t';
+    } else if (expr === false) {
+        return '#f';
+    } else {
+        return expr.toString();
+    }
+
+}
+
 // Procedure class
 class Procedure {
   constructor(parms, exp, env) {
@@ -91,7 +107,7 @@ const macro_table = new Map();
 
 // Require helper function for syntax checking
 function require(x, predicate, msg = "wrong length") {
-  if (!predicate) throw new SyntaxError(`${x}: ${msg}`);
+  if (!predicate) throw new SyntaxError(`${asString(x)}: ${msg}`);
 }
 
 // Expand quasiquote expressions
@@ -165,7 +181,7 @@ function expand(x, toplevel = false) {
       if (def === _definemacro) {
         require(x, toplevel, "define-macro only allowed at top level");
         const proc = evaluate(exp);
-        require(x, typeof proc === 'function', "macro must be a procedure");
+        require(x, proc instanceof Procedure, "macro must be a procedure");
         macro_table.set(v, proc);  // (define-macro v proc)
         return null;               //  => null; add v:proc to macro_table
       }
@@ -187,7 +203,7 @@ function expand(x, toplevel = false) {
     require(x, x.length === 2);
     return expand_quasiquote(x[1]);
   } else if (typeof x[0] === 'symbol' && macro_table.has(x[0])) {
-    return expand(macro_table.get(x[0])(...x.slice(1)), toplevel);  // (m arg...)
+    return expand(macro_table.get(x[0]).call(...x.slice(1)), toplevel);  // (m arg...)
   } else {                          //        => macroexpand if m is a macro
     return x.map(ea => expand(ea));           // (f arg...) => expand each
   }
@@ -260,6 +276,9 @@ function addGlobals(env) {
   env.set(Sym('boolean?'), x => typeof x === 'boolean');
   env.set(Sym('pair?'), isPair);
   
+
+  env.set(Sym('display'), (...args) => console.log(...args));
+
   return env;
 }
 
