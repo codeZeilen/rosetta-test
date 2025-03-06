@@ -52,21 +52,28 @@ class Env extends Map {
     }
   }
 
+  keyFor(variable) {
+    return typeof variable === 'symbol' ? variable : Symbol.for(variable);
+  }
+
   find(variable) {
-    if (this.has(variable)) {
+    const key = this.keyFor(variable);
+      
+    if (this.has(key)) {
       return this;
-    } else if (this.outer === null) {
-      throw new Error(`Variable ${variable} not found`);
-    } else {
+    }
+    if (this.outer) {
       return this.outer.find(variable);
     }
+    throw new Error(`Variable ${Symbol.keyFor(key)} not found`);
   }
 
   unset(variable) {
-    if (this.has(variable)) {
-      this.delete(variable);
+    const key = this.keyFor(variable);
+    if (this.has(key)) {
+      this.delete(key);
     } else {
-      throw new Error(`Variable ${variable} not found`);
+      throw new Error(`Variable ${Symbol.keyFor(key)} not found`);
     }
   }
 }
