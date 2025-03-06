@@ -1,5 +1,8 @@
 import { parseWithoutExpand } from './parser.js';
 
+import { readFileSync } from 'fs';
+import URL from 'url';
+
 // Use JavaScript native Symbol instead of custom implementation
 function Sym(s) {
   return Symbol.for(s);
@@ -192,5 +195,14 @@ export function evalScheme(list) {
   return evaluate(list);
 }
 
-console.log(evalSchemeString("(+ 1 2)")); // Should output 3
+function main() {
+    console.log(evalSchemeString("(+ (* 2 3) 2)")); // Should output 3
+}
 
+// run tests only if started directly
+if (import.meta.url.startsWith('file:')) {
+    const modulePath = URL.fileURLToPath(import.meta.url);
+    if (process.argv[1] === modulePath) {
+        main()
+    }
+  }
