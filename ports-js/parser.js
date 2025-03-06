@@ -1,4 +1,6 @@
 import { readFileSync } from 'fs';
+import URL from 'url';
+
 
 function tokenize(expression) {
     const pattern = /\s*(,@|[('`,)]|"(?:[\\].|[^\\"])*"|;.*|[^\s('"`;,)]*)(.*)/;
@@ -81,42 +83,53 @@ export function parseWithoutExpand(inputString) {
     return parseTokens(tokens);
 };
 
-const testTable = JSON.parse(readFileSync('ports/syntax-tests.json'));
+function main() {
+    const testTable = JSON.parse(readFileSync('ports/syntax-tests.json'));
 
-function matches(structure, target) {
-    if (Array.isArray(target)) {
-        if (!Array.isArray(structure)) {
-            return false;
-        }
-        if (structure.length !== target.length) {
-            return false;
-        } else {
-            let result = true;
-            for (let i = 0; i < target.length; i++) {
-                result = result && matches(structure[i], target[i]);
+    function matches(structure, target) {
+        if (Array.isArray(target)) {
+            if (!Array.isArray(structure)) {
+                return false;
             }
-            return result;
+            if (structure.length !== target.length) {
+                return false;
+            } else {
+                let result = true;
+                for (let i = 0; i < target.length; i++) {
+                    result = result && matches(structure[i], target[i]);
+                }
+                return result;
+            }
+        } else if (target === "Boolean") {
+            return typeof structure === 'boolean';
+        } else if (target === "String") {
+            return typeof structure === 'string';
+        } else if (target === "Character") {
+            return typeof structure === 'string' && structure.length === 1;
+        } else if (target === "Symbol") {
+            return Object.prototype.toString.call(structure) === '[object Symbol]';
+        } else if (target === "Number") {
+            return typeof structure === 'number';
         }
-    } else if (target === "Boolean") {
-        return typeof structure === 'boolean';
-    } else if (target === "String") {
-        return typeof structure === 'string';
-    } else if (target === "Character") {
-        return typeof structure === 'string' && structure.length === 1;
-    } else if (target === "Symbol") {
-        return Object.prototype.toString.call(structure) === '[object Symbol]';
-    } else if (target === "Number") {
-        return typeof structure === 'number';
     }
+    
+    for (const entry of testTable.filter(row => typeof row !== 'string')) {
+        const parseResult = parseWithoutExpand(entry[0]);
+        if (matches(parseResult, entry[1])) {
+            console.log(`✅: ${JSON.stringify(entry)}`);
+        } else {
+            console.log(`❌: ${JSON.stringify(entry)} got ${JSON.stringify(parseResult)} instead`);
+        }
+    }     
+    console.log("End of test run");
 }
 
-for (const entry of testTable.filter(row => typeof row !== 'string')) {
-    const parseResult = parseWithoutExpand(entry[0]);
-    if (matches(parseResult, entry[1])) {
-        console.log(`✅: ${JSON.stringify(entry)}`);
-    } else {
-        console.log(`❌: ${JSON.stringify(entry)} got ${JSON.stringify(parseResult)} instead`);
+// run tests only if started directly
+if (import.meta.url.startsWith('file:')) {
+    const modulePath = URL.fileURLToPath(import.meta.url);
+    if (process.argv[1] === modulePath) {
+        main()
     }
-} 
+  }
 
-console.log("End of test run");
+
