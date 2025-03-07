@@ -289,10 +289,11 @@ function addGlobals(env) {
   env.set(Sym('boolean?'), x => typeof x === 'boolean');
   env.set(Sym('pair?'), isPair);
   
-
+  // System operations
   env.set(Sym('display'), (...args) => {
     process.stdout.write(args.map((ea) => asString(ea)).join(''));
   });
+  env.set(Sym('exit'), (code = 0) => process.exit(code));
 
   return env;
 }

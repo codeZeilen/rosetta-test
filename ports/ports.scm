@@ -195,15 +195,14 @@
     (define (data-test-data data-test) (list-ref data-test 4))
 
     (define (test-run-with-result test) 
-    (with-exception-handler 
-        (lambda (e) 
-            (if (is-assertion-error? e)
-                (test-result test 'failure e)
-                (test-result test 'error e))
-            (raise e))
-        (lambda () 
-            (test-run test)
-            (test-result test 'success '()))))
+        (with-exception-handler 
+            (lambda (e) 
+                (if (is-assertion-error? e)
+                    (test-result test 'failure e)
+                    (test-result test 'error e)))
+            (lambda () 
+                (test-run test)
+                (test-result test 'success '()))))
 
     ; Setup/tearDown 
     ;
@@ -253,11 +252,17 @@
             ((tests (capability-all-tests root-capability)))
             (let 
                 ((selected-tests (select-tests tests only-tests only-capabilities exclude-tests exclude-capabilities)))
-                (display-test-results 
+                (let 
+                    ((test-results 
                     (map  
                         (lambda (test)
                             (let ((test-result (test-run-with-result test)))
                                 (display (short-hand-test-result test-result))
                                 test-result))
-                        selected-tests)))))
+                        selected-tests)))
+                    (display-test-results test-results)
+                    (if (any? 
+                            (lambda (test-result) (or (is-failure? test-result) (is-error? test-result))) 
+                            test-results)
+                        (exit 1))))))
 )

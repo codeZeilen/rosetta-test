@@ -41,12 +41,13 @@ PorTS does not support hygenic macros, as we expect macros to be almost exclusiv
 - null?
 - symbol?
 - boolean?
-- display
+- display (Should not print newline after the string)
 - not
 - +, -, *, /
 - >, <, >=, <=, =
 - abs
 - length
+- exit 
 <!-- - apply? -->
 
 <!-- 
