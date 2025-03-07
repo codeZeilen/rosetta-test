@@ -4,7 +4,7 @@ import { readFile, readFileSync } from 'fs';
 import URL from 'url';
 
 // Use JavaScript native Symbol instead of custom implementation
-function Sym(s) {
+export function Sym(s) {
   return Symbol.for(s);
 }
 
@@ -27,7 +27,7 @@ const _cons = Sym('cons');
 const _let = Sym('let');
 
 
-function asString(expr) {
+export function asString(expr) {
     if (typeof expr === 'symbol') {
         return Symbol.keyFor(expr) || expr.toString();
     } else if (Array.isArray(expr)) {
@@ -43,20 +43,20 @@ function asString(expr) {
 }
 
 // Procedure class
-class Procedure {
+export class Procedure {
   constructor(parms, exp, env) {
     this.parms = parms;
     this.exp = exp;
     this.env = env;
   }
 
-  call(...args) {
+  call(that, ...args) {
     return evaluate(this.exp, new Env(this.parms, args, this.env));
   }
 }
 
 // Environment class
-class Env extends Map {
+export class Env extends Map {
   constructor(parms = [], args = [], outer = null) {
     super();
     this.outer = outer;
@@ -205,7 +205,7 @@ function expand(x, toplevel = false) {
   } else if (typeof x[0] === 'symbol' && macro_table.has(x[0])) {
     var proc = macro_table.get(x[0])
     if (proc instanceof Procedure) {
-        return expand(proc.call(...x.slice(1)), toplevel);  // (m arg...)
+        return expand(proc.call(null, ...x.slice(1)), toplevel);  // (m arg...)
     } else {
         return expand(proc(...x.slice(1)), toplevel);  // (m arg...)
     }
@@ -233,7 +233,7 @@ function letMacro(...args) {
 macro_table.set(_let, letMacro);
 
 // Global environment setup
-const globalEnv = new Env();
+export const globalEnv = new Env();
 
 function addGlobals(env) {
   // Add basic operations
@@ -261,6 +261,14 @@ function addGlobals(env) {
   
   // Error handling
   env.set(Sym('error'), msg => { throw new Error(msg); });
+  env.set(Sym('with-exception-handler'), (handler, thunk) => {
+    try {
+      return thunk.call();
+    } catch (e) {
+      return handler.call(null, e);
+    }
+  });
+  env.set(Sym("raise"), (e) => { throw e; });
   
   // String operations
   env.set(Sym('string-append'), (...strs) => strs.reduce((acc, s) => acc + String(s), ''));
@@ -337,7 +345,7 @@ function evaluate(x, env = globalEnv) {
         x = proc.exp;
         env = new Env(proc.parms, exps, proc.env);
       } else {
-        return proc(...exps);
+        return proc.call(null, ...exps);
       }
     }
   }
@@ -350,12 +358,8 @@ export function parse(inport) {
 }
 
 // Public API
-export function evalSchemeString(str) {
-  return evaluate(parse(str));
-}
-
-export function evalScheme(list) {
-  return evaluate(expand(list, true));
+export function evalSchemeString(str, env = globalEnv) {
+  return evaluate(parse(str), env);
 }
 
 addGlobals(globalEnv);

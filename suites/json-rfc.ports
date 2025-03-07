@@ -32,7 +32,7 @@
         (capability 'string (append 
             (json-suite-tests "y_string_")
             (json-suite-tests "n_string_")))
-
+        
         (capability 'number (append 
             (json-suite-tests "y_number_")
             (json-suite-tests "n_number_")))
