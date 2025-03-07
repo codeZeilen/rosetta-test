@@ -290,7 +290,9 @@ function addGlobals(env) {
   env.set(Sym('pair?'), isPair);
   
 
-  env.set(Sym('display'), (...args) => console.log(...args));
+  env.set(Sym('display'), (...args) => {
+    process.stdout.write(args.map((ea) => asString(ea)).join(''));
+  });
 
   return env;
 }
