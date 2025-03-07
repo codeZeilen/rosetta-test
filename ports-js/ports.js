@@ -198,13 +198,14 @@ inval
         this.schemeEnv.set(Sym("root-capability"), this.rootCapability);
 
         this.evalSchemeWithArgs(
-            "(run-suite suite_name suite_version root-capability only_tests only_capabilities exclude exclude_capabilities)", 
-            {"suite_name": this.suiteName,
-            "suite_version": this.suiteVersion,
-            "only_tests": only, 
-            "only_capabilities": onlyCapabilities, 
-            "exclude": exclude, 
-            "exclude_capabilities": excludeCapabilities});
+            "(run-suite suite_name suite_version root-capability only_tests only_capabilities exclude exclude_capabilities expected_failures)", 
+            {suite_name: this.suiteName,
+            suite_version: this.suiteVersion,
+            only_tests: only, 
+            only_capabilities: onlyCapabilities, 
+            exclude: exclude, 
+            exclude_capabilities: excludeCapabilities,
+            expected_failures: expectedFailures});
     }
 }
 
