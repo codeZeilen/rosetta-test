@@ -140,9 +140,21 @@
     (define (is-error? test-result) (equal? 'error (test-result-result test-result)))
     (define (is-success? test-result) (equal? 'success (test-result-result test-result)))
 
-    (define (short-hand-test-result test-result)
+    (define (short-hand-test-result test-result expected-failures)
         (cond
+            ((and 
+                (is-success? test-result) 
+                (member 
+                    (test-full-name (test-result-test test-result)) 
+                    expected-failures)) 
+             "S")
             ((is-success? test-result) ".")
+            ((and 
+                (is-failure? test-result) 
+                (member 
+                    (test-full-name (test-result-test test-result)) 
+                    expected-failures)) 
+             "X")
             ((is-failure? test-result) "F")
             ((is-error? test-result) "E")))
 
@@ -238,34 +250,78 @@
                     (and exclude-capabilities (test-capability-identifier-matches test exclude-capabilities)))))
             tests))
 
-    (define (display-test-results test-results)
+    (define (expected-failures-test-result? test-result expected-failures)
+        (member (test-full-name (test-result-test test-result)) expected-failures))
+
+    (define (display-test-results test-results expected-failures)
+        (define (is-true-failure? test-result)
+            (and 
+                (is-failure? test-result) 
+                (not (expected-failures-test-result? test-result expected-failures))))
+        (define (is-true-error? test-result)
+            (and 
+                (is-error? test-result) 
+                (not (expected-failures-test-result? test-result expected-failures))))
+        (define (is-expected-failure? test-result)
+            (and 
+                (is-failure? test-result) 
+                (expected-failures-test-result? test-result expected-failures)))
+        (define (is-unexpected-pass? test-result)
+            (and 
+                (is-success? test-result)
+                (expected-failures-test-result? test-result expected-failures)))
+        (define (is-true-success? test-result)
+            (and 
+                (is-success? test-result) 
+                (not (expected-failures-test-result? test-result expected-failures))))
+
         (display "\nTests done - Results\n")
         (let 
-            ((successes (filter is-success? test-results))
-             (failures (filter is-failure? test-results))
-             (errors (filter is-error? test-results)))
+            ((successes (filter is-true-success? test-results))
+             (failures (filter is-true-failure? test-results))
+             (errors (filter is-true-error? test-results))
+             (expected-failures (filter is-expected-failure? test-results))
+             (unexpected-passes (filter is-unexpected-pass? test-results)))
+            
             (display 
-                (string-append "Success: " (length successes) ", Failure:" (length failures) ", Errors:" (length errors) "\n\n"))
-            (if (> (length successes) 0)
-                (begin
-                    (display "Failures:\n")
-                    (for-each 
-                        (lambda (test-result)
-                            (display "- " (string-append (test-full-name (test-result-test test-result)) "\n"))
-                            (display "\t" (test-result-exception test-result))
-                            (display "\n\n"))
-                        failures)))
-            (if (> (length errors) 0)
-                (begin 
-                    (display "Errors:\n")
-                    (for-each 
-                        (lambda (test-result)
-                            (display "- " (string-append (test-full-name (test-result-test test-result)) "\n"))
-                            (display "\t" (test-result-exception test-result))
-                            (display "\n\n"))
-                        errors)))))
+                (string-append "Success: " (length successes) ", Failure:" (length failures) ", Errors:" (length errors)))
+            (if (not (empty? expected-failures))
+                (display (string-append ", Expected failures: " (length expected-failures))))
+            (if (not (empty? unexpected-passes))
+                (display (string-append ", Unexpected passes: " (length unexpected-passes))))
+            (display "\n")
 
-    (define (run-suite suite-name suite-version root-capability only-tests only-capabilities exclude-tests exclude-capabilities)
+            (define (display-test-result-details test-results info)
+                (for-each 
+                        (lambda (test-result)
+                            (display "- " (string-append (test-full-name (test-result-test test-result)) "\n"))
+                            (display (info test-result))
+                            (display "\n"))
+                        test-results))
+
+            (if (not (empty? failures))
+                (begin
+                    (display "\nFailures:\n")
+                    (display-test-result-details 
+                        failures
+                        (lambda (test-result) (string-append "\t" (test-result-exception test-result))))))
+
+            (if (not (empty? errors))
+                (begin
+                    (display "\nFailures:\n")
+                    (display-test-result-details 
+                        errors
+                        (lambda (test-result) (string-append "\t" (test-result-exception test-result))))))
+
+            (if (not (empty? unexpected-passes))
+                (begin
+                    (display "\nUnexpected Passes:\n")
+                    (display-test-result-details 
+                        unexpected-passes
+                        (lambda (test-result) ""))))
+    ))
+
+    (define (run-suite suite-name suite-version root-capability only-tests only-capabilities exclude-tests exclude-capabilities expected-failures)
         (display (string-append "Running suite: " suite-name " " suite-version "\n"))
         (let 
             ((tests (capability-all-tests root-capability)))
@@ -276,12 +332,16 @@
                     (map  
                         (lambda (test)
                             (let ((test-result (test-run-with-result test)))
-                                (display (short-hand-test-result test-result))
+                                (display (short-hand-test-result test-result expected-failures))
                                 test-result))
                         selected-tests)))
-                    (display-test-results test-results)
+                    (display-test-results test-results expected-failures)
                     (if (any? 
-                            (lambda (test-result) (or (is-failure? test-result) (is-error? test-result))) 
+                            (lambda (test-result) 
+                                (or 
+                                    (and (is-failure? test-result) (not (expected-failures-test-result? test-result expected-failures)))
+                                    (and (is-error? test-result) (not (expected-failures-test-result? test-result expected-failures)))
+                                    (and (is-success? test-result) (expected-failures-test-result? test-result expected-failures)))) 
                             test-results)
                         (exit 1))))))
 )
