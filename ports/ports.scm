@@ -241,10 +241,29 @@
     (define (display-test-results test-results)
         (display "\nTests done - Results\n")
         (let 
-            ((success-count (count is-success? test-results))
-             (failure-count (count is-failure? test-results))
-             (error-count (count is-error? test-results)))
-            (display (string-append "Success: " success-count ", Failure:" failure-count ", Errors:" error-count "\n"))))
+            ((successes (filter is-success? test-results))
+             (failures (filter is-failure? test-results))
+             (errors (filter is-error? test-results)))
+            (display 
+                (string-append "Success: " (length successes) ", Failure:" (length failures) ", Errors:" (length errors) "\n\n"))
+            (if (> (length successes) 0)
+                (begin
+                    (display "Failures:\n")
+                    (for-each 
+                        (lambda (test-result)
+                            (display "- " (string-append (test-full-name (test-result-test test-result)) "\n"))
+                            (display "\t" (test-result-exception test-result))
+                            (display "\n\n"))
+                        failures)))
+            (if (> (length errors) 0)
+                (begin 
+                    (display "Errors:\n")
+                    (for-each 
+                        (lambda (test-result)
+                            (display "- " (string-append (test-full-name (test-result-test test-result)) "\n"))
+                            (display "\t" (test-result-exception test-result))
+                            (display "\n\n"))
+                        errors)))))
 
     (define (run-suite suite-name suite-version root-capability only-tests only-capabilities exclude-tests exclude-capabilities)
         (display (string-append "Running suite: " suite-name " " suite-version "\n"))
