@@ -28,10 +28,11 @@ const _let = Sym('let');
 
 
 export function asString(expr) {
+  try {
     if (typeof expr === 'symbol') {
         return Symbol.keyFor(expr) || expr.toString();
     } else if (Array.isArray(expr)) {
-        return `(${expr.map(asString).join(' ')})`;
+        return `(${expr.map((ea) => asStringSafe(ea)).join(' ')})`;
     } else if (expr === true) {
         return '#t';
     } else if (expr === false) {
@@ -39,7 +40,21 @@ export function asString(expr) {
     } else {
         return expr.toString();
     }
+  } catch (e) {
+    return '#<error>';
+  }
+}
 
+function asStringSafe(expr, covered_exprs = new Set()) {
+  if (covered_exprs.has(expr)) {
+    return '#<circular>';
+  }
+  covered_exprs.add(expr);
+  if (Array.isArray(expr)) {
+    return `(${expr.map((ea) => asStringSafe(ea, covered_exprs)).join(' ')})`;
+  } else {
+    return asString(expr);
+  }
 }
 
 // Procedure class
@@ -65,7 +80,7 @@ export class Env extends Map {
       this.set(parms, Array.from(args));
     } else {
       if (args.length !== parms.length) {
-        throw new Error(`Expected ${parms}, given ${args}`);
+        throw new Error(`Expected ${asString(parms)}, given ${asString(args)}`);
       }
       parms.forEach((param, i) => this.set(param, args[i]));
     }
@@ -271,17 +286,17 @@ function addGlobals(env) {
   env.set(Sym("raise"), (e) => { throw e; });
   
   // String operations
-  env.set(Sym('string-append'), (...strs) => strs.reduce((acc, s) => acc + String(s), ''));
-  env.set(Sym('string-split'), (s, sep) => String(s).split(sep));
-  env.set(Sym('string-replace'), (old, newStr, s) => String(s).replace(old, newStr));
+  env.set(Sym('string-append'), (...strs) => strs.reduce((acc, s) => acc + asString(s), ''));
+  env.set(Sym('string-split'), (s, sep) => asString(s).split(sep));
+  env.set(Sym('string-replace'), (old, newStr, s) => asString(s).replace(old, newStr));
   env.set(Sym('string-index'), (str, substr) => {
     const idx = str.indexOf(substr);
     return idx !== -1 ? idx : false;
   });
-  env.set(Sym('string-upcase'), s => String(s).toUpperCase());
-  env.set(Sym('string-downcase'), s => String(s).toLowerCase());
-  env.set(Sym('string-trim'), s => String(s).trim());
-  env.set(Sym('number->string'), x => String(x));
+  env.set(Sym('string-upcase'), s => asString(s).toUpperCase());
+  env.set(Sym('string-downcase'), s => asString(s).toLowerCase());
+  env.set(Sym('string-trim'), s => asString(s).trim());
+  env.set(Sym('number->string'), x => asString(x));
   
   // Type checking
   env.set(Sym('null?'), x => x === null || x === undefined || (Array.isArray(x) && x.length === 0));
