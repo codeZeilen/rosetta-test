@@ -141,18 +141,18 @@ module Scheme
       # Check correct length
       require_syntax(x, x.length >= 3)
 
-      _def, v, body = x[0], x[1], x[2..]
+      token, v, body = x[0], x[1], x[2..]
 
       if v.is_a?(Array) && !v.empty?
         # (define (f args) body) => (define f (lambda (args) body))
         f, *args = v
-        expand([_def, f, [:lambda, args] + body])
+        expand([token, f, [:lambda, args] + body])
       else
         require_syntax(x, x.length == 3, "wrong length in definition")
         require_syntax(x, v.is_a?(Symbol), "can define only a symbol")
         exp = expand(x[2])
 
-        if _def == :"define-macro"
+        if token == :"define-macro"
           require_syntax(x, toplevel, "define-macro only allowed at top level")
           proc = evaluate(exp)
           require_syntax(x, proc.respond_to?(:call), "macro must be a procedure")
@@ -301,7 +301,7 @@ module Scheme
 
         when :lambda
           raise "`lambda` expected 2 argument, got #{tokens.length - 1}" unless tokens.length == 3
-          raise "invalid argument list (expected symbol or list of symbols)" unless tokens[1].is_a?(Symbol) || (tokens[1].is_a?(Array) && tokens[1].all? { |t| t.is_a?(Symbol) })
+          raise "invalid argument list (expected symbol or list of symbols)" if !tokens[1].is_a?(Symbol) && !(tokens[1].is_a?(Array) && tokens[1].all? { |t| t.is_a?(Symbol) })
           return Procedure.new(tokens[1], tokens[2], environment)
 
         when :begin
