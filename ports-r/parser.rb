@@ -109,7 +109,6 @@ module Parser
   module_function :parse_string, :tokenize, :parse_tokens, :parse_atom, :matches
 end
 
-# TODO: Fix
 if __FILE__ == $PROGRAM_NAME
   test_table = JSON.parse(File.read("ports/syntax-tests.json"))
 
