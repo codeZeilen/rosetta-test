@@ -1,6 +1,9 @@
 require_relative "parser"
 
 module Scheme
+  # Macro table to store defined macros
+  MACRO_TABLE = {}
+
   class Environment
     def initialize(params, args, outer_environment = nil)
       @outer_environment = outer_environment
@@ -29,6 +32,14 @@ module Scheme
         raise "Lookup error for #{key}"
       end
     end
+
+    def unset(key)
+      if @env.key?(key)
+        @env.delete(key)
+      else
+        raise "Cannot unset non-existent variable #{key}"
+      end
+    end
   end
 
   class Procedure
@@ -52,20 +63,222 @@ module Scheme
     :>= => proc { |a, b| a >= b },
     :< => proc { |a, b| a < b },
     :<= => proc { |a, b| a <= b },
+    :"=" => proc { |a, b| a == b },
     :list => proc { |*args| args },
     :cons => proc { |a, b| [a] + b },
     :car => :first.to_proc,
     :cdr => proc { |a| a[1..] },
-    :append => proc { |*args| args.flatten },
+    :append => proc { |*args| args.flatten(1) },
+    :display => proc { |a| print a },
+    :inexact => proc { |a| a.to_f },
     :length => :length.to_proc,
-    :null? => proc { |a| a.nil? || a == [] }
+    :not => proc { |a| !a },
+    :null? => proc { |a| a.nil? || a.empty? },
+    :pair? => proc { |x| x.is_a?(Array) && !x.empty? },
+    :sqrt => proc { |a| Math.sqrt(a) }
   }.entries.transpose
   GLOBAL_ENV = Environment.new(GLOBAL_DICT[0], GLOBAL_DICT[1])
 
+  # Helper methods for expand
+  def is_pair(x)
+    x.is_a?(Array) && !x.empty?
+  end
+
+  def to_string(x)
+    case x
+    when true then "#t"
+    when false then "#f"
+    when Symbol then x.to_s
+    when String then "\"#{x.gsub('"', '\"')}\""
+    when Array then "(#{x.map { |e| to_string(e) }.join(" ")})"
+    else x.to_s
+    end
+  end
+
+  def require_syntax(x, predicate, msg = "wrong length")
+    raise "#{to_string(x)}: #{msg}" unless predicate
+  end
+
+  # Main expand function
+  def expand(x, toplevel = false)
+    # Check for empty list
+    require_syntax(x, !(x.is_a?(Array) && x.empty?))
+
+    # Constant/non-list => unchanged
+    return x unless x.is_a?(Array)
+
+    case x.first
+    when :include
+      # (include string1 string2 ...)
+      require_syntax(x, x.length > 1)
+      expand_include(x)
+    when :quote
+      # (quote exp)
+      require_syntax(x, x.length == 2)
+      x
+    when :if
+      # (if test conseq) => (if test conseq nil)
+      if x.length == 3
+        x += [nil]
+      end
+      require_syntax(x, x.length == 4)
+      x.map { |xi| expand(xi) }
+    when :set
+      # (set! var exp)
+      require_syntax(x, x.length == 3)
+      var = x[1]
+      require_syntax(x, var.is_a?(Symbol), "can set! only a symbol")
+      [:set!, var, expand(x[2])]
+    when :unset
+      # (variable-unset! var)
+      require_syntax(x, x.length == 2)
+      var = x[1]
+      require_syntax(x, var.is_a?(Symbol), "can unset! only a symbol")
+      [:"variable-unset!", var]
+    when :define, :"define-macro"
+      # Check correct length
+      require_syntax(x, x.length >= 3)
+
+      _def, v, body = x[0], x[1], x[2..]
+
+      if v.is_a?(Array) && !v.empty?
+        # (define (f args) body) => (define f (lambda (args) body))
+        f, *args = v
+        expand([_def, f, [:lambda, args] + body])
+      else
+        require_syntax(x, x.length == 3, "wrong length in definition")
+        require_syntax(x, v.is_a?(Symbol), "can define only a symbol")
+        exp = expand(x[2])
+
+        if _def == :"define-macro"
+          require_syntax(x, toplevel, "define-macro only allowed at top level")
+          proc = evaluate(exp)
+          require_syntax(x, proc.respond_to?(:call), "macro must be a procedure")
+          MACRO_TABLE[v] = proc
+          return nil
+        end
+
+        [:define, v, exp]
+      end
+    when :begin
+      # (begin exp*)
+      return nil if x.length == 1
+      x.map { |xi| expand(xi, toplevel) }
+    when :lambda
+      # (lambda (vars) exp1 exp2...)
+      require_syntax(x, x.length >= 3)
+
+      vars, *body = x[1..]
+
+      # Check that vars is a symbol or list of symbols
+      is_valid_vars = vars.is_a?(Symbol) ||
+        (vars.is_a?(Array) && vars.all? { |v| v.is_a?(Symbol) })
+      require_syntax(x, is_valid_vars, "illegal lambda argument list")
+
+      # Wrap multiple expressions in begin
+      exp = (body.length == 1) ? body[0] : [:begin] + body
+      [:lambda, vars, expand(exp)]
+    when :quasiquote
+      # `x => expand_quasiquote(x)
+      require_syntax(x, x.length == 2)
+      expand_quasiquote(x[1])
+    when :cond
+      # (cond (test exp) ...)
+      expanded_clauses = x[1..].map do |clause|
+        require_syntax(x, clause.is_a?(Array) && clause.length == 2,
+          "Invalid cond clause format")
+        [expand(clause[0]), expand(clause[1])]
+      end
+      [:cond] + expanded_clauses
+    else
+      # Check for macro expansion
+      if x.first.is_a?(Symbol) && MACRO_TABLE.key?(x.first)
+        # (m arg...) => macroexpand if m is a macro
+        expand(MACRO_TABLE[x.first].call(*x[1..]), toplevel)
+      else
+        # (f arg...) => expand each
+        x.map { |xi| expand(xi) }
+      end
+    end
+  end
+
+  # Expand quasiquote expression
+  def expand_quasiquote(x)
+    # 'x => 'x
+    unless is_pair(x)
+      return [:quote, x]
+    end
+
+    # Check for invalid splicing
+    require_syntax(x, x[0] != :"unquote-splicing", "can't splice here")
+
+    if x[0] == :unquote
+      # ,x => x
+      require_syntax(x, x.length == 2)
+      x[1]
+    elsif is_pair(x[0]) && x[0][0] == :"unquote-splicing"
+      # (,@x y) => (append x y)
+      require_syntax(x[0], x[0].length == 2)
+      [:append, x[0][1], expand_quasiquote(x[1..])]
+    else
+      # `(x . y) => (cons `x `y)
+      [:cons, expand_quasiquote(x[0]), expand_quasiquote(x[1..])]
+    end
+  end
+
+  # Expand include directive
+  def expand_include(x)
+    result = [:begin]
+
+    x[1..].each do |file_name|
+      File.open(file_name, "r") do |include_file|
+        content = include_file.read
+        include_result = Parser.parse_string(content)
+
+        if include_result
+          result << expand(include_result, true)
+        else
+          raise SchemeException, "Could not include content of #{file_name}"
+        end
+      end
+    end
+
+    result
+  end
+
+  # Let macro implementation
+  def let_macro(*args)
+    args = [:let] + args.to_a
+    require_syntax(args, args.length > 2)
+
+    bindings, *body = args[1..]
+
+    # Validate bindings format
+    valid_bindings = bindings.is_a?(Array) &&
+      bindings.all? { |b| b.is_a?(Array) && b.length == 2 && b[0].is_a?(Symbol) }
+    require_syntax(args, valid_bindings, "illegal binding list")
+
+    # Extract variables and values
+    vars = bindings.map { |b| b[0] }
+    vals = bindings.map { |b| b[1] }
+
+    # Create lambda expression
+    lambda_expr = [[:lambda, vars] + body.map { |b| expand(b) }]
+
+    # Add expanded values
+    lambda_expr + vals.map { |v| expand(v) }
+  end
+
+  # Register the let macro
+  MACRO_TABLE[:let] = proc { |*args| let_macro(*args) }
+
+  # Main evaluation function
   def evaluate(tokens, environment = GLOBAL_ENV)
     if tokens.is_a?(String)
       tokens
     elsif tokens.is_a?(Numeric)
+      tokens
+    elsif tokens == true || tokens == false
       tokens
     elsif tokens.is_a?(Array)
       case tokens.first
@@ -90,6 +303,10 @@ module Scheme
         Procedure.new(tokens[1], tokens[2], environment)
       when :begin
         tokens[1..].map { |t| evaluate(t, environment) }.last
+      when :set!
+        raise "`set!` expected 2 argument, got #{tokens.length - 1}" unless tokens.length == 3
+
+        environment.find(tokens[1])[tokens[1]] = evaluate(tokens[2], environment)
       else
         token = tokens.first
         procedure = evaluate(token, environment)
@@ -102,24 +319,21 @@ module Scheme
     end
   end
 
-  def expand(tokens)
-    return tokens unless tokens.is_a?(Array)
-
-    case tokens.first
-    when :if
-      if tokens.length == 3
-        tokens + [nil]
-      else
-        tokens
-      end
-    else
-      tokens.map { |t| expand(t) }
-    end
-  end
-
   def evaluate_string(source)
-    Scheme.evaluate(Scheme.expand(Parser.parse_string(source)))
+    Scheme.evaluate(Scheme.expand(Parser.parse_string(source), true))
   end
 
-  module_function :evaluate_string, :evaluate, :expand
+  module_function :evaluate_string, :evaluate, :expand, :is_pair, :require_syntax,
+    :expand_quasiquote, :expand_include, :let_macro, :to_string
+
+  # Get current directory
+  dirname = File.dirname(__FILE__)
+
+  begin
+    stdlib = File.join(dirname, "../ports/stdlib.scm")
+    evaluate_string(File.read(stdlib))
+  rescue => error
+    puts "Error loading standard library: #{error.message}"
+    exit(1)
+  end
 end
