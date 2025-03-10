@@ -4,9 +4,12 @@ module Scheme
   class Environment
     def initialize(params, args, outer_environment = nil)
       @outer_environment = outer_environment
-      raise "expected #{params.length} arguments, got #{args.length}" unless params.length == args.length
-
-      @env = params.zip(args).to_h
+      if params.is_a?(Symbol)
+        @env = {params => args}
+      else
+        raise "expected #{params.length} arguments, got #{args.length}" unless params.length == args.length
+        @env = params.zip(args).to_h
+      end
     end
 
     def [](key)
