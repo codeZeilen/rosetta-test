@@ -43,6 +43,8 @@ module Scheme
   end
 
   class Procedure
+    attr_reader :params, :body, :environment
+
     def initialize(params, body, environment)
       @params = params
       @body = body
@@ -274,45 +276,61 @@ module Scheme
 
   # Main evaluation function
   def evaluate(tokens, environment = GLOBAL_ENV)
-    case tokens
-    when String, Numeric, true, false
-      tokens
-    when Array
-      case tokens.first
-      when :if
-        raise "`if` expected 3 arguments, got #{tokens.length - 1}" unless tokens.length == 4
-        condition = evaluate(tokens[1], environment)
-        branch = condition ? tokens[2] : tokens[3]
-        evaluate(branch, environment)
-      when :define
-        raise "#{tokens[1]} is not a symbol" unless tokens[1].is_a?(Symbol)
+    loop do
+      case tokens
+      when Symbol
+        return environment.find(tokens)[tokens]
+      when Array
+        case tokens.first
+        when :if
+          raise "`if` expected 3 arguments, got #{tokens.length - 1}" unless tokens.length == 4
+          condition = evaluate(tokens[1], environment)
+          tokens = condition ? tokens[2] : tokens[3]
 
-        environment[tokens[1]] = evaluate(tokens[2], environment)
-        nil
-      when :quote
-        raise "`quote` expected 1 argument, got #{tokens.length - 1}" unless tokens.length == 2
+        when :define
+          var = tokens[1]
+          expression = tokens[2]
+          raise "#{var} is not a symbol" unless var.is_a?(Symbol)
 
-        tokens[1]
-      when :lambda
-        raise "`lambda` expected 2 argument, got #{tokens.length - 1}" unless tokens.length == 3
-        raise "invalid argument list (expected symbol or list of symbols)" unless tokens[1].is_a?(Symbol) || (tokens[1].is_a?(Array) && tokens[1].all? { |t| t.is_a?(Symbol) })
+          environment[var] = evaluate(expression, environment)
+          return
 
-        Procedure.new(tokens[1], tokens[2], environment)
-      when :begin
-        tokens[1..].map { |t| evaluate(t, environment) }.last
-      when :set!
-        raise "`set!` expected 2 argument, got #{tokens.length - 1}" unless tokens.length == 3
+        when :quote
+          raise "`quote` expected 1 argument, got #{tokens.length - 1}" unless tokens.length == 2
+          return tokens[1]
 
-        environment.find(tokens[1])[tokens[1]] = evaluate(tokens[2], environment)
+        when :lambda
+          raise "`lambda` expected 2 argument, got #{tokens.length - 1}" unless tokens.length == 3
+          raise "invalid argument list (expected symbol or list of symbols)" unless tokens[1].is_a?(Symbol) || (tokens[1].is_a?(Array) && tokens[1].all? { |t| t.is_a?(Symbol) })
+          return Procedure.new(tokens[1], tokens[2], environment)
+
+        when :begin
+          tokens[1...-1].each { |t| evaluate(t, environment) }
+          tokens = tokens[-1]
+
+        when :set!
+          raise "`set!` expected 2 argument, got #{tokens.length - 1}" unless tokens.length == 3
+
+          var = tokens[1]
+          expression = tokens[2]
+          environment.find(var)[var] = evaluate(expression, environment)
+          return
+
+        else
+          expressions = tokens.map { |t| evaluate(t, environment) }
+          procedure = expressions.shift
+          if procedure.is_a?(Procedure)
+            tokens = procedure.body
+            environment = Environment.new(procedure.params, expressions, procedure.environment)
+          elsif procedure.nil?
+            raise "Undefined procedure: #{tokens.first}"
+          else
+            return procedure.call(*expressions)
+          end
+        end
       else
-        token = tokens.first
-        procedure = evaluate(token, environment)
-        procedure.call(
-          *(tokens[1..].map { |t| evaluate(t, environment) })
-        )
+        return tokens
       end
-    when Symbol
-      environment.find(tokens)[tokens]
     end
   end
 
