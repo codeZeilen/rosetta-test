@@ -69,7 +69,11 @@ module Parser
 
     # Try to parse as float
     begin
-      float = Float(token)
+      float = if token.end_with?(".")
+        Float("#{token}0")
+      else
+        Float(token)
+      end
       return float
     rescue ArgumentError
       # Not a number
