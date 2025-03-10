@@ -274,13 +274,10 @@ module Scheme
 
   # Main evaluation function
   def evaluate(tokens, environment = GLOBAL_ENV)
-    if tokens.is_a?(String)
+    case tokens
+    when String, Numeric, true, false
       tokens
-    elsif tokens.is_a?(Numeric)
-      tokens
-    elsif tokens == true || tokens == false
-      tokens
-    elsif tokens.is_a?(Array)
+    when Array
       case tokens.first
       when :if
         raise "`if` expected 3 arguments, got #{tokens.length - 1}" unless tokens.length == 4
@@ -314,7 +311,7 @@ module Scheme
           *(tokens[1..].map { |t| evaluate(t, environment) })
         )
       end
-    elsif tokens.is_a?(Symbol)
+    when Symbol
       environment.find(tokens)[tokens]
     end
   end
