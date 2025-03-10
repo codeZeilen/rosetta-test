@@ -102,9 +102,24 @@ module Scheme
     end
   end
 
-  def evaluate_string(source)
-    Scheme.evaluate(Parser.parse_string(source))
+  def expand(tokens)
+    return tokens unless tokens.is_a?(Array)
+
+    case tokens.first
+    when :if
+      if tokens.length == 3
+        tokens + [nil]
+      else
+        tokens
+      end
+    else
+      tokens.map { |t| expand(t) }
+    end
   end
 
-  module_function :evaluate_string, :evaluate
+  def evaluate_string(source)
+    Scheme.evaluate(Scheme.expand(Parser.parse_string(source)))
+  end
+
+  module_function :evaluate_string, :evaluate, :expand
 end
