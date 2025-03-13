@@ -11,6 +11,7 @@ module Scheme
         @env = {params => args}
       else
         raise "expected #{params.length} arguments, got #{args.length}" unless params.length == args.length
+
         @env = params.zip(args).to_h
       end
     end
@@ -68,80 +69,78 @@ module Scheme
     :length => :length.to_proc,
     :not => proc { |a| !a },
     :null? => proc { |a| a.nil? || a.empty? },
-    :pair? => proc { |x| x.is_a?(Array) && !x.empty? },
+    :pair? => proc { |tokens| tokens.is_a?(Array) && !tokens.empty? },
     :sqrt => proc { |a| Math.sqrt(a) }
   }.entries.transpose
   GLOBAL_ENV = Environment.new(GLOBAL_DICT[0], GLOBAL_DICT[1])
 
   # Helper methods for expand
-  def is_pair(x)
-    x.is_a?(Array) && !x.empty?
+  def pair?(tokens)
+    tokens.is_a?(Array) && !tokens.empty?
   end
 
-  def to_string(x)
-    case x
+  def to_string(tokens)
+    case tokens
     when true then "#t"
     when false then "#f"
-    when Symbol then x.to_s
-    when String then "\"#{x.gsub('"', '\"')}\""
-    when Array then "(#{x.map { |e| to_string(e) }.join(" ")})"
-    else x.to_s
+    when Symbol then tokens.to_s
+    when String then "\"#{tokens.gsub('"', '\"')}\""
+    when Array then "(#{tokens.map { |e| to_string(e) }.join(" ")})"
+    else tokens.to_s
     end
   end
 
-  def require_syntax(x, predicate, msg = "wrong length")
-    raise "#{to_string(x)}: #{msg}" unless predicate
+  def require_syntax(tokens, predicate, msg = "wrong length")
+    raise "#{to_string(tokens)}: #{msg}" unless predicate
   end
 
   # Main expand function
-  def expand(x, toplevel = false)
+  def expand(tokens, toplevel: false)
     # Check for empty list
-    require_syntax(x, !(x.is_a?(Array) && x.empty?))
+    require_syntax(tokens, !(tokens.is_a?(Array) && tokens.empty?))
 
     # Constant/non-list => unchanged
-    return x unless x.is_a?(Array)
+    return tokens unless tokens.is_a?(Array)
 
-    case x.first
+    case tokens.first
     when :include
       # (include string1 string2 ...)
-      require_syntax(x, x.length > 1)
-      expand_include(x)
+      require_syntax(tokens, tokens.length > 1)
+      expand_include(tokens)
     when :quote
       # (quote exp)
-      require_syntax(x, x.length == 2)
-      x
+      require_syntax(tokens, tokens.length == 2)
+      tokens
     when :if
       # (if test conseq) => (if test conseq nil)
-      if x.length == 3
-        x += [nil]
-      end
-      require_syntax(x, x.length == 4)
-      x.map { |xi| expand(xi) }
+      tokens += [nil] if tokens.length == 3
+      require_syntax(tokens, tokens.length == 4)
+      tokens.map { |token| expand(token) }
     when :set
       # (set! var exp)
-      require_syntax(x, x.length == 3)
-      var = x[1]
-      require_syntax(x, var.is_a?(Symbol), "can set! only a symbol")
-      [:set!, var, expand(x[2])]
+      require_syntax(tokens, tokens.length == 3)
+      var = tokens[1]
+      require_syntax(tokens, var.is_a?(Symbol), "can set! only a symbol")
+      [:set!, var, expand(tokens[2])]
     when :define, :"define-macro"
       # Check correct length
-      require_syntax(x, x.length >= 3)
+      require_syntax(tokens, tokens.length >= 3)
 
-      token, v, body = x[0], x[1], x[2..]
+      token, v, body = tokens[0], tokens[1], tokens[2..]
 
       if v.is_a?(Array) && !v.empty?
         # (define (f args) body) => (define f (lambda (args) body))
         f, *args = v
         expand([token, f, [:lambda, args] + body])
       else
-        require_syntax(x, x.length == 3, "wrong length in definition")
-        require_syntax(x, v.is_a?(Symbol), "can define only a symbol")
-        exp = expand(x[2])
+        require_syntax(tokens, tokens.length == 3, "wrong length in definition")
+        require_syntax(tokens, v.is_a?(Symbol), "can define only a symbol")
+        exp = expand(tokens[2])
 
         if token == :"define-macro"
-          require_syntax(x, toplevel, "define-macro only allowed at top level")
+          require_syntax(tokens, toplevel, "define-macro only allowed at top level")
           proc = evaluate(exp)
-          require_syntax(x, proc.respond_to?(:call), "macro must be a procedure")
+          require_syntax(tokens, proc.respond_to?(:call), "macro must be a procedure")
           MACRO_TABLE[v] = proc
           return nil
         end
@@ -150,84 +149,80 @@ module Scheme
       end
     when :begin
       # (begin exp*)
-      return nil if x.length == 1
-      x.map { |xi| expand(xi, toplevel) }
+      return nil if tokens.length == 1
+
+      tokens.map { |token| expand(token, toplevel: toplevel) }
     when :lambda
       # (lambda (vars) exp1 exp2...)
-      require_syntax(x, x.length >= 3)
+      require_syntax(tokens, tokens.length >= 3)
 
-      vars, *body = x[1..]
+      vars, *body = tokens[1..]
 
       # Check that vars is a symbol or list of symbols
       is_valid_vars = vars.is_a?(Symbol) ||
         (vars.is_a?(Array) && vars.all? { |v| v.is_a?(Symbol) })
-      require_syntax(x, is_valid_vars, "illegal lambda argument list")
+      require_syntax(tokens, is_valid_vars, "illegal lambda argument list")
 
       # Wrap multiple expressions in begin
       exp = (body.length == 1) ? body[0] : [:begin] + body
       [:lambda, vars, expand(exp)]
     when :quasiquote
       # `x => expand_quasiquote(x)
-      require_syntax(x, x.length == 2)
-      expand_quasiquote(x[1])
+      require_syntax(tokens, tokens.length == 2)
+      expand_quasiquote(tokens[1])
     when :cond
       # (cond (test exp) ...)
-      expanded_clauses = x[1..].map do |clause|
-        require_syntax(x, clause.is_a?(Array) && clause.length == 2,
+      expanded_clauses = tokens[1..].map do |clause|
+        require_syntax(tokens, clause.is_a?(Array) && clause.length == 2,
           "Invalid cond clause format")
         [expand(clause[0]), expand(clause[1])]
       end
       [:cond] + expanded_clauses
     else
       # Check for macro expansion
-      if x.first.is_a?(Symbol) && MACRO_TABLE.key?(x.first)
+      if tokens.first.is_a?(Symbol) && MACRO_TABLE.key?(tokens.first)
         # (m arg...) => macroexpand if m is a macro
-        expand(MACRO_TABLE[x.first].call(*x[1..]), toplevel)
+        expand(MACRO_TABLE[tokens.first].call(*tokens[1..]), toplevel: toplevel)
       else
         # (f arg...) => expand each
-        x.map { |xi| expand(xi) }
+        tokens.map { |token| expand(token) }
       end
     end
   end
 
   # Expand quasiquote expression
-  def expand_quasiquote(x)
+  def expand_quasiquote(tokens)
     # 'x => 'x
-    unless is_pair(x)
-      return [:quote, x]
-    end
+    return [:quote, tokens] unless pair?(tokens)
 
     # Check for invalid splicing
-    require_syntax(x, x[0] != :"unquote-splicing", "can't splice here")
+    require_syntax(tokens, tokens[0] != :"unquote-splicing", "can't splice here")
 
-    if x[0] == :unquote
+    if tokens[0] == :unquote
       # ,x => x
-      require_syntax(x, x.length == 2)
-      x[1]
-    elsif is_pair(x[0]) && x[0][0] == :"unquote-splicing"
+      require_syntax(tokens, tokens.length == 2)
+      tokens[1]
+    elsif pair?(tokens[0]) && tokens[0][0] == :"unquote-splicing"
       # (,@x y) => (append x y)
-      require_syntax(x[0], x[0].length == 2)
-      [:append, x[0][1], expand_quasiquote(x[1..])]
+      require_syntax(tokens[0], tokens[0].length == 2)
+      [:append, tokens[0][1], expand_quasiquote(tokens[1..])]
     else
       # `(x . y) => (cons `x `y)
-      [:cons, expand_quasiquote(x[0]), expand_quasiquote(x[1..])]
+      [:cons, expand_quasiquote(tokens[0]), expand_quasiquote(tokens[1..])]
     end
   end
 
   # Expand include directive
-  def expand_include(x)
+  def expand_include(tokens)
     result = [:begin]
 
-    x[1..].each do |file_name|
+    tokens[1..].each do |file_name|
       File.open(file_name, "r") do |include_file|
         content = include_file.read
         include_result = Parser.parse_string(content)
+        raise "Could not include content of #{file_name}" unless include_result
 
-        if include_result
-          result << expand(include_result, true)
-        else
-          raise SchemeException, "Could not include content of #{file_name}"
-        end
+        result << expand(include_result, true)
       end
     end
 
@@ -270,6 +265,7 @@ module Scheme
         case tokens.first
         when :if
           raise "`if` expected 3 arguments, got #{tokens.length - 1}" unless tokens.length == 4
+
           condition = evaluate(tokens[1], environment)
           tokens = condition ? tokens[2] : tokens[3]
 
@@ -283,11 +279,15 @@ module Scheme
 
         when :quote
           raise "`quote` expected 1 argument, got #{tokens.length - 1}" unless tokens.length == 2
+
           return tokens[1]
 
         when :lambda
           raise "`lambda` expected 2 argument, got #{tokens.length - 1}" unless tokens.length == 3
-          raise "invalid argument list (expected symbol or list of symbols)" if !tokens[1].is_a?(Symbol) && !(tokens[1].is_a?(Array) && tokens[1].all? { |t| t.is_a?(Symbol) })
+          if !tokens[1].is_a?(Symbol) && !(tokens[1].is_a?(Array) && tokens[1].all? { |t| t.is_a?(Symbol) })
+            raise "invalid argument list (expected symbol or list of symbols)"
+          end
+
           return Procedure.new(tokens[1], tokens[2], environment)
 
         when :begin
@@ -303,7 +303,7 @@ module Scheme
           return
 
         when :cond
-          branch = tokens[1..].find do |(test, expression)|
+          branch = tokens[1..].find do |(test, _)|
             test == :else || evaluate(test, environment)
           end
           return if branch.nil?
@@ -329,10 +329,10 @@ module Scheme
   end
 
   def evaluate_string(source)
-    Scheme.evaluate(Scheme.expand(Parser.parse_string(source), true))
+    Scheme.evaluate(Scheme.expand(Parser.parse_string(source), toplevel: true))
   end
 
-  module_function :evaluate_string, :evaluate, :expand, :is_pair, :require_syntax,
+  module_function :evaluate_string, :evaluate, :expand, :pair?, :require_syntax,
     :expand_quasiquote, :expand_include, :let_macro, :to_string
 
   # Get current directory
@@ -341,8 +341,9 @@ module Scheme
   begin
     stdlib = File.join(dirname, "../ports/stdlib.scm")
     evaluate_string(File.read(stdlib))
-  rescue => error
-    puts "Error loading standard library: #{error.message}"
+  rescue => e
+    puts e.backtrace
+    puts "Error loading standard library: #{e.message}"
     exit(1)
   end
 end
