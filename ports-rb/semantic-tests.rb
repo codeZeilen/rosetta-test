@@ -48,6 +48,10 @@ end
 require_relative "scheme"
 
 # Run tests
+
+total = test_table.length
+failed = 0
+
 test_table.each do |entry|
   input = entry["input"]
 
@@ -61,5 +65,7 @@ test_table.each do |entry|
     puts "✅: #{input}"
   else
     puts "❌: #{input} got #{eval_result}[#{eval_result.class}] instead of #{entry["expected"]}[#{entry["expected"].class}]"
+    failed += 1
   end
 end
+puts "#{total} tests run, #{failed} failed"
