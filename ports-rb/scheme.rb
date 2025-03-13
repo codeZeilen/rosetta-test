@@ -32,14 +32,6 @@ module Scheme
         raise "Lookup error for #{key}"
       end
     end
-
-    def unset(key)
-      if @env.key?(key)
-        @env.delete(key)
-      else
-        raise "Cannot unset non-existent variable #{key}"
-      end
-    end
   end
 
   class Procedure
@@ -131,12 +123,6 @@ module Scheme
       var = x[1]
       require_syntax(x, var.is_a?(Symbol), "can set! only a symbol")
       [:set!, var, expand(x[2])]
-    when :unset
-      # (variable-unset! var)
-      require_syntax(x, x.length == 2)
-      var = x[1]
-      require_syntax(x, var.is_a?(Symbol), "can unset! only a symbol")
-      [:"variable-unset!", var]
     when :define, :"define-macro"
       # Check correct length
       require_syntax(x, x.length >= 3)
@@ -315,6 +301,14 @@ module Scheme
           expression = tokens[2]
           environment.find(var)[var] = evaluate(expression, environment)
           return
+
+        when :cond
+          branch = tokens[1..].find do |(test, expression)|
+            test == :else || evaluate(test, environment)
+          end
+          return if branch.nil?
+
+          tokens = branch[1]
 
         else
           expressions = tokens.map { |t| evaluate(t, environment) }
