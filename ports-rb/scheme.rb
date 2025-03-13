@@ -302,6 +302,14 @@ module Scheme
           environment.find(var)[var] = evaluate(expression, environment)
           return
 
+        when :cond
+          branch = tokens[1..].find do |(test, expression)|
+            test == :else || evaluate(test, environment)
+          end
+          return if branch.nil?
+
+          tokens = branch[1]
+
         else
           expressions = tokens.map { |t| evaluate(t, environment) }
           procedure = expressions.shift
