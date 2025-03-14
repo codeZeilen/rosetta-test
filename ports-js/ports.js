@@ -146,12 +146,12 @@ class PortsSuite {
     }
 
     setUp(func) {
-        this.setUpFunctions.push = func;
+        this.setUpFunctions.push(func);
         return func;
     }
 
     tearDown(func) {
-        this.tearDownFunctions.push = func;
+        this.tearDownFunctions.push(func);
         return func;
     }
 
@@ -174,10 +174,6 @@ inval
         this.tearDownFunctions.forEach(func => {
             this.rootCapability[2].unshift(new PortsTearDown(func, this.schemeEnv));
         });
-    }
-
-    generateTestName(portsTest) {
-        return this.evalSchemeWithArgs("(test-full-name current_test)", {current_test: portsTest});
     }
 
     generateTestMethod(portsTest) {
@@ -213,6 +209,3 @@ export function suite(fileName) {
     return new PortsSuite(fileName);
 }
 
-function fixturePath(fileName) {
-    return path.resolve('./suites', fileName);
-}
