@@ -504,7 +504,7 @@
 
             (capability 'send-message (list
     
-                (capability 'mandatory-options (list
+                (capability 'explicit-options (list
 
                     ; 6152 - Section 3, end of section 
                     (test "non-ascii content in send-message without 8BITMIME support" (lambda ()
@@ -580,13 +580,14 @@
 
             ; RFC 6531 3.1 - Item 8 
             ; 8BITMIME is required, as we would normally expect international mailboxes to also
-            ; appear in the message headers, thus the DATA content
+            ; appear in the message headers, thus in the DATA content. However they might also
+            ; be encoded as BASE64 or QUOTED-PRINTABLE, which would not require 8BITMIME.
             (define (activate-smtputf8 server) 
                 (server-set-extensions! server '("SMTPUTF8" "8BITMIME")))
 
             (capability 'mail (list
 
-                (capability 'mandatory-options (list
+                (capability 'explicit-options (list
                     (test "International mailbox in mail without SMTPUTF8 support" (lambda ()
                         (server-set-extensions! server '())
                         (smtp-ehlo smtp-connection "")
@@ -671,7 +672,7 @@
                 ; message headers. Thereby the international characters do not reach the mail body
                 ; and no 8BITMIME option is required.
 
-                (capability 'mandatory-options (list
+                (capability 'explicit-options (list
 
                     ; Recipient
 

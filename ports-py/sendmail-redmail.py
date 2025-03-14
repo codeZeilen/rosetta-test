@@ -180,8 +180,8 @@ sendmail_suite.run(
         "test_CRLF_detection_in_send-message_recipient",
         "test_CRLF_mitigation_in_send-message_sender",),
     exclude_capabilities=(
-        "root.8bitmime.send-message.mandatory-options",
-        "root.smtputf8.send-message.mandatory-options"),
+        "root.8bitmime.send-message.explicit-options",
+        "root.smtputf8.send-message.explicit-options"),
     expected_failures=(
         "test_Handle_421_during_data_command","test_Handle_421_at_start_of_data_command",
         "test_Handle_421_at_the_end_of_data_command","test_Handle_421_during_rcpt_command",
