@@ -31,7 +31,7 @@ PorTS does not support hygenic macros, as we expect macros to be almost exclusiv
 - car, cdr
 - pair?
 - list
-- list-ref, list-set?
+- list-ref, list-set!
 - list?
 - equal?, eq?
 - error
@@ -48,6 +48,7 @@ PorTS does not support hygenic macros, as we expect macros to be almost exclusiv
 - abs
 - length
 - exit 
+
 <!-- - apply? -->
 
 <!-- 
@@ -57,7 +58,10 @@ Should be ported to PorTS
 - string-append
 - string-upcase
 - string-downcase
-- string-index, string-replace, string-trim
+- string-split
+- string-index str, substr: return index of first occurrence of substr, False if not found at all
+- string-replace
+- string-trim
 - char-whitespace?
 -->
 
