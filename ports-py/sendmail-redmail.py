@@ -180,13 +180,13 @@ sendmail_suite.run(
         "test_CRLF_detection_in_send-message_recipient",
         "test_CRLF_mitigation_in_send-message_sender",),
     exclude_capabilities=(
-        "root.8bitmime.send-message.explicit-options",
+        "root.8bitmime",
         "root.smtputf8.send-message.explicit-options"),
     expected_failures=(
-        "test_Handle_421_during_data_command","test_Handle_421_at_start_of_data_command",
-        "test_Handle_421_at_the_end_of_data_command","test_Handle_421_during_rcpt_command",
+        "test_Handle_421_during_data_command",
+        "test_Handle_421_at_start_of_data_command",
+        "test_Handle_421_at_the_end_of_data_command",
+        "test_Handle_421_during_rcpt_command",
         "test_Handle_421_during_mail_command",
-        # redmail does not check whether server supports 8BITMIME
-        "test_non-ascii_content_in_send-message_without_8BITMIME_support",
         # redmail does not set the BODY=8BITMIME option
         "test_non-ascii_content_in_send-message_with_8BITMIME_support"))

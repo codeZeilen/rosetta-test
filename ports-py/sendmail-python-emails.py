@@ -172,13 +172,10 @@ sendmail_suite.run(#only_capabilities=("root.send-message",),
                    exclude_capabilities=(
                        "root.connection",
                        "root.crlf-injection-detection.send-message.detection",
-                       "root.8bitmime.send-message.explicit-options",
+                       "root.8bitmime",
                        "root.smtputf8.send-message.explicit-options"),
                    expected_failures=(
-                       # The library should problably automatically detect whether 8bitmime is required
-                       "test_non-ascii_content_in_send-message_with_8BITMIME_support",
-                       "test_non-ascii_content_in_send-message_without_8BITMIME_support",
-                       # Same with smtputf8
+                       # The library should problably automatically detect whether smtputf8 is required
                        "test_international_sender_mailbox_in_send-message_with_SMTPUTF8_support",
                        "test_international_recipient_mailbox_in_send-message_with_SMTPUTF8_support",
                        "test_Send_a_message_with_empty_recipient",))
