@@ -167,5 +167,12 @@
 
     (define (string-prefix-ci? prefix string)
         (string-prefix? (string-downcase prefix) (string-downcase string)))
+
+    (define (string-index str substr)
+        (define (string-index-help str substr index)
+            (if (empty? str) #f
+                (if (string-prefix? substr str) index
+                    (string-index-help (cdr str) substr (+ index 1)))))
+        (string-index-help str substr 0))
     
 )
