@@ -7,7 +7,7 @@ from pathlib import Path
 class TestPortsUnittestContainer(unittest.TestCase):
     pass
 
-# TODO: Should be combined with above    
+
 class PortsFunction(object):
     
     def __init__(self, function, env) -> None:
@@ -28,15 +28,21 @@ class PortsFunction(object):
         else:
             return None 
         
+    def ports_role(self):
+        raise NotImplementedError("PortsFunction is an abstract class")
+        
+        
 class PortsSetup(PortsFunction):
     
     def ports_role(self):
         return "setup"
     
+    
 class PortsTearDown(PortsFunction):
     
     def ports_role(self):
         return "tearDown"
+    
     
 class Placeholder(PortsFunction):
 
@@ -46,11 +52,9 @@ class Placeholder(PortsFunction):
         self.doc_string = doc_string
         super().__init__(None, None)
         
-    def __getitem__(self, key):
-        if key == 0:
-            return lispy.Sym("placeholder")
-        else:
-            return None
+    def ports_role(self):
+        return "placeholder"
+    
 
 def ports_assert(value, msg=""):
     assert value, msg
