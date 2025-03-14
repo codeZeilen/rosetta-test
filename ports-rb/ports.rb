@@ -92,6 +92,8 @@ class PortsSuite
     @placeholder_functions = {}
     @set_up_functions = []
     @tear_down_functions = []
+
+    @config = Config.new
   end
 
   def initialize_suite
@@ -179,34 +181,50 @@ class PortsSuite
     end
   end
 
-  def run(config)
+  def run
     initialize_suite
     install_set_up_tear_down_functions
     ensure_placeholders_are_valid
 
     # We set the root-capability in the env, as we need it repeatedly
     @scheme_env[:"root-capability"] = @root_capability
+    args = @config.to_h.merge(
+      suite_name: @suite_name,
+      suite_version: @suite_version
+    )
 
     eval_scheme_with_args(
       "(run-suite suite_name suite_version root-capability only_tests only_capabilities exclude exclude_capabilities expected_failures)",
-      suite_name: @suite_name,
-      suite_version: @suite_version,
-      only_tests: config.only_tests,
-      only_capabilities: config.only_capabilities,
-      exclude: config.exclude,
-      exclude_capabilities: config.exclude_capabilities,
-      expected_failures: config.expected_failures || []
+      **args
     )
   end
 
+  CONFIG_FIELDS = [:only_tests, :only_capabilities, :exclude, :exclude_capabilities, :expected_failures]
+
+  # Define a setter for each config field
+  CONFIG_FIELDS.each do |field|
+    define_method field do |*names|
+      @config.public_send(:"#{field}=", names.map(&:to_s))
+    end
+  end
+
   class Config
-    attr_accessor :only_tests, :only_capabilities, :exclude, :exclude_capabilities, :expected_failures
+    attr_accessor(*CONFIG_FIELDS)
+
+    def initialize
+      @expected_failures = []
+    end
+
+    def to_h
+      CONFIG_FIELDS.map do |key|
+        [key, public_send(key)]
+      end.to_h
+    end
   end
 end
 
 def suite(file_name, &block)
-  config = PortsSuite::Config.new
   obj = PortsSuite.new(file_name)
-  obj.instance_exec(config, &block)
-  obj.run(config)
+  obj.instance_eval(&block)
+  obj.run
 end
