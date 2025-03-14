@@ -20,8 +20,8 @@ def Sym(s, symbol_table={}):
     if s not in symbol_table: symbol_table[s] = Symbol(s)
     return symbol_table[s]
 
-_quote, _if, _cond, _set, _unset, _define, _lambda, _begin, _definemacro, _include, = list(map(Sym, 
-"quote   if   cond   set!  variable-unset!  define   lambda   begin   define-macro   include".split()))
+_quote, _if, _cond, _set, _define, _lambda, _begin, _definemacro, _include, = list(map(Sym, 
+"quote   if   cond   set!  define   lambda   begin   define-macro   include".split()))
 
 _quasiquote, _unquote, _unquotesplicing = list(map(Sym,
 "quasiquote   unquote   unquote-splicing".split()))
@@ -187,18 +187,7 @@ class Env(dict):
                 return self.outer.find(var)
         finally:
             self.lock.release()
-        
-    def unset(self, var):
-        "Unset a variable in the current environment."
-        self.lock.acquire()
-        try:
-            if var in self: 
-                del self[var]
-            else: 
-                raise LookupError(var)
-        finally:
-            self.lock.release()
-        
+                
     def __str__(self) -> str:
         if self.outer is None:
             return "global env"
@@ -311,10 +300,6 @@ def eval(x, env=global_env):
             elif x[0] is _set:       # (set! var exp)
                 (_, var, exp) = x
                 env.find(var)[var] = eval(exp, env)
-                return None
-            elif x[0] is _unset:       # (variable-unset! var)
-                (_, var) = x
-                env.find(var).unset(var)
                 return None
             elif x[0] is _define:    # (define var exp)
                 (_, var, exp) = x

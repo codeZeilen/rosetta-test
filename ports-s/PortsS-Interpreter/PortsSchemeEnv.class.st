@@ -80,9 +80,3 @@ PortsSchemeEnv >> setBindingsFor: paramOrParams to: arguments [
 				with: arguments
 				collect: [:a :b | a -> b]]).
 ]
-
-{ #category : #accessing }
-PortsSchemeEnv >> unset: aSymbol [
-
-	bindings removeKey: aSymbol
-]

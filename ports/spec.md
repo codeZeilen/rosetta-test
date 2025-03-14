@@ -13,7 +13,6 @@ A PorTS language implementation should implement the following special forms:
  - quote
  - cond
  - set!
- - variable-unset!
  - define
  - lambda
  - begin

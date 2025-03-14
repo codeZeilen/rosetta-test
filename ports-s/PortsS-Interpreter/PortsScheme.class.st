@@ -80,9 +80,6 @@ PortsScheme >> evalExprs: element in: env [
 					at: x second
 					put: (self evalExprs: x third in: localEnv).
 				^ nil].
-			[#'variable-unset!' = x first] -> [ 
-				(localEnv find: x second) unset: x second.
-				^ nil].
 			[#define = x first] -> [ 
 				localEnv at: x second put: (self evalExprs: x third in: localEnv).
 				^ nil].

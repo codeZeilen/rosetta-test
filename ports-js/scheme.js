@@ -13,7 +13,6 @@ const _quote = Sym('quote');
 const _if = Sym('if');
 const _cond = Sym('cond');
 const _set = Sym('set!');
-const _unset = Sym('variable-unset!');
 const _define = Sym('define');
 const _lambda = Sym('lambda');
 const _begin = Sym('begin');
@@ -102,14 +101,6 @@ export class Env extends Map {
     throw new Error(`Variable ${Symbol.keyFor(key)} not found`);
   }
 
-  unset(variable) {
-    const key = this.keyFor(variable);
-    if (this.has(key)) {
-      this.delete(key);
-    } else {
-      throw new Error(`Variable ${Symbol.keyFor(key)} not found`);
-    }
-  }
 }
 
 // Helper functions
@@ -339,10 +330,6 @@ function evaluate(x, env = globalEnv) {
     } else if (x[0] === _set) {
       const [_, variable, exp] = x;
       env.find(variable).set(variable, evaluate(exp, env));
-      return null;
-    } else if (x[0] === _unset) {
-      const [_, variable] = x;
-      env.find(variable).unset(variable);
       return null;
     } else if (x[0] === _define) {
       const [_, variable, exp] = x;
