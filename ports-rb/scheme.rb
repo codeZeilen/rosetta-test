@@ -354,8 +354,8 @@ module Scheme
     end
   end
 
-  def evaluate_string(source)
-    Scheme.evaluate(Scheme.expand(Parser.parse_string(source), toplevel: true))
+  def evaluate_string(source, env = GLOBAL_ENV)
+    Scheme.evaluate(Scheme.expand(Parser.parse_string(source), toplevel: true), env)
   end
 
   module_function :evaluate_string, :evaluate, :expand, :pair?, :require_syntax,
