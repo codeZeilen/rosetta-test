@@ -294,7 +294,7 @@
             (define (display-test-result-details test-results info)
                 (for-each 
                         (lambda (test-result)
-                            (display "- " (string-append (test-full-name (test-result-test test-result)) "\n"))
+                            (display (string-append "- " (test-full-name (test-result-test test-result)) "\n"))
                             (display (info test-result))
                             (display "\n"))
                         test-results))
