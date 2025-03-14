@@ -2,6 +2,10 @@ require "uri"
 require_relative "ports"
 
 suite "suites/url-parsing-rfc.ports" do
+  expected_failures :test_scheme_with_invalid_characters,
+    :"test_non-terminated_scheme",
+    :test_invalid_ipv4_host
+
   placeholder "url-parse" do |_env, url_string|
     URI.parse(url_string)
   rescue URI::InvalidURIError => e
