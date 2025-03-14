@@ -179,13 +179,7 @@ class PortsSuite
     end
   end
 
-  def run(options = {})
-    only = options[:only]
-    only_capabilities = options[:only_capabilities]
-    exclude = options[:exclude]
-    exclude_capabilities = options[:exclude_capabilities]
-    expected_failures = options[:expected_failures] || []
-
+  def run(config)
     initialize_suite
     install_set_up_tear_down_functions
     ensure_placeholders_are_valid
@@ -197,17 +191,22 @@ class PortsSuite
       "(run-suite suite_name suite_version root-capability only_tests only_capabilities exclude exclude_capabilities expected_failures)",
       suite_name: @suite_name,
       suite_version: @suite_version,
-      only_tests: only,
-      only_capabilities: only_capabilities,
-      exclude: exclude,
-      exclude_capabilities: exclude_capabilities,
-      expected_failures: expected_failures
+      only_tests: config.only_tests,
+      only_capabilities: config.only_capabilities,
+      exclude: config.exclude,
+      exclude_capabilities: config.exclude_capabilities,
+      expected_failures: config.expected_failures || []
     )
+  end
+
+  class Config
+    attr_accessor :only_tests, :only_capabilities, :exclude, :exclude_capabilities, :expected_failures
   end
 end
 
 def suite(file_name, &block)
+  config = PortsSuite::Config.new
   obj = PortsSuite.new(file_name)
-  obj.instance_eval(&block)
-  obj.run
+  obj.instance_exec(config, &block)
+  obj.run(config)
 end

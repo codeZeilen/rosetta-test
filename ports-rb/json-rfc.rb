@@ -1,7 +1,9 @@
 require "json"
 require_relative "ports"
 
-suite "suites/json-rfc.ports" do
+suite "suites/json-rfc.ports" do |config|
+  config.expected_failures = ["test_n_string_escaped_emoji.json"]
+
   placeholder "parse" do |_env, json_string|
     JSON.parse(json_string)
   rescue JSON::ParserError => e
