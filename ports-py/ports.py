@@ -164,7 +164,7 @@ class PortsSuite(object):
         for func in self.setUp_functions:
             self.root_capability[2].insert(0, PortsSetup(func, self.lispy_env))
         for func in self.tearDown_functions:
-            self.root_capability[2].insert(0, PortsTearDown(func, self.lispy_env))
+            self.root_capability[3].insert(0, PortsTearDown(func, self.lispy_env))
     
     def generate_test_name(self, ports_test):
         return self.eval_with_args("(test-full-name current_test)", current_test=ports_test)

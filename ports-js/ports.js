@@ -172,17 +172,8 @@ inval
             this.rootCapability[2].unshift(new PortsSetup(func, this.schemeEnv));
         });
         this.tearDownFunctions.forEach(func => {
-            this.rootCapability[2].unshift(new PortsTearDown(func, this.schemeEnv));
+            this.rootCapability[3].unshift(new PortsTearDown(func, this.schemeEnv));
         });
-    }
-
-    generateTestMethod(portsTest) {
-        return () => this.runTest(portsTest);
-    }
-
-    runTest(portsTest) {
-        console.log(this.evalSchemeWithArgs("(test-name current_test)", {current_test: portsTest}));
-        return this.evalSchemeWithArgs("(test-run current_test)", {current_test: portsTest});
     }
 
     run({only = null, onlyCapabilities = null, exclude = null, excludeCapabilities = null, expectedFailures = []} = {}) {
