@@ -52,6 +52,17 @@ class Placeholder < PortsFunction
   def [](key)
     :placeholder if key == 0
   end
+
+  def template_string
+    params = ["env"]
+    params += parameters.map { |param| param.to_s.tr("-", "_") }
+
+    <<~TEMPLATE
+      placeholder "#{name}" do |#{params.join(", ")}|
+        # TODO: Implement
+      end
+    TEMPLATE
+  end
 end
 
 def ports_assert(value, msg = "")
@@ -149,11 +160,14 @@ class PortsSuite
 
   def ensure_placeholders_are_valid
     invalid_placeholders = @placeholders.reject(&:valid?)
-    unless invalid_placeholders.empty?
-      invalid_placeholder_list = invalid_placeholders.map { |p| "- #{as_string(p.name)}" }.join("\n")
+    return if invalid_placeholders.empty?
 
-      raise "Empty placeholders:\n#{invalid_placeholder_list}\n\n"
-    end
+    invalid_placeholder_list = invalid_placeholders.map { |p| "- #{p.name}" }.join("\n")
+    placeholders_suggestion = invalid_placeholders.map(&:template_string).join("\n")
+    raise [
+      "Your test suite is missing definitions for the following placeholders:\n#{invalid_placeholder_list}\n",
+      "Implement the missing placeholders:\n#{placeholders_suggestion}"
+    ].join("\n")
   end
 
   def install_set_up_tear_down_functions
