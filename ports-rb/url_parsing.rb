@@ -1,7 +1,7 @@
 require "uri"
 require_relative "ports"
 
-suite "suites/url-parsing-RFC.ports" do
+suite "suites/url-parsing-rfc.ports" do
   placeholder "url-parse" do |_env, url_string|
     URI.parse(url_string)
   rescue URI::InvalidURIError => e
