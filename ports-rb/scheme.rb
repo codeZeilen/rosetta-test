@@ -59,18 +59,44 @@ module Scheme
     :< => proc { |a, b| a < b },
     :<= => proc { |a, b| a <= b },
     :"=" => proc { |a, b| a == b },
-    :list => proc { |*args| args },
-    :cons => proc { |a, b| [a] + b },
-    :car => :first.to_proc,
-    :cdr => proc { |a| a[1..] },
+    :abs => proc { |a| a.abs },
     :append => proc { |*args| args.flatten(1) },
+    :apply => proc { |procedure, list| procedure.call(*list) },
+    :boolean? => proc { |a| [true, false].include?(a) },
+    :car => proc { |a| a[0] },
+    :cdr => proc { |a| a[1..] },
+    :cons => proc { |a, b| [a] + b },
     :display => proc { |a| print a },
+    :eq? => proc { |a, b| a == b },
+    :equal? => proc { |a, b| a == b },
+    :error => proc { |msg| StandardError.new(msg) },
+    :exit => proc { |a| Kernel.exit(a) },
     :inexact => proc { |a| a.to_f },
     :length => :length.to_proc,
+    :list? => proc { |a| a.is_a?(Array) },
+    :list => proc { |*args| args },
+    :"list-ref" => proc { |list, idx| list[idx] },
+    :"list-set!" => proc { |list, idx, value| list[idx] = value },
     :not => proc { |a| !a },
     :null? => proc { |a| a.nil? || a.empty? },
     :pair? => proc { |tokens| tokens.is_a?(Array) && !tokens.empty? },
-    :sqrt => proc { |a| Math.sqrt(a) }
+    :raise => proc { |e| raise e },
+    :sqrt => proc { |a| Math.sqrt(a) },
+    :"string-append" => proc { |*strings| strings.join("") },
+    :"string-downcase" => proc { |s| s.downcase },
+    :"string-index" => proc { |s, sub| s.index(sub) || false },
+    :"string-replace" => proc { |old, new, s| s.gsub(old, new) },
+    :"string-split" => proc { |s, sep| s.split(sep) },
+    :"string-trim" => proc { |s| s.strip },
+    :"string-upcase" => proc { |s| s.upcase },
+    :symbol? => proc { |a| a.is_a?(Symbol) },
+    :"with-exception-handler" => proc { |handler, body|
+      begin
+        body.call
+      rescue => e
+        handler.call(e)
+      end
+    }
   }.entries.transpose
   GLOBAL_ENV = Environment.new(GLOBAL_DICT[0], GLOBAL_DICT[1])
 
@@ -328,8 +354,8 @@ module Scheme
     end
   end
 
-  def evaluate_string(source)
-    Scheme.evaluate(Scheme.expand(Parser.parse_string(source), toplevel: true))
+  def evaluate_string(source, env = GLOBAL_ENV)
+    Scheme.evaluate(Scheme.expand(Parser.parse_string(source), toplevel: true), env)
   end
 
   module_function :evaluate_string, :evaluate, :expand, :pair?, :require_syntax,
