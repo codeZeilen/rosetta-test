@@ -222,7 +222,7 @@ module Scheme
         include_result = Parser.parse_string(content)
         raise "Could not include content of #{file_name}" unless include_result
 
-        result << expand(include_result, true)
+        result << expand(include_result, toplevel: true)
       end
     end
 
