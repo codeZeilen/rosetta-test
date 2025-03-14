@@ -111,54 +111,50 @@
                             (server-requests-with-command server command))
                         failure-description)))
 
-            (capability 'send-message (list
+            (capability 'detection (list
 
-                (capability 'detection (list
+                (data-test "CRLF detection in send-message sender"
+                    '(("foo\r\nbar@email.com") ("foo\nbar@email.com") ("foo\rbar@email.com")) 
+                    (lambda (sender-string) (begin 
+                        (let
+                            ((responses (sendmail-send-message smtp-connection "message content" sender-string '("user@recipient.to"))))
+                            (display responses)
+                            (assert (all? send-error? responses) (string-append "Expected client to fail when CR or LF is in sender of send-message: " sender-string))))))
+                        
+                (data-test "CRLF detection in send-message recipient"
+                    '(("foo\r\nbar@email.com") ("foo\nbar@email.com") ("foo\rbar@email.com")) 
+                    (lambda (recipient-string) (begin 
+                        (let
+                            ((responses (sendmail-send-message smtp-connection "message content" "sender@email.com" (list recipient-string))))
+                            (assert (all? send-error? responses) (string-append "Expected client to fail when CR or LF is in recipient of send-message: " recipient-string))))))
+        
+            ))
 
-                    (data-test "CRLF detection in send-message sender"
-                        '(("foo\r\nbar@email.com") ("foo\nbar@email.com") ("foo\rbar@email.com")) 
-                        (lambda (sender-string) (begin 
-                            (let
-                                ((responses (sendmail-send-message smtp-connection "message content" sender-string '("user@recipient.to"))))
-                                (display responses)
-                                (assert (all? send-error? responses) (string-append "Expected client to fail when CR or LF is in sender of send-message: " sender-string))))))
-                            
-                    (data-test "CRLF detection in send-message recipient"
-                        '(("foo\r\nbar@email.com") ("foo\nbar@email.com") ("foo\rbar@email.com")) 
-                        (lambda (recipient-string) (begin 
-                            (let
-                                ((responses (sendmail-send-message smtp-connection "message content" "sender@email.com" (list recipient-string))))
-                                (assert (all? send-error? responses) (string-append "Expected client to fail when CR or LF is in recipient of send-message: " recipient-string))))))
-            
-                ))
+            (capability 'mitigation (list
 
-                (capability 'mitigation (list
-
-                    (data-test "CRLF mitigation in send-message sender"
-                        '(("foo\r\nbar@email.com" "\r\n") ("foo\nbar@email.com" "\n") ("foo\rbar@email.com" "\r")) 
-                        (lambda (sender-string injection) (begin 
-                            (let
-                                ((responses (sendmail-send-message smtp-connection "message content" sender-string '("user@recipient.to"))))
-                                (assert (all? send-success? responses))
-                                (assert 
-                                    (all? 
-                                        (lambda (c) (not (string-index c injection))) 
-                                        (server-requests-with-command server "MAIL"))
-                                    (string-append "Expected client to remove CR or LF or both from sender of send-message: " sender-string))))))
-                            
-                    (data-test "CRLF mitigation in send-message recipient"
-                        '(("foo\r\nbar@email.com" "\r\n") ("foo\nbar@email.com" "\n") ("foo\rbar@email.com" "\r")) 
-                        (lambda (recipient-string injection) (begin 
-                            (let
-                                ((responses (sendmail-send-message smtp-connection "message content" "sender@email.com" (list recipient-string))))
-                                (assert (all? send-success? responses))
-                                (assert 
-                                    (all? 
-                                        (lambda (c) (not (string-index c injection))) 
-                                        (server-requests-with-command server "RCPT"))
-                                    (string-append "Expected client to remove CR or LF or both from recipients of send-message: " recipient-string))))))
-                ))
-
+                (data-test "CRLF mitigation in send-message sender"
+                    '(("foo\r\nbar@email.com" "\r\n") ("foo\nbar@email.com" "\n") ("foo\rbar@email.com" "\r")) 
+                    (lambda (sender-string injection) (begin 
+                        (let
+                            ((responses (sendmail-send-message smtp-connection "message content" sender-string '("user@recipient.to"))))
+                            (assert (all? send-success? responses))
+                            (assert 
+                                (all? 
+                                    (lambda (c) (not (string-index c injection))) 
+                                    (server-requests-with-command server "MAIL"))
+                                (string-append "Expected client to remove CR or LF or both from sender of send-message: " sender-string))))))
+                        
+                (data-test "CRLF mitigation in send-message recipient"
+                    '(("foo\r\nbar@email.com" "\r\n") ("foo\nbar@email.com" "\n") ("foo\rbar@email.com" "\r")) 
+                    (lambda (recipient-string injection) (begin 
+                        (let
+                            ((responses (sendmail-send-message smtp-connection "message content" "sender@email.com" (list recipient-string))))
+                            (assert (all? send-success? responses))
+                            (assert 
+                                (all? 
+                                    (lambda (c) (not (string-index c injection))) 
+                                    (server-requests-with-command server "RCPT"))
+                                (string-append "Expected client to remove CR or LF or both from recipients of send-message: " recipient-string))))))
             ))
                     
         ))
@@ -276,65 +272,61 @@
 
             (define (activate-8bitmime server) 
                 (server-set-extensions! server '("8BITMIME")))
-
-            (capability 'send-message (list
     
-                (capability 'mandatory-options (list
+            (capability 'mandatory-options (list
 
-                    ; 6152 - Section 3, end of section 
-                    (test "non-ascii content in send-message without 8BITMIME support" (lambda ()
-                        
-                        (let
-                            ((send-message-responses (sendmail-send-message-with-options 
-                                smtp-connection "¡a test message containing unicode!" "sender@sender.com" '("user@recipient.com") '("BODY=8BITMIME") '())))
-                            (assert (all? send-error? send-message-responses) "Client should not support sending 8BITMIME body when server does not support it"))))
+                ; 6152 - Section 3, end of section 
+                (test "non-ascii content in send-message without 8BITMIME support" (lambda ()
+                    
+                    (let
+                        ((send-message-responses (sendmail-send-message-with-options 
+                            smtp-connection "¡a test message containing unicode!" "sender@sender.com" '("user@recipient.com") '("BODY=8BITMIME") '())))
+                        (assert (all? send-error? send-message-responses) "Client should not support sending 8BITMIME body when server does not support it"))))
 
-                    (test "non-ascii content in send-message without 8BITMIME support and no option" (lambda ()
-                        
-                        (let
-                            ((send-message-responses (sendmail-send-message-with-options 
-                                smtp-connection "¡a test message containing unicode!" "sender@sender.com" '("user@recipient.com") '() '())))
-                            (assert (all? send-error? send-message-responses)))))
+                (test "non-ascii content in send-message without 8BITMIME support and no option" (lambda ()
+                    
+                    (let
+                        ((send-message-responses (sendmail-send-message-with-options 
+                            smtp-connection "¡a test message containing unicode!" "sender@sender.com" '("user@recipient.com") '() '())))
+                        (assert (all? send-error? send-message-responses)))))
 
-                    (test "non-ascii content in send-message with 8BITMIME support and option" (lambda ()
-                        (activate-8bitmime server)
-                        
-                        (let
-                            ((send-message-responses (sendmail-send-message-with-options 
-                                smtp-connection "¡a test message containing unicode!" "sender@sender.com" '("user@recipient.com") '("BODY=8BITMIME") '())))
-                            (assert (all? send-success? send-message-responses))
-                            (assert-any-request server "MAIL FROM:<sender@sender.com> BODY=8BITMIME"))))
+                (test "non-ascii content in send-message with 8BITMIME support and option" (lambda ()
+                    (activate-8bitmime server)
+                    
+                    (let
+                        ((send-message-responses (sendmail-send-message-with-options 
+                            smtp-connection "¡a test message containing unicode!" "sender@sender.com" '("user@recipient.com") '("BODY=8BITMIME") '())))
+                        (assert (all? send-success? send-message-responses))
+                        (assert-any-request server "MAIL FROM:<sender@sender.com> BODY=8BITMIME"))))
 
-                    (test "non-ascii content in send-message with 8BITMIME support and no option" (lambda ()
-                        (activate-8bitmime server)
-                        
-                        (let
-                            ((send-message-responses (sendmail-send-message-with-options 
-                                smtp-connection "¡a test message containing unicode!" "sender@sender.com" '("user@recipient.com") '() '())))
-                            (assert (all? send-error? send-message-responses)))))
-                
-                ))
+                (test "non-ascii content in send-message with 8BITMIME support and no option" (lambda ()
+                    (activate-8bitmime server)
+                    
+                    (let
+                        ((send-message-responses (sendmail-send-message-with-options 
+                            smtp-connection "¡a test message containing unicode!" "sender@sender.com" '("user@recipient.com") '() '())))
+                        (assert (all? send-error? send-message-responses)))))
+            
+            ))
 
-                (capability 'automatic-8bitmime-detection (list
+            (capability 'automatic-8bitmime-detection (list
 
-                    (test "non-ascii content in send-message without 8BITMIME support" (lambda ()
-                        
-                        (let
-                            ((send-message-responses (sendmail-send-message-with-options 
-                                smtp-connection "¡a test message containing unicode!" "sender@sender.com" '("user@recipient.com") '() '())))
-                            (assert (all? send-error? send-message-responses)))))
+                (test "non-ascii content in send-message without 8BITMIME support" (lambda ()
+                    
+                    (let
+                        ((send-message-responses (sendmail-send-message-with-options 
+                            smtp-connection "¡a test message containing unicode!" "sender@sender.com" '("user@recipient.com") '() '())))
+                        (assert (all? send-error? send-message-responses)))))
 
-                    (test "non-ascii content in send-message with 8BITMIME support" (lambda ()
-                        (activate-8bitmime server)
-                        
-                        (let
-                            ((send-message-responses (sendmail-send-message-with-options 
-                                smtp-connection "¡a test message containing unicode!" "sender@sender.com" '("user@recipient.com") '() '())))
-                            (assert (all? send-success? send-message-responses))
-                            (assert-any-request server "MAIL FROM:<sender@sender.com> BODY=8BITMIME"))))
-                
-                ))
-
+                (test "non-ascii content in send-message with 8BITMIME support" (lambda ()
+                    (activate-8bitmime server)
+                    
+                    (let
+                        ((send-message-responses (sendmail-send-message-with-options 
+                            smtp-connection "¡a test message containing unicode!" "sender@sender.com" '("user@recipient.com") '() '())))
+                        (assert (all? send-success? send-message-responses))
+                        (assert-any-request server "MAIL FROM:<sender@sender.com> BODY=8BITMIME"))))
+            
             ))
 
         ))
@@ -359,115 +351,112 @@
             (define (activate-smtputf8 server) 
                 (server-set-extensions! server '("SMTPUTF8" "8BITMIME")))
 
-            (capability 'send-message (list
-                (capability 'mandatory-options (list
+            (capability 'mandatory-options (list
 
-                    ; Recipient
+                ; Recipient
 
-                    (test "international recipient mailbox in send-message without SMTPUTF8 support" (lambda ()
-                        
-                        (let
-                            ((send-message-responses (sendmail-send-message-with-options 
-                                smtp-connection "message content" "sender@sender.com" '("χρήστης@παράδειγμα.ελ") '("SMTPUTF8") '())))
-                            (assert (all? send-error? send-message-responses)))))
+                (test "international recipient mailbox in send-message without SMTPUTF8 support" (lambda ()
+                    
+                    (let
+                        ((send-message-responses (sendmail-send-message-with-options 
+                            smtp-connection "message content" "sender@sender.com" '("χρήστης@παράδειγμα.ελ") '("SMTPUTF8") '())))
+                        (assert (all? send-error? send-message-responses)))))
 
-                    (test "international recipient mailbox in send-message without SMTPUTF8 support and no option" (lambda ()
-                        
-                        (let
-                            ((send-message-responses (sendmail-send-message-with-options 
-                                smtp-connection "message content" "sender@sender.com" '("χρήστης@παράδειγμα.ελ") '() '())))
-                            (assert (all? send-error? send-message-responses)))))
+                (test "international recipient mailbox in send-message without SMTPUTF8 support and no option" (lambda ()
+                    
+                    (let
+                        ((send-message-responses (sendmail-send-message-with-options 
+                            smtp-connection "message content" "sender@sender.com" '("χρήστης@παράδειγμα.ελ") '() '())))
+                        (assert (all? send-error? send-message-responses)))))
 
-                    (test "international recipient mailbox in send-message with SMTPUTF8 support" (lambda ()
-                        (activate-smtputf8 server)
-                        
-                        (let
-                            ((send-message-responses (sendmail-send-message-with-options 
-                                smtp-connection "message content" "sender@sender.com" '("χρήστης@παράδειγμα.ελ") '("SMTPUTF8") '())))
-                            (assert (all? send-success? send-message-responses))
-                            (assert-any-request server "MAIL FROM:<sender@sender.com> SMTPUTF8 BODY=8BITMIME"))))
+                (test "international recipient mailbox in send-message with SMTPUTF8 support" (lambda ()
+                    (activate-smtputf8 server)
+                    
+                    (let
+                        ((send-message-responses (sendmail-send-message-with-options 
+                            smtp-connection "message content" "sender@sender.com" '("χρήστης@παράδειγμα.ελ") '("SMTPUTF8") '())))
+                        (assert (all? send-success? send-message-responses))
+                        (assert-any-request server "MAIL FROM:<sender@sender.com> SMTPUTF8 BODY=8BITMIME"))))
 
-                    (test "international recipient mailbox in send-message with SMTPUTF8 support but no option" (lambda ()
-                        (activate-smtputf8 server)
-                        
-                        (let
-                            ((send-message-responses (sendmail-send-message-with-options 
-                                smtp-connection "message content" "sender@sender.com" '("χρήστης@παράδειγμα.ελ") '() '())))
-                            (assert (all? send-error? send-message-responses)))))
+                (test "international recipient mailbox in send-message with SMTPUTF8 support but no option" (lambda ()
+                    (activate-smtputf8 server)
+                    
+                    (let
+                        ((send-message-responses (sendmail-send-message-with-options 
+                            smtp-connection "message content" "sender@sender.com" '("χρήστης@παράδειγμα.ελ") '() '())))
+                        (assert (all? send-error? send-message-responses)))))
 
-                    ; Sender
+                ; Sender
 
-                    (test "international sender mailbox in send-message without SMTPUTF8 support" (lambda ()
-                        
-                        (let
-                            ((send-message-responses (sendmail-send-message-with-options 
-                                smtp-connection "message content" "χρήστης@παράδειγμα.ελ" '("recipient@server.com") '("SMTPUTF8") '())))
-                            (assert (all? send-error? send-message-responses)))))
+                (test "international sender mailbox in send-message without SMTPUTF8 support" (lambda ()
+                    
+                    (let
+                        ((send-message-responses (sendmail-send-message-with-options 
+                            smtp-connection "message content" "χρήστης@παράδειγμα.ελ" '("recipient@server.com") '("SMTPUTF8") '())))
+                        (assert (all? send-error? send-message-responses)))))
 
-                    (test "international sender mailbox in send-message without SMTPUTF8 support and no option" (lambda ()
-                        
-                        (let
-                            ((send-message-responses (sendmail-send-message-with-options 
-                                smtp-connection "message content" "χρήστης@παράδειγμα.ελ" '("recipient@server.com") '() '())))
-                            (assert (all? send-error? send-message-responses)))))
+                (test "international sender mailbox in send-message without SMTPUTF8 support and no option" (lambda ()
+                    
+                    (let
+                        ((send-message-responses (sendmail-send-message-with-options 
+                            smtp-connection "message content" "χρήστης@παράδειγμα.ελ" '("recipient@server.com") '() '())))
+                        (assert (all? send-error? send-message-responses)))))
 
-                    (test "international sender mailbox in send-message with SMTPUTF8 support" (lambda ()
-                        (activate-smtputf8 server)
-                        
-                        (let
-                            ((send-message-responses (sendmail-send-message-with-options 
-                                smtp-connection "message content" "χρήστης@παράδειγμα.ελ" '("recipient@server.com") '("SMTPUTF8") '())))
-                            (assert (all? send-success? send-message-responses))
-                            (assert-any-request server "MAIL FROM:<χρήστης@παράδειγμα.ελ> SMTPUTF8 BODY=8BITMIME"))))
+                (test "international sender mailbox in send-message with SMTPUTF8 support" (lambda ()
+                    (activate-smtputf8 server)
+                    
+                    (let
+                        ((send-message-responses (sendmail-send-message-with-options 
+                            smtp-connection "message content" "χρήστης@παράδειγμα.ελ" '("recipient@server.com") '("SMTPUTF8") '())))
+                        (assert (all? send-success? send-message-responses))
+                        (assert-any-request server "MAIL FROM:<χρήστης@παράδειγμα.ελ> SMTPUTF8 BODY=8BITMIME"))))
 
-                    (test "international sender mailbox in send-message with SMTPUTF8 support but no option" (lambda ()
-                        (activate-smtputf8 server)
-                        
-                        (let
-                            ((send-message-responses (sendmail-send-message-with-options 
-                                smtp-connection "message content" "χρήστης@παράδειγμα.ελ" '("recipient@server.com") '() '())))
-                            (assert (all? send-error? send-message-responses)))))
-                ))
+                (test "international sender mailbox in send-message with SMTPUTF8 support but no option" (lambda ()
+                    (activate-smtputf8 server)
+                    
+                    (let
+                        ((send-message-responses (sendmail-send-message-with-options 
+                            smtp-connection "message content" "χρήστης@παράδειγμα.ελ" '("recipient@server.com") '() '())))
+                        (assert (all? send-error? send-message-responses)))))
+            ))
 
-                (capability 'automatic-smtputf8-detection (list
+            (capability 'automatic-smtputf8-detection (list
 
-                    ; Recipient
+                ; Recipient
 
-                    (test "international recipient mailbox in send-message without SMTPUTF8 support" (lambda ()
-                        
-                        (let
-                            ((send-message-responses (sendmail-send-message 
-                                smtp-connection "message content" "sender@sender.com" '("χρήστης@παράδειγμα.ελ"))))
-                            (assert (all? send-error? send-message-responses)))))  
+                (test "international recipient mailbox in send-message without SMTPUTF8 support" (lambda ()
+                    
+                    (let
+                        ((send-message-responses (sendmail-send-message 
+                            smtp-connection "message content" "sender@sender.com" '("χρήστης@παράδειγμα.ελ"))))
+                        (assert (all? send-error? send-message-responses)))))  
 
-                    (test "international recipient mailbox in send-message with SMTPUTF8 support" (lambda ()
-                        (activate-smtputf8 server)
-                        
-                        (let
-                            ((send-message-responses (sendmail-send-message 
-                                smtp-connection "message content" "sender@sender.com" '("χρήστης@παράδειγμα.ελ"))))
-                            (assert (all? send-success? send-message-responses))
-                            (assert-any-request server "MAIL FROM:<sender@sender.com> SMTPUTF8 BODY=8BITMIME"))))
+                (test "international recipient mailbox in send-message with SMTPUTF8 support" (lambda ()
+                    (activate-smtputf8 server)
+                
+                    (let
+                        ((send-message-responses (sendmail-send-message 
+                            smtp-connection "message content" "sender@sender.com" '("χρήστης@παράδειγμα.ελ"))))
+                        (assert (all? send-success? send-message-responses))
+                        (assert-any-request server "MAIL FROM:<sender@sender.com> SMTPUTF8 BODY=8BITMIME"))))
 
-                    ; Sender
+                ; Sender
 
-                    (test "international sender mailbox in send-message without SMTPUTF8 support" (lambda ()
-                        
-                        (let
-                            ((send-message-responses (sendmail-send-message 
-                                smtp-connection "message content" "χρήστης@παράδειγμα.ελ" '("recipient@server.com"))))
-                            (assert (all? send-error? send-message-responses)))))
+                (test "international sender mailbox in send-message without SMTPUTF8 support" (lambda ()
+                    
+                    (let
+                        ((send-message-responses (sendmail-send-message 
+                            smtp-connection "message content" "χρήστης@παράδειγμα.ελ" '("recipient@server.com"))))
+                        (assert (all? send-error? send-message-responses)))))
 
-                    (test "international sender mailbox in send-message with SMTPUTF8 support" (lambda ()
-                        (activate-smtputf8 server)
-                        
-                        (let
-                            ((send-message-responses (sendmail-send-message 
-                                smtp-connection "message content" "χρήστης@παράδειγμα.ελ" '("recipient@server.com"))))
-                            (assert (all? send-success? send-message-responses))
-                            (assert-any-request server "MAIL FROM:<χρήστης@παράδειγμα.ελ> SMTPUTF8 BODY=8BITMIME"))))
-                ))
-
+                (test "international sender mailbox in send-message with SMTPUTF8 support" (lambda ()
+                    (activate-smtputf8 server)
+                    
+                    (let
+                        ((send-message-responses (sendmail-send-message 
+                            smtp-connection "message content" "χρήστης@παράδειγμα.ελ" '("recipient@server.com"))))
+                        (assert (all? send-success? send-message-responses))
+                        (assert-any-request server "MAIL FROM:<χρήστης@παράδειγμα.ελ> SMTPUTF8 BODY=8BITMIME"))))
             ))
 
         ))
