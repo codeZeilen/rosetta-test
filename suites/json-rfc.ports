@@ -16,7 +16,7 @@
                        (filter (lambda (test-file-name) (string-prefix? prefix test-file-name)) all-test-file-names)))
                     (map 
                         (lambda (test-file-name)
-                            (test test-file-name (lambda ()
+                            (test (string-replace ".json" "" test-file-name) (lambda ()
                                 (let ((result (parse (file-contents test-file-name))))
                                     (cond
                                         ((string-prefix? "y" test-file-name)
