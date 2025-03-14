@@ -2,6 +2,7 @@
 
 With the PorTS project, you only have to write a test suite once for multiple implementations.
 
+(This is still a prototype project. Expect major architectural or API changes.)
 
 ## Trying it out
 
@@ -19,9 +20,17 @@ This will run the test suite from `/suites/smtp.ports` using the mappings in `/p
 ## Structure of the Repository
 
 - The core PorTS language (`/ports`)
-- PorTS interpreters for Python (`/ports-py`) and Smalltalk (`/ports-s`)
-- A full test suite for SMTP (`/suites/smtp.ports`)
-- A prototype test suite for file handlers (`/suites/fs.ports`)
+- PorTS interpreters for 
+  - Python (`/ports-py`) 
+  - Ruby (`/ports-rb`)
+  - JavaScript (`/ports-js`)
+  - Smalltalk (`/ports-s`)
+- A full test suite for 
+  - SMTP (`/suites/smtp.ports`)
+  - RFC JSON parsing (`suites/json-rfc.ports`)
+- Prototype test suites for 
+  - sending MIME documents (`/suites/sendmail.ports`) 
+  - RFC URI parsing (`suites/url-parsing-rfc.ports`)
 
 
 ## How it Works (Overview)

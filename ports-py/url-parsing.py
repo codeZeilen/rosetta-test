@@ -2,7 +2,7 @@ import urllib.parse
 import ports
 import urllib 
 
-suite = ports.suite("suites/url-parsing-RFC.ports")
+suite = ports.suite("suites/url-parsing-rfc.ports")
 
 @suite.placeholder("url-parse")
 def url_parse(env, url_string):

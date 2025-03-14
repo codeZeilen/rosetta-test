@@ -1,7 +1,7 @@
 import { suite } from './ports.js';
 import { URL } from 'url';
 
-const urlParsingSuite = suite("suites/url-parsing-RFC.ports");
+const urlParsingSuite = suite("suites/url-parsing-rfc.ports");
 
 urlParsingSuite.placeholder("url-parse", (env, urlString) => {
     try {
