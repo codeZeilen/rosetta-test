@@ -192,6 +192,8 @@ class PortsSuite
   end
 end
 
-def suite(file_name)
-  PortsSuite.new(file_name)
+def suite(file_name, &block)
+  obj = PortsSuite.new(file_name)
+  obj.instance_eval(&block)
+  obj.run
 end
