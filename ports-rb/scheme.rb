@@ -63,7 +63,7 @@ module Scheme
     :append => proc { |*args| args.flatten(1) },
     :apply => proc { |procedure, list| procedure.call(*list) },
     :boolean? => proc { |a| [true, false].include?(a) },
-    :car => :first.to_proc,
+    :car => proc { |a| a[0] },
     :cdr => proc { |a| a[1..] },
     :cons => proc { |a, b| [a] + b },
     :display => proc { |a| print a },
