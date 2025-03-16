@@ -320,7 +320,7 @@ function evaluate(x, env = globalEnv) {
       let matched = false;
       for (let i = 1; i < x.length; i++) {
         const [test, exp] = x[i];
-        if (test === 'else' || evaluate(test, env)) {
+        if (test === Sym('else') || evaluate(test, env)) {
           x = exp;
           matched = true;
           break;

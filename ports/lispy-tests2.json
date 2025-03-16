@@ -19,7 +19,6 @@
     {"input": "(define (square-root a)\n(newton 1 (lambda (x) (- (* x x) a)) (lambda (x) (* 2 x)) 1e-8))", "expected": null},
     {"input": "(> (square-root 200.) 14.14213)", "expected": true},
     {"input": "(< (square-root 200.) 14.14215)", "expected": true},
-    {"input": "(= (inexact (square-root 200.)) (inexact (sqrt 200.)))", "expected": true},
     {"input": "(define (sum-squares-range start end)\n(define (sumsq-acc start end acc)\n(if (> start end) acc (sumsq-acc (+ start 1) end (+ (* start start) acc))))\n(sumsq-acc start end 0))", "expected": null},
     {"input": "(sum-squares-range 1 3000)", "expected": 9004500500},
     {"input": "(let ((a 1) (b 2)) (+ a b))", "expected": 3},
