@@ -1,0 +1,40 @@
+name: Interpreters Tests
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - name: Set up Python 3.10
+      uses: actions/setup-python@v3
+      with:
+        python-version: "3.10"
+    - name: Set up Node
+      uses: actions/setup-node@v4
+      with:
+        node-version: "lts/Hydrogen"
+    - name: Set up Ruby
+      uses: actions/setup-ruby@v1
+      with:
+        ruby-version: "3.4"
+
+    - name: Run Python Interpreter Tests
+      run: |
+        python3 ports-py/interpreter-tests.py
+    - name: Run JavaScript Interpreter Tests
+      run: |
+        node ports-js/interpreter-tests.js
+    - name: Run Ruby Interpreter Tests
+      run: |
+        ruby ports-rb/interpreter-tests.rb
+
+    
