@@ -73,6 +73,28 @@ def ports_assert_eq(expected, actual)
   raise Test::Unit::AssertionFailedError, "Expected #{actual} to be #{expected}" unless expected == actual
 end
 
+def ports_thread(proc)
+  Thread.new { proc.call }
+end
+
+def ports_thread_kill(thread)
+  Thread.kill(thread)
+end
+
+def ports_thread_join(thread)
+  # thread.join
+  Thread.kill(thread)
+end
+
+def ports_thread_sleep(time)
+  sleep(time)
+end
+
+def ports_thread_yield
+  # Thread.pass
+  sleep(0)
+end
+
 class PortsSuite
   attr_reader :scheme_env, :suite_name, :suite_version, :sources,
     :placeholders, :root_capability
@@ -132,7 +154,11 @@ class PortsSuite
       "is-placeholder?" => lambda { |x| x.is_a?(Placeholder) },
       "assert" => method(:ports_assert),
       "assert-equal" => method(:ports_assert_eq),
-      "is-assertion-error?" => lambda { |e| e.is_a?(Test::Unit::AssertionFailedError) }
+      "is-assertion-error?" => lambda { |e| e.is_a?(Test::Unit::AssertionFailedError) },
+      "thread" => method(:ports_thread),
+      "thread-wait-for-completion" => method(:ports_thread_join),
+      "thread-sleep!" => method(:ports_thread_sleep),
+      "thread-yield" => method(:ports_thread_yield)
     }
 
     primitives.each do |key, value|
@@ -228,4 +254,8 @@ def suite(file_name, &block)
   obj = PortsSuite.new(file_name)
   obj.instance_eval(&block)
   obj.run
+end
+
+def fixture_path(file_name)
+  File.join(".", "suites", file_name)
 end

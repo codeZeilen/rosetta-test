@@ -78,7 +78,7 @@ module Scheme
     :"list-ref" => proc { |list, idx| list[idx] },
     :"list-set!" => proc { |list, idx, value| list[idx] = value },
     :not => proc { |a| !a },
-    :null? => proc { |a| a.nil? || a.empty? },
+    :null? => proc { |a| a.nil? || (a.respond_to?(:empty?) && a.empty?) },
     :pair? => proc { |tokens| tokens.is_a?(Array) && !tokens.empty? },
     :raise => proc { |e| raise e },
     :sqrt => proc { |a| Math.sqrt(a) },
