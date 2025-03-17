@@ -308,7 +308,7 @@
 
             (if (not (empty? errors))
                 (begin
-                    (display "\nFailures:\n")
+                    (display "\nErrors:\n")
                     (display-test-result-details 
                         errors
                         (lambda (test-result) (string-append "\t" (test-result-exception test-result))))))
