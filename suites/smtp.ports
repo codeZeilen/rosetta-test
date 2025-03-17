@@ -56,10 +56,10 @@
         (placeholder '(smtp-authenticate-initial-response connection method credentials initial-response) "Run authentication and return the result (in case of an exception return exception object or a stand-in for the exception). The method is a string and the credentials are a list of strings. The initial-response is a Boolean value and denotes whether an initial response should be send.")
         (define (smtp-authenticate connection method credentials)
             (smtp-authenticate-initial-response connection method credentials #f))
-        (placeholder '(smtp-auth-successful?) "Was the authentication successful?")
+        (placeholder '(smtp-auth-successful? response) "Was the authentication successful?")
         ; The following two are also interesting as this is an advanced feature that might be moved to a dedicated capability, but then it shares the same situation as the other unsuccessful auth tests
-        (placeholder '(smtp-auth-credentials-error?) "Did the authentication fail due to wrong credentials?")
-        (placeholder '(smtp-auth-not-supported-error?) "Did the authentication fail due to no compatible authentication method?")
+        (placeholder '(smtp-auth-credentials-error? response) "Did the authentication fail due to wrong credentials?")
+        (placeholder '(smtp-auth-not-supported-error? response) "Did the authentication fail due to no compatible authentication method?")
 
         (include "suites/smtp-mock-server.scm")
 
