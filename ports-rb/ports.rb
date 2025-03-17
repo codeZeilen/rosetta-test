@@ -59,7 +59,7 @@ class Placeholder < PortsFunction
 
     <<~TEMPLATE
       placeholder "#{name}" do |#{params.join(", ")}|
-        # TODO: Implement
+        raise Test::Unit::AssertionFailedError, "Placeholder not implemented: #{@name}"
       end
     TEMPLATE
   end
