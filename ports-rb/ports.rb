@@ -146,6 +146,7 @@ class PortsSuite
   end
 
   def placeholder(name, &func)
+    puts "WARNING: Placeholder #{name} is defined multiple times" if @placeholder_functions.key?(name.to_sym)
     @placeholder_functions[name.to_sym] = func
     func
   end
