@@ -57,6 +57,7 @@ module Parser
       return raw_string.gsub("\\n", "\n")
           .gsub("\\r", "\r")
           .gsub("\\t", "\t")
+          .gsub("\\\"", "\"")
     end
 
     # Try to parse as integer
