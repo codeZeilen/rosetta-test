@@ -1212,7 +1212,7 @@
                     ("500 5.5.6  Authentication Exchange line is too long" #t)
                     ("503 5.5.1 Error: authentication not enabled" #f) )
                     (lambda (response auth-enabled) (begin 
-                        (if auth-enabled (server-set-auths! server '((PLAIN ("account" "password")))))
+                        (if auth-enabled (server-set-auths! server '(("PLAIN" ("account" "password")))))
                         (connect-and-ehlo-smtp-server)
                         (server-set-response-code! server response)
                         (let 
@@ -1237,7 +1237,7 @@
                         (server-set-auth-proc! server plain-auth-proc)))
 
                     (test "plain auth success" (lambda ()
-                        (server-set-auths! server '((PLAIN ("account" "password"))))
+                        (server-set-auths! server '(("PLAIN" ("account" "password"))))
                         (connect-and-ehlo-smtp-server)
                         (let 
                             ((auth-result 
@@ -1245,7 +1245,7 @@
                             (assert (smtp-auth-successful? auth-result)))))
 
                     (test "plain auth unsuccessful" (lambda () 
-                        (server-set-auths! server '((PLAIN ("account" "password"))))
+                        (server-set-auths! server '(("PLAIN" ("account" "password"))))
                         (connect-and-ehlo-smtp-server)
                         (let 
                             ((auth-result (smtp-authenticate smtp-connection 'PLAIN '("account" "foo"))))
@@ -1263,7 +1263,7 @@
                     (capability 'initial-response (list
 
                         (test "plain auth with initial response" (lambda ()
-                            (server-set-auths! server '((PLAIN ("account" "password"))))
+                            (server-set-auths! server '(("PLAIN" ("account" "password"))))
                             (connect-and-ehlo-smtp-server)
                             (let 
                                 ((auth-result 
@@ -1286,7 +1286,7 @@
                         (server-set-auth-proc! server xoauth2-auth-proc)))
 
                     (test "xoauth2 success" (lambda ()
-                        (server-set-auths! server '((XOAUTH2 ("account" "token"))))
+                        (server-set-auths! server '(("XOAUTH2" ("account" "token"))))
                         (connect-and-ehlo-smtp-server)
                         (let 
                             ((auth-result 
@@ -1294,7 +1294,7 @@
                             (assert (smtp-auth-successful? auth-result)))))
 
                     (test "xoauth2 auth unsuccessful" (lambda () 
-                        (server-set-auths! server '((XOAUTH2 ("account" "token"))))
+                        (server-set-auths! server '(("XOAUTH2" ("account" "token"))))
                         (connect-and-ehlo-smtp-server)
                         (let 
                             ((auth-result (smtp-authenticate smtp-connection 'XOAUTH2 '("account" "not-a-token"))))
@@ -1328,7 +1328,7 @@
                         (server-set-auth-proc! server cram-md5-auth-proc)))
 
                     (test "cram-md5 success" (lambda ()
-                        (server-set-auths! server '((CRAM-MD5 ("account" "password"))))
+                        (server-set-auths! server '(("CRAM-MD5" ("account" "password"))))
                         (connect-and-ehlo-smtp-server)
                         (let 
                             ((auth-result 
@@ -1336,7 +1336,7 @@
                             (assert (smtp-auth-successful? auth-result)))))
 
                     (test "cram-md5 auth unsuccessful" (lambda () 
-                        (server-set-auths! server '((CRAM-MD5 ("account" "password"))))
+                        (server-set-auths! server '(("CRAM-MD5" ("account" "password"))))
                         (connect-and-ehlo-smtp-server)
                         (let 
                             ((auth-result (smtp-authenticate smtp-connection 'CRAM-MD5 '("account" "not-the-password"))))
@@ -1355,7 +1355,7 @@
 
                         (test "cram-md5 initial response not supported and should be ignored" (lambda ()
                             ; Test would fail, as mock auth procedure fails when inital response is provided
-                            (server-set-auths! server '((CRAM-MD5 ("account" "password"))))
+                            (server-set-auths! server '(("CRAM-MD5" ("account" "password"))))
                             (connect-and-ehlo-smtp-server)
                             (let 
                                 ((auth-result 
@@ -1387,7 +1387,7 @@
                         (server-set-auth-proc! server login-auth-proc)))
 
                     (test "login success" (lambda ()
-                        (server-set-auths! server '((LOGIN ("account" "password"))))
+                        (server-set-auths! server '(("LOGIN" ("account" "password"))))
                         (connect-and-ehlo-smtp-server)
                         (let 
                             ((auth-result 
@@ -1395,7 +1395,7 @@
                             (assert (smtp-auth-successful? auth-result)))))
 
                     (test "login auth unsuccessful" (lambda () 
-                        (server-set-auths! server '((LOGIN ("account" "password"))))
+                        (server-set-auths! server '(("LOGIN" ("account" "password"))))
                         (connect-and-ehlo-smtp-server)
                         (let 
                             ((auth-result (smtp-authenticate smtp-connection 'LOGIN '("account" "not-the-password"))))
@@ -1413,7 +1413,7 @@
                     (capability 'initial-response (list
 
                         (test "login initial response" (lambda ()
-                            (server-set-auths! server '((LOGIN ("account" "password"))))
+                            (server-set-auths! server '(("LOGIN" ("account" "password"))))
                             (connect-and-ehlo-smtp-server)
                             (let 
                                 ((auth-result 
@@ -1438,7 +1438,7 @@
                         (server-set-auth-proc! server buggy-auth-proc)))
 
                     (test "buggy auth with too many challenges" (lambda ()
-                        (server-set-auths! server '((BUGGY ("account" "password"))))
+                        (server-set-auths! server '(("BUGGY" ("account" "password"))))
                         (connect-and-ehlo-smtp-server)
                         (let 
                             ((auth-result 
