@@ -271,7 +271,8 @@
 
     ; Asserts whether the last request matches the given one ignoring case for the command part
     (define (assert-last-request server request) 
-        (assert (request-equal? (last (server-requests server)) request)))
+        (assert (request-equal? (last (server-requests server)) request)
+            (string-append "Expected request \"" request "\" but got \"" (last (server-requests server)) "\"")))
 
     (define (server-includes-request server request) 
         (not (empty? (filter 

@@ -109,9 +109,10 @@
                 (assert (smtp-connected? (smtp-connect "localhost" (server-port server))))))
 
             (test "Connect with non-numeric port is an error" (lambda ()
-                (assert (smtp-error? (smtp-connect "localhost" "not-a-port")))
-                (smtp-connect "localhost" (server-port server)))) ; Give the mock server a chance to terminate
-
+                (let
+                    ((result (smtp-connect "localhost" "not-a-port")))
+                    (assert (smtp-error? result) (string-append "Expected " result " to be an SMTP error"))
+                    (smtp-connect "localhost" (server-port server))))) ; Give the mock server a chance to terminate 
         ))
 
         (capability 'tls-connection (list
@@ -1116,7 +1117,8 @@
                     (smtp-ehlo smtp-connection "")
                     (let
                         ((starttls-response (smtp-starttls smtp-connection '() '())))
-                        (assert (smtp-extension-not-supported-error? starttls-response))
+                        (assert (smtp-extension-not-supported-error? starttls-response)
+                                (string-append "Expected \"" starttls-response "\" to be an unsupported SMTP extension error"))
                         (assert (not (server-tls-started? server))))))
 
                 ; RFC 3207 - 4.2
