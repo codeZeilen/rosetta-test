@@ -1,0 +1,26 @@
+name: Ruby Suites
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - name: Set up Ruby
+      uses: ruby/setup-ruby@v1
+      with:
+        ruby-version: "3.4"
+    - name: Run SMTP Tests
+      run: |
+        ruby ports-rb/smtp.rb
+    - name: Run JSON RFC Tests
+      run: |
+        ruby ports-rb/json-rfc.rb
