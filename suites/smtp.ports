@@ -813,7 +813,7 @@
                             (smtp-response-code ehlo-response))
                         (assert-equal
                             "553.231.231.234"
-                            (smtp-response-message ehlo-response)))))
+                            (string-trim (smtp-response-message ehlo-response))))))
 
                 (test "server answers a single extension" (lambda ()
                     (server-set-extensions! server (list "8BITMIME"))
