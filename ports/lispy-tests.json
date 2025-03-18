@@ -29,5 +29,9 @@
     {"input": "(define riff-shuffle (lambda (deck) (begin\n(define take (lambda (n seq) (if (<= n 0) (quote ()) (cons (car seq) (take (- n 1) (cdr seq))))))\n(define drop (lambda (n seq) (if (<= n 0) seq (drop (- n 1) (cdr seq)))))\n(define mid (lambda (seq) (/ (length seq) 2)))\n((combine append) (take (mid deck) deck) (drop (mid deck) deck)))))", "expected" : null},
     {"input": "(riff-shuffle (list 1 2 3 4 5 6 7 8))", "expected" : [1, 5, 2, 6, 3, 7, 4, 8]},
     {"input": "((repeat riff-shuffle) (list 1 2 3 4 5 6 7 8))",  "expected" : [1, 3, 5, 7, 2, 4, 6, 8]},
-    {"input": "(riff-shuffle (riff-shuffle (riff-shuffle (list 1 2 3 4 5 6 7 8))))", "expected" : [1,2,3,4,5,6,7,8]}
+    {"input": "(riff-shuffle (riff-shuffle (riff-shuffle (list 1 2 3 4 5 6 7 8))))", "expected" : [1,2,3,4,5,6,7,8]},
+    {"input": "(equal? \"a\" 'a)", "expected": false},
+    {"input": "(equal? 'a \"a\")", "expected": false},
+    {"input": "(equal? \"a\" \"a\")", "expected": true},
+    {"input": "(equal? 'a 'a)", "expected": true}
 ]
