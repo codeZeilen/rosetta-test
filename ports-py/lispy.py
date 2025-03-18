@@ -13,15 +13,24 @@ from functools import reduce
 from fractions import Fraction
 import sys
 
-class Symbol(str): pass
+class Symbol(str): 
+
+    def __eq__(self, value: object) -> bool:
+        return isinstance(value, Symbol) and super().__eq__(value)
+    
+    def __hash__(self) -> int:
+        return id(self).__hash__()  
+    
+    def __repr__(self) -> str:
+        return "'" + self
 
 def Sym(s, symbol_table={}):
     "Find or create unique Symbol entry for str s in symbol table."
     if s not in symbol_table: symbol_table[s] = Symbol(s)
     return symbol_table[s]
 
-_quote, _if, _cond, _set, _define, _lambda, _begin, _definemacro, _include, = list(map(Sym, 
-"quote   if   cond   set!  define   lambda   begin   define-macro   include".split()))
+_quote, _if, _cond, _else, _set, _define, _lambda, _begin, _definemacro, _include, = list(map(Sym, 
+"quote   if   cond   else   set!  define   lambda   begin   define-macro   include".split()))
 
 _quasiquote, _unquote, _unquotesplicing = list(map(Sym,
 "quasiquote   unquote   unquote-splicing".split()))
@@ -229,7 +238,8 @@ def add_globals(self):
     import math, cmath, operator as op
     self.update(vars(math))
     self.update(vars(cmath))
-    self.update({
+    prims = dict(
+        map(lambda item: (Sym(item[0]), item[1]), {
      '+':op.add, '-':op.sub, '*':op.mul, '/':op.truediv, 'not':op.not_, 
      '>':op.gt, '<':op.lt, '>=':op.ge, '<=':op.le, '=':op.eq, 
      'equal?':op.eq, 'eq?':op.is_, 'length':len, 'cons':cons,
@@ -255,7 +265,8 @@ def add_globals(self):
      'eof-object?':lambda x:x is eof_object, 'read-char':readchar,
      'read':read, 'write':lambda x,port=sys.stdout:port.write(to_string(x)),
      'display':lambda x:print(x if isa(x,str) else to_string(x), end="",flush=True),
-     'exit':lambda code: sys.exit(code)})
+     'exit':lambda code: sys.exit(code)}.items()))
+    self.update(prims)
     return self
 
 isa = isinstance
@@ -291,7 +302,7 @@ def eval(x, env=global_env):
                 one_clause_matched = False
                 for clause in x[1:]:
                     (test, exp) = clause
-                    if test == 'else' or eval(test, env):
+                    if test == _else or eval(test, env):
                         x = exp
                         one_clause_matched = True
                         break

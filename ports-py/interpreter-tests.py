@@ -12,6 +12,16 @@ with open("ports/lispy-tests2.json") as file:
 def matches(structure, target):
     if(isinstance(target, dict) and "type" in target):
         return isinstance(structure, Exception)
+    if(isinstance(structure, lispy.Symbol)):
+        return str(structure) == target
+    if(isinstance(target, list)):
+        if len(structure) != len(target):
+            return False
+        for i in range(len(structure)):
+            if not matches(structure[i], target[i]):
+                return False
+        return True
+        
     return structure == target
 
 expected_failures = ["(quote (testing 1 (2.0) -3.14e159))"]
