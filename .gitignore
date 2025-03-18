@@ -5,3 +5,5 @@ ports-j/**/target/
 .idea/
 .python-version
 ports.code-workspace
+.devenv
+.direnv
