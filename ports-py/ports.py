@@ -124,15 +124,15 @@ class PortsSuite(object):
 
     def initialize_ports_primitives(self):
         self.lispy_env.update({
-            "create-placeholder": lambda *args: self.create_placeholder(*args),
-            "is-placeholder?": lambda x: isinstance(x, Placeholder),
-            "assert": ports_assert,
-            "assert-equal": ports_assert_eq,
-            "is-assertion-error?": lambda e: isinstance(e, AssertionError),
-            "thread": ports_thread,
-            "thread-wait-for-completion": ports_thread_join,
-            "thread-sleep!": lambda x: time.sleep(float(x)),
-            "thread-yield": ports_thread_yield,
+            lispy.Sym("create-placeholder"): lambda *args: self.create_placeholder(*args),
+            lispy.Sym("is-placeholder?"): lambda x: isinstance(x, Placeholder),
+            lispy.Sym("assert"): ports_assert,
+            lispy.Sym("assert-equal"): ports_assert_eq,
+            lispy.Sym("is-assertion-error?"): lambda e: isinstance(e, AssertionError),
+            lispy.Sym("thread"): ports_thread,
+            lispy.Sym("thread-wait-for-completion"): ports_thread_join,
+            lispy.Sym("thread-sleep!"): lambda x: time.sleep(float(x)),
+            lispy.Sym("thread-yield"): ports_thread_yield,
         })
 
     def initialize_ports(self):
@@ -141,7 +141,7 @@ class PortsSuite(object):
 
     def placeholder(self, name):
         def decorator(func):
-            self.placeholder_functions[name] = func    
+            self.placeholder_functions[lispy.Sym(name)] = func    
             return func
         return decorator
     
@@ -177,14 +177,15 @@ class PortsSuite(object):
         return lambda testcase: self.run_test(ports_test)
     
     def run_test(self, ports_test):
+        print(self.eval_with_args("(test-name current_test)", current_test=ports_test))
         return self.eval_with_args("(test-run current_test)", current_test=ports_test)
     
-    def run(self, only=None, only_capabilities=None, exclude=None, exclude_capabilities=None, expected_failures=[]):
+    def run_unittest(self, only=None, only_capabilities=None, exclude=None, exclude_capabilities=None, expected_failures=[]):
         self.initialize_suite()
         self.install_setUp_tearDown_functions()
         self.ensure_placeholders_are_valid()
         self.lispy_env.update({
-            "root-capability": self.root_capability,
+            lispy.Sym("root-capability"): self.root_capability,
         })
         tests = self.eval("(capability-all-tests root-capability)")
         
@@ -205,6 +206,20 @@ class PortsSuite(object):
             test_suite.addTest(test_case)
         unittest.TextTestRunner().run(test_suite)
 
+    def run(self, only=None, only_capabilities=None, exclude=None, exclude_capabilities=None, expected_failures=[]):
+        self.initialize_suite()
+        self.install_setUp_tearDown_functions()
+        self.ensure_placeholders_are_valid()
+        self.lispy_env.update({
+            lispy.Sym("root-capability"): self.root_capability,
+        })
+        self.eval_with_args(
+            "(run-suite suite_name suite_version root-capability only_tests only_capabilities exclude exclude_capabilities expected_failures)", 
+            suite_name=self.suite_name,
+            suite_version=self.suite_version,
+            only_tests=only, only_capabilities=only_capabilities, exclude=exclude, exclude_capabilities=exclude_capabilities,
+            expected_failures=expected_failures)
+        
 
 def suite(file_name):
     return PortsSuite(file_name)
