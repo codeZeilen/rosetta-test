@@ -2,7 +2,7 @@
 
 With the PorTS project, you only have to write a test suite once for multiple implementations.
 
-(This is still a prototype project. Expect major architectural or API changes.)
+(This is still a prototype project. Expect major architectural or API changes, as well as major bugs and inconsistencies.)
 
 ## Trying it out
 
