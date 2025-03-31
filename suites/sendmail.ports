@@ -82,83 +82,6 @@
 
         ))
 
-        (capability 'crlf-injection-detection (list
-
-            (define smtp-connection '())
-            (define (connect-smtp-server)
-                (set! smtp-connection (sendmail-connect "localhost" (server-port server))))
-
-            (setup (lambda () 
-                (set! server (start-mock-server))
-                (connect-smtp-server)))
-
-            (tearDown (lambda ()
-                (sendmail-disconnect smtp-connection)
-                (set! smtp-connection '())))
-
-            (define (assert-crlf-injection-error test-function failure-description)
-                (let
-                    ((response (test-function)))
-                    (assert (send-error? response) failure-description)))
-
-            (define (assert-crlf-injection-mitigation test-function injection command failure-description)
-                (let
-                    ((response (test-function)))
-                    (assert (send-success? response))
-                    (assert 
-                        (all? 
-                            (lambda (c) (not (string-index c injection))) 
-                            (server-requests-with-command server command))
-                        failure-description)))
-
-            (capability 'detection (list
-
-                (data-test "CRLF detection in send-message sender"
-                    '(("foo\r\nbar@email.com") ("foo\nbar@email.com") ("foo\rbar@email.com")) 
-                    (lambda (sender-string) (begin 
-                        (let
-                            ((responses (sendmail-send-message smtp-connection "message content" sender-string '("user@recipient.to"))))
-                            (display responses)
-                            (assert (all? send-error? responses) (string-append "Expected client to fail when CR or LF is in sender of send-message: " sender-string))))))
-                        
-                (data-test "CRLF detection in send-message recipient"
-                    '(("foo\r\nbar@email.com") ("foo\nbar@email.com") ("foo\rbar@email.com")) 
-                    (lambda (recipient-string) (begin 
-                        (let
-                            ((responses (sendmail-send-message smtp-connection "message content" "sender@email.com" (list recipient-string))))
-                            (assert (all? send-error? responses) (string-append "Expected client to fail when CR or LF is in recipient of send-message: " recipient-string))))))
-        
-            ))
-
-            (capability 'mitigation (list
-
-                (data-test "CRLF mitigation in send-message sender"
-                    '(("foo\r\nbar@email.com" "\r\n") ("foo\nbar@email.com" "\n") ("foo\rbar@email.com" "\r")) 
-                    (lambda (sender-string injection) (begin 
-                        (let
-                            ((responses (sendmail-send-message smtp-connection "message content" sender-string '("user@recipient.to"))))
-                            (assert (all? send-success? responses))
-                            (assert 
-                                (all? 
-                                    (lambda (c) (not (string-index c injection))) 
-                                    (server-requests-with-command server "MAIL"))
-                                (string-append "Expected client to remove CR or LF or both from sender of send-message: " sender-string))))))
-                        
-                (data-test "CRLF mitigation in send-message recipient"
-                    '(("foo\r\nbar@email.com" "\r\n") ("foo\nbar@email.com" "\n") ("foo\rbar@email.com" "\r")) 
-                    (lambda (recipient-string injection) (begin 
-                        (let
-                            ((responses (sendmail-send-message smtp-connection "message content" "sender@email.com" (list recipient-string))))
-                            (assert (all? send-success? responses))
-                            (assert 
-                                (all? 
-                                    (lambda (c) (not (string-index c injection))) 
-                                    (server-requests-with-command server "RCPT"))
-                                (string-append "Expected client to remove CR or LF or both from recipients of send-message: " recipient-string))))))
-            ))
-                    
-        ))
-
         ; This covers full scenarios for sending a message that may be covered by convenience functions or
         ; require bridge implementors to use the commands directly
         (capability 'send-message (list
@@ -254,6 +177,83 @@
 
             ))
 
+        ))
+
+        (capability 'crlf-injection-detection (list
+
+            (define smtp-connection '())
+            (define (connect-smtp-server)
+                (set! smtp-connection (sendmail-connect "localhost" (server-port server))))
+
+            (setup (lambda () 
+                (set! server (start-mock-server))
+                (connect-smtp-server)))
+
+            (tearDown (lambda ()
+                (sendmail-disconnect smtp-connection)
+                (set! smtp-connection '())))
+
+            (define (assert-crlf-injection-error test-function failure-description)
+                (let
+                    ((response (test-function)))
+                    (assert (send-error? response) failure-description)))
+
+            (define (assert-crlf-injection-mitigation test-function injection command failure-description)
+                (let
+                    ((response (test-function)))
+                    (assert (send-success? response))
+                    (assert 
+                        (all? 
+                            (lambda (c) (not (string-index c injection))) 
+                            (server-requests-with-command server command))
+                        failure-description)))
+
+            (capability 'detection (list
+
+                (data-test "CRLF detection in send-message sender"
+                    '(("foo\r\nbar@email.com") ("foo\nbar@email.com") ("foo\rbar@email.com")) 
+                    (lambda (sender-string) (begin 
+                        (let
+                            ((responses (sendmail-send-message smtp-connection "message content" sender-string '("user@recipient.to"))))
+                            (display responses)
+                            (assert (all? send-error? responses) (string-append "Expected client to fail when CR or LF is in sender of send-message: " sender-string))))))
+                        
+                (data-test "CRLF detection in send-message recipient"
+                    '(("foo\r\nbar@email.com") ("foo\nbar@email.com") ("foo\rbar@email.com")) 
+                    (lambda (recipient-string) (begin 
+                        (let
+                            ((responses (sendmail-send-message smtp-connection "message content" "sender@email.com" (list recipient-string))))
+                            (assert (all? send-error? responses) (string-append "Expected client to fail when CR or LF is in recipient of send-message: " recipient-string))))))
+        
+            ))
+
+            (capability 'mitigation (list
+
+                (data-test "CRLF mitigation in send-message sender"
+                    '(("foo\r\nbar@email.com" "\r\n") ("foo\nbar@email.com" "\n") ("foo\rbar@email.com" "\r")) 
+                    (lambda (sender-string injection) (begin 
+                        (let
+                            ((responses (sendmail-send-message smtp-connection "message content" sender-string '("user@recipient.to"))))
+                            (assert (all? send-success? responses))
+                            (assert 
+                                (all? 
+                                    (lambda (c) (not (string-index c injection))) 
+                                    (server-requests-with-command server "MAIL"))
+                                (string-append "Expected client to remove CR or LF or both from sender of send-message: " sender-string))))))
+                        
+                (data-test "CRLF mitigation in send-message recipient"
+                    '(("foo\r\nbar@email.com" "\r\n") ("foo\nbar@email.com" "\n") ("foo\rbar@email.com" "\r")) 
+                    (lambda (recipient-string injection) (begin 
+                        (let
+                            ((responses (sendmail-send-message smtp-connection "message content" "sender@email.com" (list recipient-string))))
+                            (assert (all? send-success? responses))
+                            (assert 
+                                (all? 
+                                    (lambda (c) (not (string-index c injection))) 
+                                    (server-requests-with-command server "RCPT"))
+                                (string-append "Expected client to remove CR or LF or both from recipients of send-message: " recipient-string))))))
+            ))
+                    
         ))
 
         (capability '8bitmime (list
