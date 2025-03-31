@@ -171,9 +171,9 @@ def sendmail_error(env, result):
 sendmail_suite.run(#only_capabilities=("root.send-message",),
                    exclude_capabilities=(
                        "root.connection",
-                       "root.crlf-injection-detection.send-message.detection",
+                       "root.crlf-injection-detection.detection",
                        "root.8bitmime",
-                       "root.smtputf8.send-message.explicit-options"),
+                       "root.smtputf8.explicit-options"),
                    expected_failures=(
                        # The library should problably automatically detect whether smtputf8 is required
                        "test_international_sender_mailbox_in_send-message_with_SMTPUTF8_support",

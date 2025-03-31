@@ -16,8 +16,6 @@ def tear_down(env):
     for socket in sockets:
         socket.close()
     sockets.clear()
-    if "activated_8_bit_mime" in env:
-        del env["activated_8_bit_mime"]
 
 
 #
@@ -181,7 +179,7 @@ sendmail_suite.run(
         "test_CRLF_mitigation_in_send-message_sender",),
     exclude_capabilities=(
         "root.8bitmime",
-        "root.smtputf8.send-message.explicit-options"),
+        "root.smtputf8.explicit-options"),
     expected_failures=(
         "test_Handle_421_during_data_command",
         "test_Handle_421_at_start_of_data_command",
