@@ -3,6 +3,7 @@ import socket as socketlib
 import ssl
 import emails
 from emails.backend.smtp import SMTPBackend
+from emails.backend.response import SMTPResponse
 
 sendmail_suite = ports.suite("suites/sendmail.ports")
 
@@ -96,7 +97,13 @@ def socket_close(env, socket):
 
 @sendmail_suite.placeholder("sendmail-connect")
 def sendmail_connect(env, host, port):
-    return SMTPBackend(host=host, port=port)
+    backend = SMTPBackend(host=host, port=port)
+    return backend
+    
+@sendmail_suite.placeholder("sendmail-connect-with-credentials")
+def sendmail_connect_with_credentials(env, host, port, username, password):
+    backend = SMTPBackend(host=host, port=port, user=username, password=password)
+    return backend
     
 @sendmail_suite.placeholder("sendmail-connect-with-auto-starttls")
 def sendmail_connect_with_auto_starttls(env, host, port, automatic_mode):
@@ -127,11 +134,13 @@ def sendmail_secure_connect_with_timeout(env, host, port, cafile, timeout=None):
 
 @sendmail_suite.placeholder("sendmail-disconnect")
 def sendmail_disconnect(env, sender):
+    if not isinstance(sender, SMTPBackend):
+        return sender
     sender.close()
     
 @sendmail_suite.placeholder("sendmail-connected?")
-def sendmail_connected(env, sender):
-    pass
+def sendmail_connected(env, backend):
+    return backend._client is not None and backend._client.sock is not None
 
 
 #
@@ -158,8 +167,8 @@ def sendmail_success(env, result):
     return (not isinstance(result, Exception)) and result.status_code == 250
 
 @sendmail_suite.placeholder("send-error?")
-def sendmail_error(env, result):
-    return isinstance(result, Exception) or result.status_code != 250
+def sendmail_error(env, result: SMTPResponse):
+    return isinstance(result, Exception) or result.status_code != 250 or result.error is not None
 
 
 #
@@ -168,14 +177,14 @@ def sendmail_error(env, result):
 
 # they do mitigation for addresses but detection for other fields
 
-sendmail_suite.run(#only_capabilities=("root.send-message",),
-                   exclude_capabilities=(
-                       "root.connection",
-                       "root.crlf-injection-detection.detection",
-                       "root.8bitmime",
-                       "root.smtputf8.explicit-options"),
-                   expected_failures=(
-                       # The library should problably automatically detect whether smtputf8 is required
-                       "test_international_sender_mailbox_in_send-message_with_SMTPUTF8_support",
-                       "test_international_recipient_mailbox_in_send-message_with_SMTPUTF8_support",
-                       "test_Send_a_message_with_empty_recipient",))
+sendmail_suite.run(
+    exclude_capabilities=(
+        "root.connection.eager-connection",
+        "root.crlf-injection-detection.detection",
+        "root.8bitmime",
+        "root.smtputf8.explicit-options"),
+    expected_failures=(
+        # The library should problably automatically detect whether smtputf8 is required
+        "test_international_sender_mailbox_in_send-message_with_SMTPUTF8_support",
+        "test_international_recipient_mailbox_in_send-message_with_SMTPUTF8_support",
+        "test_Send_a_message_with_empty_recipient",))
