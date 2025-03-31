@@ -97,21 +97,37 @@
                 (sendmail-disconnect sendmail-connection)
                 (set! sendmail-connection '())))
 
-            (test "Connect to server" (lambda () 
-                (set! sendmail-connection (sendmail-connect "localhost" (server-port server)))
-                (assert (sendmail-connected? sendmail-connection))))
+            (capability 'eager-connection (list
+                (test "Connect to server" (lambda () 
+                    (set! sendmail-connection (sendmail-connect "localhost" (server-port server)))
+                    (assert (sendmail-connected? sendmail-connection))))
 
-            (test "Connect with non-numeric port is an error" (lambda ()
-                (assert (send-error? (sendmail-connect "localhost" "not-a-port")))
-                (sendmail-connect "localhost" (server-port server)))) ; Give the mock server a chance to terminate
+                (test "Connect with non-numeric port is an error" (lambda ()
+                    (assert (send-error? (sendmail-connect "localhost" "not-a-port")))
+                    (sendmail-connect "localhost" (server-port server)))) ; Give the mock server a chance to terminate
 
-            (test "Connect with valid credentials" (lambda ()
-                (set! sendmail-connection (sendmail-connect-with-credentials "localhost" (server-port server) "account" "password"))
-                (assert (sendmail-connected? sendmail-connection))))
+                (test "Connect with valid credentials" (lambda ()
+                    (set! sendmail-connection (sendmail-connect-with-credentials "localhost" (server-port server) "account" "password"))
+                    (assert (sendmail-connected? sendmail-connection))))
 
-            (test "Connect with invalid credentials" (lambda ()
-                (set! sendmail-connection (sendmail-connect-with-credentials "localhost" (server-port server) "account" "wrong-password"))
-                (assert (not (sendmail-connected? sendmail-connection)))))
+                (test "Connect with invalid credentials" (lambda ()
+                    (set! sendmail-connection (sendmail-connect-with-credentials "localhost" (server-port server) "account" "wrong-password"))
+                    (assert (not (sendmail-connected? sendmail-connection)))))
+            ))
+
+            (capability 'lazy-connection (list
+
+                (define (some-send connection)
+                    (sendmail-send-message connection "message content" "sender@sender.to" '("user@recipient.to")))
+
+                (test "Connect with valid credentials" (lambda ()
+                    (set! sendmail-connection (sendmail-connect-with-credentials "localhost" (server-port server) "account" "password"))
+                    (assert (all? send-success? (some-send sendmail-connection)))))
+
+                (test "Connect with invalid credentials" (lambda ()
+                    (set! sendmail-connection (sendmail-connect-with-credentials "localhost" (server-port server) "account" "wrong-password"))
+                    (assert (all? send-error? (some-send sendmail-connection)))))
+            ))            
 
         ))
 
