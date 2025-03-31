@@ -19,6 +19,7 @@
 
         ; SMTP connection
         (placeholder '(sendmail-connect host port) "Should connect and return some representation of the connection.")
+        (placeholder '(sendmail-connect-with-credentials host port user password) "Should connect and return some representation of the connection. The credentials should be used to authenticate the connection.")
         (placeholder '(sendmail-connect-with-auto-starttls host port starttls-mode) "Should connect and set the automatic starttls mode (which can be 'automatic (send starttls if available, otherwise do not), 'required (connect and send starttls, fail if server does not support it), 'never (do not automatically send starttls)). In case the connection results in an error (e.g. starttls mode is 'required but server does not support starttls), the error should be returned.")
         (placeholder '(sendmail-secure-connect host port ca-file) "Should connect to an SMTP server via a secure connection (SSL/TLS) and return some representation of the connection.")
         (placeholder '(sendmail-secure-connect-with-timeout host port ca-file timeout) "Same as sendmail-secure-connect but the connection should be aborted if the handshake does not complete within the timeout.")
@@ -70,15 +71,47 @@
 
         (capability 'connection (list
 
+            (define sendmail-connection '())
+
             (setup (lambda ()
-                (set! server (start-mock-server))))
+                (set! server (start-mock-server))
+                (server-set-extensions! server '("STARTTLS"))
+            (server-set-auths! server '(("LOGIN" ("account" "password"))))
+                (define (login-auth-proc credentials connection success failure)
+                    (let 
+                        ((login-user-response
+                            (if (not (= credentials "")) 
+                                credentials
+                                (begin
+                                    (socket-write connection "334 VXNlcm5hbWU6\r\n")
+                                    (string-trim (socket-receive connection))))))
+                        (socket-write connection "334 UGFzc3dvcmQ6\r\n")
+                        (let 
+                            ((login-password-response (string-trim (socket-receive connection)))) 
+                            (if (and (= login-user-response "YWNjb3VudA==") (= login-password-response "cGFzc3dvcmQ="))
+                                (success)
+                                (failure)))))
+                (server-set-auth-proc! server login-auth-proc)))
+
+            (tearDown (lambda ()
+                (sendmail-disconnect sendmail-connection)
+                (set! sendmail-connection '())))
 
             (test "Connect to server" (lambda () 
-                (assert (sendmail-connected? (sendmail-connect "localhost" (server-port server))))))
+                (set! sendmail-connection (sendmail-connect "localhost" (server-port server)))
+                (assert (sendmail-connected? sendmail-connection))))
 
             (test "Connect with non-numeric port is an error" (lambda ()
                 (assert (send-error? (sendmail-connect "localhost" "not-a-port")))
                 (sendmail-connect "localhost" (server-port server)))) ; Give the mock server a chance to terminate
+
+            (test "Connect with valid credentials" (lambda ()
+                (set! sendmail-connection (sendmail-connect-with-credentials "localhost" (server-port server) "account" "password"))
+                (assert (sendmail-connected? sendmail-connection))))
+
+            (test "Connect with invalid credentials" (lambda ()
+                (set! sendmail-connection (sendmail-connect-with-credentials "localhost" (server-port server) "account" "wrong-password"))
+                (assert (not (sendmail-connected? sendmail-connection)))))
 
         ))
 
