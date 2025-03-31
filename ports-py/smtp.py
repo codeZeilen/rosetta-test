@@ -295,7 +295,7 @@ def smtp_error(env, result):
 @smtp_suite.placeholder("smtp-authenticate-initial-response")
 def smtp_authenticate(env, smtp : smtplib.SMTP, method, credentials, initial_response):
     result = False
-    if method in ("PLAIN", "XOAUTH2", "CRAM-MD5", "LOGIN"):
+    if str(method) in ("PLAIN", "XOAUTH2", "CRAM-MD5", "LOGIN"):
         try:
             smtp.login(*credentials, initial_response_ok=initial_response)
             result = True

@@ -26,6 +26,7 @@ class Symbol(str):
 
 def Sym(s, symbol_table={}):
     "Find or create unique Symbol entry for str s in symbol table."
+    if isinstance(s, Symbol): return s
     if s not in symbol_table: symbol_table[s] = Symbol(s)
     return symbol_table[s]
 
@@ -173,17 +174,27 @@ class Env(dict):
     def __getitem__(self, key):
         self.lock.acquire()
         try:
-            return super().__getitem__(key)
+            return super().__getitem__(Sym(key))
         finally:
             self.lock.release()
             
     def __setitem__(self, key, value):
         self.lock.acquire()
         try:
-            super().__setitem__(key, value)
+            super().__setitem__(Sym(key), value)
         finally:
             self.lock.release()
-    
+            
+    def __contains__(self, key: object) -> bool:
+        return super().__contains__(Sym(key))
+        
+    def __delitem__(self, key):
+        self.lock.acquire()
+        try:
+            super().__delitem__(Sym(key))
+        finally:
+            self.lock.release()
+        
     def find(self, var):
         "Find the innermost Env where var appears."
         self.lock.acquire()
