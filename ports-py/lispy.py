@@ -172,41 +172,29 @@ class Env(dict):
         self.lock = threading.Lock()
         
     def __getitem__(self, key):
-        self.lock.acquire()
-        try:
+        with self.lock:
             return super().__getitem__(Sym(key))
-        finally:
-            self.lock.release()
             
     def __setitem__(self, key, value):
-        self.lock.acquire()
-        try:
+        with self.lock:
             super().__setitem__(Sym(key), value)
-        finally:
-            self.lock.release()
             
     def __contains__(self, key: object) -> bool:
         return super().__contains__(Sym(key))
         
     def __delitem__(self, key):
-        self.lock.acquire()
-        try:
+        with self.lock:
             super().__delitem__(Sym(key))
-        finally:
-            self.lock.release()
         
     def find(self, var):
         "Find the innermost Env where var appears."
-        self.lock.acquire()
-        try:
+        with self.lock:
             if var in self: 
                 return self
             elif self.outer is None: 
                 raise LookupError(var)
             else: 
                 return self.outer.find(var)
-        finally:
-            self.lock.release()
                 
     def __str__(self) -> str:
         if self.outer is None:
