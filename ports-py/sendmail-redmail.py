@@ -165,8 +165,9 @@ sendmail_suite.run(
         "test_CRLF_mitigation_in_send-message_sender",
         "test_Connect_with_invalid_credentials"), # TODO redmail leaks sockets when credentials are invalid
     exclude_capabilities=(
-        "root.8bitmime",
-        "root.smtputf8.explicit-options"),
+        "root.unicode-messages.8bitmime-automatic-detection",
+        "root.unicode-messages.8bitmime-mandatory-options",
+        "root.internationalized-email-addresses.smtputf8-explicit-options",),
     expected_failures=(
         "test_Handle_421_during_data_command",
         "test_Handle_421_at_start_of_data_command",

@@ -127,7 +127,7 @@ def sendmail_send_message(env, sender:SMTPBackend, message, sender_address, reci
                                  subject="Test",
                                  mail_to=recipient_addresses,
                                  mail_from=sender_address)
-        return [message.send(smtp=sender)]
+        return [message.send(smtp=sender,smtp_mail_options=message_options, smtp_rcpt_options=recipients_options)]
     except Exception as e:
         return [e]     
     
@@ -152,12 +152,13 @@ def sendmail_error(env, result: SMTPResponse):
 
 sendmail_suite.run(
     exclude_capabilities=(
-        "root.connection.lazy-connection", # TODO: pythone-emails does not handle failed auth correctly
+        "root.connection.lazy-connection", # TODO: python-emails does not handle failed auth correctly
         "root.connection.eager-connection",
         "root.crlf-injection-detection.detection",
-        "root.8bitmime",
-        "root.smtputf8.explicit-options"),
+        "root.unicode-messages.8bitmime-automatic-detection",
+        "root.internationalized-email-addresses.smtputf8-explicit-options"),
     expected_failures=(
+        "test_non-ascii_content_in_send-message_with_8BITMIME_option_and_without_8BITMIME_server_support", # 8bitmime or smtputf8 should not be sent when server does not support it
         "test_Handle_421_at_start_of_data_command",
         "test_Handle_421_during_data_command",
         # The library should problably automatically detect whether smtputf8 is required
