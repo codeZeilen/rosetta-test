@@ -20,9 +20,6 @@
         ; SMTP connection
         (placeholder '(sendmail-connect host port) "Should connect and return some representation of the connection.")
         (placeholder '(sendmail-connect-with-credentials host port user password) "Should connect and return some representation of the connection. The credentials should be used to authenticate the connection.")
-        (placeholder '(sendmail-connect-with-auto-starttls host port starttls-mode) "Should connect and set the automatic starttls mode (which can be 'automatic (send starttls if available, otherwise do not), 'required (connect and send starttls, fail if server does not support it), 'never (do not automatically send starttls)). In case the connection results in an error (e.g. starttls mode is 'required but server does not support starttls), the error should be returned.")
-        (placeholder '(sendmail-secure-connect host port ca-file) "Should connect to an SMTP server via a secure connection (SSL/TLS) and return some representation of the connection.")
-        (placeholder '(sendmail-secure-connect-with-timeout host port ca-file timeout) "Same as sendmail-secure-connect but the connection should be aborted if the handshake does not complete within the timeout.")
         (placeholder '(sendmail-disconnect connection) "Should close the connection")
         (placeholder '(sendmail-connected? connection) "Should return true if the connection is still open")
         

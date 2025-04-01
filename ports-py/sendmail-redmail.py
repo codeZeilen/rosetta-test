@@ -111,33 +111,6 @@ def sendmail_connect_with_credentials(env, host, port, username, password):
     except Exception as e:
         sender.close()
         return e
-    
-@sendmail_suite.placeholder("sendmail-connect-with-auto-starttls")
-def sendmail_connect_with_auto_starttls(env, host, port, automatic_mode):
-    pass
-
-@sendmail_suite.placeholder("sendmail-secure-connect")
-def sendmail_secure_connect(env, host, port, cafile):
-    pass
-
-@sendmail_suite.placeholder("sendmail-secure-connect-with-timeout")
-def sendmail_secure_connect_with_timeout(env, host, port, cafile, timeout=None):
-    pass
-    # context = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
-    # context.check_hostname = False
-    # context.verify_mode = ssl.CERT_NONE
-    # context.load_verify_locations(ports.fixture_path(cafile))
-    # if timeout:
-    #     try:
-    #         result = smtplib.SMTP_SSL(host, port, context=context, timeout=float(timeout))
-    #     except TimeoutError as err:
-    #         return err
-    # else:
-    #     result = smtplib.SMTP_SSL(host, port, context=context)
-    # if isinstance(result, ssl.SSLError):
-    #     raise result
-    # else:
-    #     return result
 
 @sendmail_suite.placeholder("sendmail-disconnect")
 def sendmail_disconnect(env, sender):
