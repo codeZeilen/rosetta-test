@@ -155,8 +155,8 @@ sendmail_suite.run(
         "root.connection.lazy-connection", # TODO: python-emails does not handle failed auth correctly
         "root.connection.eager-connection",
         "root.crlf-injection-detection.detection",
-        "root.unicode-messages.8bitmime-automatic-detection",
-        "root.internationalized-email-addresses.smtputf8-explicit-options"),
+        "root.unicode-messages.8bitmime.automatic-detection",
+        "root.internationalized-email-addresses.smtputf8.explicit-options"),
     expected_failures=(
         "test_non-ascii_content_in_send-message_with_8BITMIME_option_and_without_8BITMIME_server_support", # 8bitmime or smtputf8 should not be sent when server does not support it
         "test_Handle_421_at_start_of_data_command",
