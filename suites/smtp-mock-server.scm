@@ -12,7 +12,7 @@
     (define (server-tls? server) (list-ref server 9))
     (define (server-tls-started? server) (list-ref server 10)) ; Was a TLS connection started via STARTTLS?
     (define (server-auth-proc server) (list-ref server 11))
-    (define (server-message-data server) (list-ref server 12))
+    (define (server-message-data server) (list-ref server 12)) ; The raw characters coming in from the client
 
     (define (server-set-thread! server new-thread) 
         (list-set! server 1 new-thread))
