@@ -174,5 +174,10 @@
                 (if (string-prefix? substr str) index
                     (string-index-help (cdr str) substr (+ index 1)))))
         (string-index-help str substr 0))
+
+    (define (string-contains? str substr)
+        (if (string-index str substr) #t #f))
     
+    (define (string-contains-ci? str substr)
+        (if (string-index-ci (string-downcase str) (string-downcase substr)) #t #f))
 )
