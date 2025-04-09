@@ -320,6 +320,9 @@
                 (sendmail-disconnect smtp-connection)
                 (set! smtp-connection '())))
 
+            (define (server-message-data-contains content)
+                (string-contains? content (server-message-data server)))
+
             (capability '8bitmime (list
 
                 (define (activate-8bitmime server) 
@@ -335,7 +338,17 @@
                                 smtp-connection "¡a test message containing unicode!" "sender@sender.com" '("user@recipient.com") '("BODY=8BITMIME") '())))
                             (assert (all? send-error? send-message-responses) "Client should not support sending 8BITMIME body when server does not support it"))))
 
-                    ; TODO: Missing test: use fallback encoding when 8BITMIME options was not set (independent of server support)
+                    ; Use fallback encoding when 8BITMIME options was not set (independent of server support) and should not just go ahead with unicode anyway
+                    (test "non-ascii content in send-message without 8BITMIME option" (lambda ()
+                        (activate-8bitmime server)
+                        (let
+                            ((send-message-responses (sendmail-send-message-with-options 
+                                smtp-connection "¡a test message containing unicode!" "sender@sender.com" '("user@recipient.com") '() '())))
+                            (assert (all? send-success? send-message-responses))    
+                            (assert 
+                                (not (server-message-data-contains "¡a test message containing unicode!")))
+                                (string-append 
+                                    "Expected server to receive message with unicode content encoded, but received: " (server-message-data server)))))
 
                     (test "non-ascii content in send-message with 8BITMIME option and server support" (lambda ()
                         (activate-8bitmime server)
@@ -343,19 +356,26 @@
                             ((send-message-responses (sendmail-send-message-with-options 
                                 smtp-connection "¡a test message containing unicode!" "sender@sender.com" '("user@recipient.com") '("BODY=8BITMIME") '())))
                             (assert (all? send-success? send-message-responses))
-                            (assert-any-request server "MAIL FROM:<sender@sender.com> BODY=8BITMIME"))))
+                            (assert-any-request server "MAIL FROM:<sender@sender.com> BODY=8BITMIME")
+                            (assert 
+                                (server-message-contains "¡a test message containing unicode!")
+                                (string-append 
+                                    "Expected server to receive message with unicode content directly, but received: " (server-message-data server))))))
                 
                 ))
 
                 ; The library can handle unicode messages by using the 8BITMIME extension and detects it automatically.
                 (capability 'automatic-detection (list
 
-                    ; TODO: The following is not useful, as it should also check whether the message body was correctly encoded
                     (test "non-ascii content in send-message without 8BITMIME support" (lambda ()
                         (let
                             ((send-message-responses (sendmail-send-message-with-options 
                                 smtp-connection "¡a test message containing unicode!" "sender@sender.com" '("user@recipient.com") '() '())))
-                            (assert-any-request server "MAIL FROM:<sender@sender.com>"))))
+                            (assert-any-request server "MAIL FROM:<sender@sender.com>")
+                            (assert 
+                                (not (server-message-contains "¡a test message containing unicode!"))
+                                (string-append 
+                                    "Expected server to receive message with unicode content directly, but received: " (server-message-data server))))))
 
                     (test "non-ascii content in send-message with 8BITMIME support" (lambda ()
                         (activate-8bitmime server)
@@ -363,7 +383,11 @@
                             ((send-message-responses (sendmail-send-message-with-options 
                                 smtp-connection "¡a test message containing unicode!" "sender@sender.com" '("user@recipient.com") '() '())))
                             (assert (all? send-success? send-message-responses))
-                            (assert-any-request server "MAIL FROM:<sender@sender.com> BODY=8BITMIME"))))
+                            (assert-any-request server "MAIL FROM:<sender@sender.com> BODY=8BITMIME")
+                            (assert 
+                                (server-message-contains "¡a test message containing unicode!")
+                                (string-append 
+                                    "Expected server to receive message with unicode content directly, but received: " (server-message-data server))))))
                 
                 ))
             ))
