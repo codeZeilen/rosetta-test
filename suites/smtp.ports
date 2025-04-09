@@ -501,6 +501,14 @@
                             ((data-response (smtp-data smtp-connection "¡a test message containing unicode!")))
                             (assert-response-code mail-response 250)))))
 
+                (test "sending unicode without 8BITMIME results in error" (lambda ()
+                    (smtp-ehlo smtp-connection "")
+                    (let ((mail-response (smtp-mail-with-options smtp-connection "sender@sender.com" '())))
+                        (smtp-rcpt smtp-connection '("recipient@recipient.com") '())                        
+                        (let 
+                            ((data-response (smtp-data smtp-connection "¡a test message containing unicode!")))
+                            (assert (smtp-error? data-response) "Client should not support sending unicode data when server does not support it")))))
+
             ))
 
             (capability 'send-message (list
