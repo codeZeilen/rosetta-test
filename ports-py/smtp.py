@@ -155,10 +155,13 @@ def smtp_data(env, smtp: smtplib.SMTP, content):
         return smtp.data(message_content)
     except smtplib.SMTPDataError as err:
         return err
+    except UnicodeEncodeError as err:
+        return err
     
 @smtp_suite.placeholder("smtp-mail-with-options")
 def smtp_mail(env, smtp, sender, options=()):
-    env["activated_8_bit_mime"] = True
+    if "BODY=8BITMIME" in options: 
+        env["activated_8_bit_mime"] = True
     try:
         return smtp.mail(sender, options=options)
     except ValueError as err:
