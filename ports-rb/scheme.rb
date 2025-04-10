@@ -79,6 +79,25 @@ module Scheme
     :list => proc { |*args| args },
     :"list-ref" => proc { |list, idx| list[idx] },
     :"list-set!" => proc { |list, idx, value| list[idx] = value },
+    :"make-hash-table" => proc { Hash.new },
+    :"hash-table?" => proc { |a| a.is_a?(Hash) },
+    :"hash-table-ref" => proc { |*args|
+      hash_table = args[0]
+      key = args[1]
+      if args.length == 2
+        raise "hash-table-ref: key #{key} not found" if not hash_table.has_key?(key)
+        hash_table[key]
+      elsif args.length == 3 
+        default_value = args[2]
+        hash_table.fetch(key, default_value)
+      else
+        raise "hash-table-ref: wrong number of arguments"
+      end
+    },
+    :"hash-table-set!" => proc { |*args| (args[0][args[1]] = args[2]) ? nil : nil },
+    :"hash-table-delete!" => proc { |*args| args[0].delete(args[1]) ? nil : nil },
+    :"hash-table-keys" => proc { |a| a.keys },
+    :"hash-table-values" => proc { |a| a.values },
     :not => proc { |a| !a },
     :null? => proc { |a| a.nil? || (a.respond_to?(:empty?) && a.empty?) },
     :pair? => proc { |tokens| tokens.is_a?(Array) && !tokens.empty? },
