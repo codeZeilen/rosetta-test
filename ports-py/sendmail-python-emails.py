@@ -159,6 +159,7 @@ sendmail_suite.run(
         "root.internationalized-email-addresses.smtputf8.explicit-options"),
     expected_failures=(
         "test_non-ascii_content_in_send-message_with_8BITMIME_option_and_without_8BITMIME_server_support", # 8bitmime or smtputf8 should not be sent when server does not support it
+        "test_non-ascii_content_in_send-message_with_8BITMIME_option_and_server_support", # 8bitmime is sent but body is not 8bitmime
         "test_Handle_421_at_start_of_data_command",
         "test_Handle_421_during_data_command",
         # The library should problably automatically detect whether smtputf8 is required
