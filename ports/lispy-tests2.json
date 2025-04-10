@@ -55,7 +55,7 @@
     {"input": "(assoc 1 al)", "expected": [1, 2]},
     {"input": "(assoc 'b al)", "expected": false},
     {"input": "(assoc 'b (alist-cons 'b 10 al))", "expected": ["b", 10]},
-    {"input": "(assoc 'a (alist-delete 'a al))", "expected": false}
+    {"input": "(assoc 'a (alist-delete 'a al))", "expected": false},
     {"input": "(hash-table? (make-hash-table))", "expected": true},
     {"input": "(hash-table? (list))", "expected": false},
     {"input": "(define ht (make-hash-table))", "expected": null},
