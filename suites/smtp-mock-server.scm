@@ -66,7 +66,7 @@
         (server-set-response-codes! server new-code))
     (define (server-set-command-response-code! server command new-code)
         (let
-            ((response-pair (assq command (server-command-response-codes server))))
+            ((response-pair (assoc command (server-command-response-codes server))))
             (if (not response-pair)
                 (server-set-command-response-codes! server (append (server-command-response-codes server) (list (list command new-code))))
                 (list-set! response-pair 1 new-code))))
@@ -76,11 +76,11 @@
         (not (empty? (server-response-codes server))))
     (define (server-has-command-response-code? server command)
         (or 
-            (list? (assq command (server-command-response-codes server)))
+            (list? (assoc command (server-command-response-codes server)))
             (server-has-response-code? server)))
     (define (server-next-command-response-code server command)
         (let
-            ((response-pair (assq command (server-command-response-codes server))))
+            ((response-pair (assoc command (server-command-response-codes server))))
             (if (list? response-pair)
                 (second response-pair)
                 (server-next-response-code server))))
