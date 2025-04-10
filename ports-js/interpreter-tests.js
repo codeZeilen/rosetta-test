@@ -59,14 +59,9 @@ function valueToString(value) {
 // Load test cases
 let testTable = [];
 try {
-    const testsPath1 = join(__dirname, '../ports/lispy-tests.json');
-    const testsPath2 = join(__dirname, '../ports/lispy-tests2.json');
+    const testsPath = join(__dirname, '../ports/interpreter-tests.json');
     
-    const tests1 = JSON.parse(readFileSync(testsPath1, 'utf8'));
-    testTable = testTable.concat(tests1);
-    
-    const tests2 = JSON.parse(readFileSync(testsPath2, 'utf8'));
-    testTable = testTable.concat(tests2);
+    testTable = JSON.parse(readFileSync(testsPath, 'utf8'));
 } catch (error) {
     console.error(`Error loading test files: ${error.message}`);
     process.exit(1);

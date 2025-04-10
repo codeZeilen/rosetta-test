@@ -3,12 +3,9 @@ import lispy
 import numbers
 
 testTable = []
-with open("ports/lispy-tests.json") as file:
-    testTable.extend(json.load(file))
+with open("ports/interpreter-tests.json") as file:
+    testTable = json.load(file)
     
-with open("ports/lispy-tests2.json") as file:
-    testTable.extend(json.load(file))
-
 def matches(structure, target):
     if(isinstance(target, dict) and "type" in target):
         return isinstance(structure, Exception)

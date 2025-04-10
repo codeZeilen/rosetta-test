@@ -31,14 +31,8 @@ dirname = File.dirname(__FILE__)
 # Load test cases
 test_table = []
 begin
-  tests_path1 = File.join(dirname, "../ports/lispy-tests.json")
-  tests_path2 = File.join(dirname, "../ports/lispy-tests2.json")
-
-  tests1 = JSON.parse(File.read(tests_path1))
-  test_table.concat(tests1)
-
-  tests2 = JSON.parse(File.read(tests_path2))
-  test_table.concat(tests2)
+  tests_path = File.join(dirname, "../ports/interpreter-tests.json")
+  test_table = JSON.parse(File.read(tests_path))
 rescue => error
   puts "Error loading test files: #{error.message}"
   exit(1)
