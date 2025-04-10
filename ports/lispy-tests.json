@@ -33,5 +33,7 @@
     {"input": "(equal? \"a\" 'a)", "expected": false},
     {"input": "(equal? 'a \"a\")", "expected": false},
     {"input": "(equal? \"a\" \"a\")", "expected": true},
-    {"input": "(equal? 'a 'a)", "expected": true}
+    {"input": "(equal? 'a 'a)", "expected": true},
+    {"input": "(eq? 'a 'a)", "expected": true},
+    {"input": "(eqv? 'a 'a)", "expected": true}
 ]

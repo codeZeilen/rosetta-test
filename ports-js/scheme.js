@@ -247,6 +247,7 @@ function addGlobals(env) {
   env.set(Sym('-'), (a, b) => a - b);
   env.set(Sym('*'), (a, b) => a * b);
   env.set(Sym('/'), (a, b) => a / b);
+  env.set(Sym('modulo'), (a, b) => a % b);
   env.set(Sym('not'), a => !a);
   env.set(Sym('>'), (a, b) => a > b);
   env.set(Sym('<'), (a, b) => a < b);
@@ -255,6 +256,7 @@ function addGlobals(env) {
   env.set(Sym('='), (a, b) => a === b);
   env.set(Sym('equal?'), (a, b) => a === b);
   env.set(Sym('eq?'), (a, b) => a === b);
+  env.set(Sym('eqv?'), (a, b) => a == b);
   env.set(Sym('length'), a => a.length);
   env.set(Sym('cons'), cons);
   env.set(Sym('car'), a => a[0]);

@@ -125,12 +125,51 @@
     (define (tenth list) (list-ref list 9))
 
     ; Associative lists
+    ;
+    
+    (define alist (lambda args
+        (if (not (= 0 (modulo (length args) 2))) 
+            (throw (error "alist: odd number of arguments"))
+            (begin
+                (define (alist-help args res)
+                    (if (null? args) res
+                        (alist-help (cdr (cdr args)) 
+                            (cons (list (car args) (car (cdr args))) res))))
+                (alist-help args '())))))
+
     (define (assq object alist)
+        (if (null? alist) 
+            #f
+            (if (eq? (car (car alist)) object) 
+                (car alist)
+                (assq object (cdr alist)))))
+
+    (define (assv object alist)
+        (if (null? alist) 
+            #f
+            (if (eqv? (car (car alist)) object) 
+                (car alist)
+                (assv object (cdr alist)))))
+
+    (define (assoc object alist)
         (if (null? alist) 
             #f
             (if (equal? (car (car alist)) object) 
                 (car alist)
-                (assq object (cdr alist)))))
+                (assoc object (cdr alist)))))
+
+    (define (alist-cons key value alist)
+        (if (not (list? alist)) 
+            (throw (error "alist-cons: alist is not a list"))
+            (cons (list key value) alist)))
+
+    (define (alist-delete key alist)
+        (if (null? alist) 
+            '()
+            (if (equal? (car (car alist)) key) 
+                (alist-delete key (cdr alist))
+                (cons (car alist) 
+                    (alist-delete key (cdr alist))))))
     
     ; String
     ;

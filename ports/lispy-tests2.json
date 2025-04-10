@@ -43,5 +43,17 @@
     {"input": "`(testing ,@L testing)", "expected": ["testing", 1,2,3, "testing"]},
     {"input": "`(testing ,L testing)", "expected": ["testing", [1,2,3], "testing"]},
     {"input": "`,@L", "expected": {"type": "SyntaxError"}},
-    {"input": "'(1 ;test comments '\n;skip this line\n2 ; more ; comments ; ) )\n3) ; final comment", "expected": [1,2,3]}
+    {"input": "'(1 ;test comments '\n;skip this line\n2 ; more ; comments ; ) )\n3) ; final comment", "expected": [1,2,3]},
+    {"input": "(define al (alist 1 2 'a 3))", "expected": null},
+    {"input": "(assq 'a al)", "expected": ["a", 3]},
+    {"input": "(assq 1 al)", "expected": [1, 2]},
+    {"input": "(assq 'b al)", "expected": false},
+    {"input": "(assv 'a al)", "expected": ["a", 3]},
+    {"input": "(assv 1 al)", "expected": [1, 2]},
+    {"input": "(assv 'b al)", "expected": false},
+    {"input": "(assoc 'a al)", "expected": ["a", 3]},
+    {"input": "(assoc 1 al)", "expected": [1, 2]},
+    {"input": "(assoc 'b al)", "expected": false},
+    {"input": "(assoc 'b (alist-cons 'b 10 al))", "expected": ["b", 10]},
+    {"input": "(assoc 'a (alist-delete 'a al))", "expected": false}
 ]

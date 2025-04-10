@@ -241,7 +241,8 @@ def add_globals(self):
         map(lambda item: (Sym(item[0]), item[1]), {
      '+':op.add, '-':op.sub, '*':op.mul, '/':op.truediv, 'not':op.not_, 
      '>':op.gt, '<':op.lt, '>=':op.ge, '<=':op.le, '=':op.eq, 
-     'equal?':op.eq, 'eq?':op.is_, 'length':len, 'cons':cons,
+     'modulo':op.mod,
+     'equal?':op.eq, 'eq?':op.is_, 'eqv?':op.eq, 'length':len, 'cons':cons,
      'car':lambda x:x[0], 
      'cdr':lambda x:x[1:],
      'append':op.add,  
