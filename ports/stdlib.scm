@@ -171,6 +171,64 @@
                 (cons (car alist) 
                     (alist-delete key (cdr alist))))))
     
+    ; Hash-table
+    ;
+
+    (define (hash-table-size ht)
+        (length (hash-table-keys ht)))
+
+    (define (hash-table-exists? ht key)
+        (member key (hash-table-keys ht)))
+
+    (define (hash-table-ref! ht key value)
+        (if (not (hash-table-exists? ht key))
+            (hash-table-set! ht key value))
+        (hash-table-ref ht key))
+
+    (define (hash-table-map ht func)
+        (map 
+            (lambda (key) 
+                (func key (hash-table-ref ht key)))
+            (hash-table-keys ht)))
+
+    (define (hash-table-walk ht func)
+        (for-each 
+            (lambda (key) 
+                (func key (hash-table-ref ht key)))
+            (hash-table-keys ht)))
+        
+    (define hash-table-for-each hash-table-walk)
+
+    (define (alist->hash-table alist)
+        (define ht (make-hash-table))
+        (for-each 
+            (lambda (pair) 
+                (hash-table-set! ht (car pair) (cdr pair)))
+            alist)
+        ht)
+
+    (define (hash-table->alist ht)
+        (define alist '())
+        (for-each 
+            (lambda (key) 
+                (set! alist (cons (list key (hash-table-ref ht key)) alist)))
+            (hash-table-keys ht))
+        alist)
+
+    ; Aliases
+    (define hash-ref hash-table-ref)
+    (define hash-ref! hash-table-ref!)
+    (define hash-set! hash-table-set!)
+    (define hash-size hash-table-size)
+    (define hash-exists? hash-table-exists?)
+    (define hash-map hash-table-map)
+    (define hash-walk hash-table-walk)
+    (define hash-for-each hash-table-walk)
+    (define hash-delete! hash-table-delete!)
+    (define hash-keys hash-table-keys)
+    (define hash-values hash-table-values)
+    
+
     ; String
     ;
 

@@ -52,16 +52,6 @@ PorTS does not support hygenic macros, as we expect macros to be almost exclusiv
 - hash-table-delete!
 - hash-table-keys, hash-table-values
 
-<!-- Implemented at user-level
-hash-table-size
-hash-table-walk (hash-table-for-each)
-hash-table-map
-hash-table->alist
-hash-table-exists?
-hash-table-ref/default
-alist->hash-table
--->
-
 <!-- - apply? -->
 
 <!-- 
