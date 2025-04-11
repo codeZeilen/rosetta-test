@@ -180,6 +180,21 @@
     (define (hash-table-exists? ht key)
         (member key (hash-table-keys ht)))
 
+    (define hash-table-ref (lambda args
+        (let 
+            ((ht (first args)) 
+            (key (second args)))
+            (cond
+                ((= (length args) 2) (begin
+                    (if (hash-table-exists? ht key)
+                        (hash-table-ref-prim ht key)
+                        (raise (error (string-append "hash-table-ref: " key "is not a key in hash-table " ht))))))
+                ((= (length args) 3) (begin
+                    (if (hash-table-exists? ht key)
+                        (hash-table-ref-prim ht key)
+                        (third args)))) ; return default value
+                (else (raise (error "hash-table-ref: wrong number of arguments")))))))
+
     (define (hash-table-ref! ht key value)
         (if (not (hash-table-exists? ht key))
             (hash-table-set! ht key value))

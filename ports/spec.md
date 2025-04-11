@@ -47,8 +47,9 @@ PorTS does not support hygenic macros, as we expect macros to be almost exclusiv
 - abs
 - length
 - exit 
-- make-hash-table, hash-table?
-- hash-table-ref, hash-table-set!
+- make-hash-table, hash-table? (All hash-table related primitives are based on srfi-69)
+- hash-table-set!
+- hash-table-ref-prim (Should only access the value from the dictionary and do nothing else, the correct handling of missing keys and default values is implemented in the standard lib)
 - hash-table-delete!
 - hash-table-keys, hash-table-values
 

@@ -269,19 +269,7 @@ function addGlobals(env) {
   env.set(Sym('make-hash-table'), () => new Map());
   env.set(Sym('hash-table?'), x => x instanceof Map);
   env.set(Sym('hash-table-set!'), (table, key, value) => {table.set(key, value); null});
-  env.set(Sym('hash-table-ref'), (...args) => { 
-    const [table, key] = args;
-    if(args.length === 2) {
-      if (!table.has(key)) {
-        throw new Error(`hash-table-ref: Key ${key} not found in hash table`);
-      }
-      return table.get(key);
-    } else if (args.length === 3) {
-      const defaultValue = args[2];
-      return table.has(key) ? table.get(key) : defaultValue;
-    }
-    
-  });
+  env.set(Sym('hash-table-ref-prim'), (table, key) => table.get(key));
   env.set(Sym('hash-table-delete!'), (table, key) => { table.delete(key); });
   env.set(Sym('hash-table-keys'), table => Array.from(table.keys()));
   env.set(Sym('hash-table-values'), table => Array.from(table.values()));
