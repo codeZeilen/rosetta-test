@@ -218,7 +218,7 @@
         (define ht (make-hash-table))
         (for-each 
             (lambda (pair) 
-                (hash-table-set! ht (car pair) (cdr pair)))
+                (hash-table-set! ht (car pair) (car (cdr pair))))
             alist)
         ht)
 
