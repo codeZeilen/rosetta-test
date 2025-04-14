@@ -24,15 +24,15 @@ jobs:
         if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
     - name: Run SMTP Tests
       run: |
-        python3 ports-py/smtp.py
+        python3 rosetta-test-py/smtp.py
     - name: Run Sendmail Tests for RedMail
       run: |
-        pip install -r ports-py/sendmail-redmail.requirements.txt
-        python3 ports-py/sendmail-redmail.py
+        pip install -r rosetta-test-py/sendmail-redmail.requirements.txt
+        python3 rosetta-test-py/sendmail-redmail.py
     - name: Run Sendmail Tests for Python Emails
       run: |
-        pip install -r ports-py/sendmail-python-emails.requirements.txt
-        python3 ports-py/sendmail-python-emails.py
+        pip install -r rosetta-test-py/sendmail-python-emails.requirements.txt
+        python3 rosetta-test-py/sendmail-python-emails.py
     - name: Run JSON RFC Tests
       run: |
-        python3 ports-py/json-rfc.py
+        python3 rosetta-test-py/json-rfc.py

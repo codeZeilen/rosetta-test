@@ -1,9 +1,9 @@
 __pycache__/
 *.vscode
 _notes/
-ports-j/**/target/
+rosetta-test-j/**/target/
 .idea/
 .python-version
-ports.code-workspace
+rosetta-test.code-workspace
 .devenv
 .direnv

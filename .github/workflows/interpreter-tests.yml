@@ -29,12 +29,12 @@ jobs:
 
     - name: Run Python Interpreter Tests
       run: |
-        python3 ports-py/interpreter-tests.py
+        python3 rosetta-test-py/interpreter-tests.py
     - name: Run JavaScript Interpreter Tests
       run: |
-        node ports-js/interpreter-tests.js
+        node rosetta-test-js/interpreter-tests.js
     - name: Run Ruby Interpreter Tests
       run: |
-        ruby ports-rb/interpreter-tests.rb
+        ruby rosetta-test-rb/interpreter-tests.rb
 
     
