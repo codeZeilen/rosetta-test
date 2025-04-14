@@ -84,7 +84,7 @@ export function parseWithoutExpand(inputString) {
 };
 
 function main() {
-    const testTable = JSON.parse(readFileSync('rosetta/syntax-tests.json'));
+    const testTable = JSON.parse(readFileSync('rosetta-test/syntax-tests.json'));
 
     function matches(structure, target) {
         if (Array.isArray(target)) {
