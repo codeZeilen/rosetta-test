@@ -113,5 +113,7 @@
     {"input": "(hash-table-exists? ht 'b)", "expected": true},
     {"input": "(hash-table-map ht (lambda (key value) key))", "expected": ["b"]},
     {"input": "(hash-table-walk ht (lambda (key value) key))", "expected": null},
-    {"input": "(begin (hash-table-ref! ht 'c 3) (hash-table-ref ht 'c))", "expected": 3}
+    {"input": "(begin (hash-table-ref! ht 'c 3) (hash-table-ref ht 'c))", "expected": 3},
+    {"input": "(hash-table->alist ht)", "expected": [["b", 2], ["c", 3]]},
+    {"input": "(hash-table->alist (make-hash-table))", "expected": []}
 ]
