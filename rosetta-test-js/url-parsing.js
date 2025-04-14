@@ -1,4 +1,4 @@
-import { suite } from './rosetta.js';
+import { suite } from './rosetta-test.js';
 import { URL } from 'url';
 
 const urlParsingSuite = suite("rosetta-test-suites/url-parsing-rfc.rosetta");
