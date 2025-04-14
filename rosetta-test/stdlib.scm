@@ -223,12 +223,10 @@
         ht)
 
     (define (hash-table->alist ht)
-        (define alist '())
-        (for-each 
+        (map
             (lambda (key) 
-                (set! alist (cons (list key (hash-table-ref ht key)) alist)))
-            (hash-table-keys ht))
-        alist)
+                (list key (hash-table-ref ht key)))
+            (hash-table-keys ht)))
 
     ; Aliases
     (define hash-ref hash-table-ref)
