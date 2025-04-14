@@ -176,7 +176,29 @@
                             (server-requests-with-command server "MAIL"))
                         (string-append "Expected client to send empty sender: " (server-requests-with-command server "MAIL"))))))
 
-            ; TODO: CC and BCC
+            (test "Send a message to cc recipients" (lambda () 
+                (let
+                    ((responses (sendmail-send-message-full smtp-connection "message content" "sender@sender.to" '() '("user1@recipient.to") '() (make-hash-table) '() '())))
+                    (assert (all? send-success? responses))
+                    (assert (server-message-contains? "user1@recipient.to"))
+                    (assert
+                        (any?
+                            (lambda (request) 
+                                (string-prefix-ci? "TO:<user1@recipient.to>" (first (request-arguments request))))
+                            (server-requests-with-command server "RCPT"))
+                        (string-append "Expected client to send RCPT command for cc recipients: " (server-requests-with-command server "RCPT"))))))
+
+            (test "Send a message to bcc recipients" (lambda () 
+                (let
+                    ((responses (sendmail-send-message-full smtp-connection "message content" "sender@sender.to" '() '() '("user1@recipient.to") (make-hash-table) '() '())))
+                    (assert (all? send-success? responses))
+                    (assert (not (server-message-contains? "user1@recipient.to")))
+                    (assert
+                        (any?
+                            (lambda (request) 
+                                (string-prefix-ci? "TO:<user1@recipient.to>" (first (request-arguments request))))
+                            (server-requests-with-command server "RCPT"))
+                        (string-append "Expected client to send RCPT command for bcc recipients: " (server-requests-with-command server "RCPT"))))))
 
             ; TODO
             ;(test "Send message with a valid and an invalid recipient" (lambda () 
