@@ -188,12 +188,12 @@
                 ("502 SYNTAX ERROR")
                 ("530 AUTH ERROR")
                 ("520 FATAL ERROR"))
-                (lambda (response-code) (begin 
+                (lambda (response-code)
                     (server-set-response-code! server response-code)
                     (let
                         ((responses 
                             (sendmail-send-message smtp-connection "failure content" "sender@sender.to" '("user@recipient.to"))))
-                        (assert (all? send-error? responses) (string-append "Expected client to fail when server responds with error:" response-code))))))
+                        (assert (all? send-error? responses) (string-append "Expected client to fail when server responds with error:" response-code)))))
 
             (capability 'handle-421 (list
                 ; As send-message handles multiple commands and responses, it also needs to deal with responses that
@@ -348,18 +348,18 @@
 
                 (data-test "CRLF detection in send-message sender"
                     '(("foo\r\nbar@email.com") ("foo\nbar@email.com") ("foo\rbar@email.com")) 
-                    (lambda (sender-string) (begin 
+                    (lambda (sender-string)
                         (let
                             ((responses (sendmail-send-message smtp-connection "message content" sender-string '("user@recipient.to"))))
                             (display responses)
-                            (assert (all? send-error? responses) (string-append "Expected client to fail when CR or LF is in sender of send-message: " sender-string))))))
+                            (assert (all? send-error? responses) (string-append "Expected client to fail when CR or LF is in sender of send-message: " sender-string)))))
                         
                 (data-test "CRLF detection in send-message recipient"
                     '(("foo\r\nbar@email.com") ("foo\nbar@email.com") ("foo\rbar@email.com")) 
-                    (lambda (recipient-string) (begin 
+                    (lambda (recipient-string)
                         (let
                             ((responses (sendmail-send-message smtp-connection "message content" "sender@email.com" (list recipient-string))))
-                            (assert (all? send-error? responses) (string-append "Expected client to fail when CR or LF is in recipient of send-message: " recipient-string))))))
+                            (assert (all? send-error? responses) (string-append "Expected client to fail when CR or LF is in recipient of send-message: " recipient-string)))))
         
             ))
 
@@ -367,7 +367,7 @@
 
                 (data-test "CRLF mitigation in send-message sender"
                     '(("foo\r\nbar@email.com" "\r\n") ("foo\nbar@email.com" "\n") ("foo\rbar@email.com" "\r")) 
-                    (lambda (sender-string injection) (begin 
+                    (lambda (sender-string injection)
                         (let
                             ((responses (sendmail-send-message smtp-connection "message content" sender-string '("user@recipient.to"))))
                             (assert (all? send-success? responses))
@@ -375,11 +375,11 @@
                                 (all? 
                                     (lambda (c) (not (string-index c injection))) 
                                     (server-requests-with-command server "MAIL"))
-                                (string-append "Expected client to remove CR or LF or both from sender of send-message: " sender-string))))))
+                                (string-append "Expected client to remove CR or LF or both from sender of send-message: " sender-string)))))
                         
                 (data-test "CRLF mitigation in send-message recipient"
                     '(("foo\r\nbar@email.com" "\r\n") ("foo\nbar@email.com" "\n") ("foo\rbar@email.com" "\r")) 
-                    (lambda (recipient-string injection) (begin 
+                    (lambda (recipient-string injection)
                         (let
                             ((responses (sendmail-send-message smtp-connection "message content" "sender@email.com" (list recipient-string))))
                             (assert (all? send-success? responses))
@@ -387,7 +387,7 @@
                                 (all? 
                                     (lambda (c) (not (string-index c injection))) 
                                     (server-requests-with-command server "RCPT"))
-                                (string-append "Expected client to remove CR or LF or both from recipients of send-message: " recipient-string))))))
+                                (string-append "Expected client to remove CR or LF or both from recipients of send-message: " recipient-string)))))
             ))
                     
         ))
