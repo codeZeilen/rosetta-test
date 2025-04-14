@@ -20,7 +20,7 @@ jobs:
         node-version: "lts/Hydrogen"
     - name: Run JSON RFC Tests
       run: |
-        node ports-js/json-rfc.js
+        node rosetta-test-js/json-rfc.js
     - name: Run URL Tests
       run: |
-        node ports-js/url-parsing.js
+        node rosetta-test-js/url-parsing.js

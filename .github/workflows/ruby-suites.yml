@@ -20,7 +20,7 @@ jobs:
         ruby-version: "3.4"
     - name: Run SMTP Tests
       run: |
-        ruby ports-rb/smtp.rb
+        ruby rosetta-test-rb/smtp.rb
     - name: Run JSON RFC Tests
       run: |
-        ruby ports-rb/json-rfc.rb
+        ruby rosetta-test-rb/json-rfc.rb
