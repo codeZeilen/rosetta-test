@@ -115,5 +115,6 @@
     {"input": "(hash-table-walk ht (lambda (key value) key))", "expected": null},
     {"input": "(begin (hash-table-ref! ht 'c 3) (hash-table-ref ht 'c))", "expected": 3},
     {"input": "(hash-table->alist ht)", "expected": [["b", 2], ["c", 3]]},
-    {"input": "(hash-table->alist (make-hash-table))", "expected": []}
+    {"input": "(hash-table->alist (make-hash-table))", "expected": []},
+    {"input": "(hash-table-ref (alist->hash-table '((a 10) (b 20))) 'b)", "expected": 20}
 ]
