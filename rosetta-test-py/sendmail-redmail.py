@@ -130,11 +130,14 @@ def sendmail_connected(env, sender: EmailSender):
 # Send Message
 #
 
-@sendmail_suite.placeholder("sendmail-send-message-with-options")
-def sendmail_send_message(env, sender: EmailSender, message, sender_address, recipient_addresses, message_options, recipients_options):
+@sendmail_suite.placeholder("sendmail-send-message-full")
+def sendmail_send_message(env, sender: EmailSender, message, sender_address, recipient_addresses, cc_addresses, bcc_addresses, custom_headers, message_options, recipients_options):
     try:
         sender.send(sender=sender_address,
                        receivers=recipient_addresses,
+                       cc=cc_addresses,
+                       bcc=bcc_addresses,  
+                       headers=custom_headers,
                        subject="test",
                        text=message)
     except Exception as e:
@@ -161,13 +164,14 @@ def sendmail_error(env, result):
 
 sendmail_suite.run(
     exclude=(
-        "test_CRLF_detection_in_send-message_recipient",
+        "test_CRLF_detection_in_send-message_recipient", 
         "test_CRLF_mitigation_in_send-message_sender",
         "test_Connect_with_invalid_credentials"), # TODO redmail leaks sockets when credentials are invalid
     exclude_capabilities=(
         "root.unicode-messages.8bitmime.automatic-detection",
         "root.unicode-messages.8bitmime.mandatory-options",
-        "root.internationalized-email-addresses.smtputf8.explicit-options",),
+        "root.internationalized-email-addresses.smtputf8.explicit-options",
+        "root.headers.crlf-injection.mitigation",), # redmail does detects CRLF injections in header values
     expected_failures=(
         "test_Handle_421_during_data_command",
         "test_Handle_421_at_start_of_data_command",

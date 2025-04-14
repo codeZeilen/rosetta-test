@@ -120,13 +120,16 @@ def sendmail_connected(env, backend):
 # Send Message
 #
 
-@sendmail_suite.placeholder("sendmail-send-message-with-options")
-def sendmail_send_message(env, sender:SMTPBackend, message, sender_address, recipient_addresses, message_options, recipients_options):
+@sendmail_suite.placeholder("sendmail-send-message-full")
+def sendmail_send_message(env, sender:SMTPBackend, message, sender_address, recipient_addresses, cc_addresses, bcc_addresses, custom_headers, message_options, recipients_options):
     try:
         message = emails.Message(text=message,
                                  subject="Test",
                                  mail_to=recipient_addresses,
-                                 mail_from=sender_address)
+                                 mail_from=sender_address,
+                                 cc=cc_addresses,
+                                 bcc=bcc_addresses,
+                                 headers=custom_headers,)
         return [message.send(smtp=sender,smtp_mail_options=message_options, smtp_rcpt_options=recipients_options)]
     except Exception as e:
         return [e]     
@@ -154,7 +157,8 @@ sendmail_suite.run(
     exclude_capabilities=(
         "root.connection.lazy-connection", # TODO: python-emails does not handle failed auth correctly
         "root.connection.eager-connection",
-        "root.crlf-injection-detection.detection",
+        "root.general-crlf-injection.detection",
+        "root.headers.crlf-injection.mitigation",
         "root.unicode-messages.8bitmime.automatic-detection",
         "root.internationalized-email-addresses.smtputf8.explicit-options"),
     expected_failures=(
@@ -165,4 +169,5 @@ sendmail_suite.run(
         # The library should problably automatically detect whether smtputf8 is required
         "test_international_sender_mailbox_in_send-message_with_SMTPUTF8_support",
         "test_international_recipient_mailbox_in_send-message_with_SMTPUTF8_support",
-        "test_Send_a_message_with_empty_recipient",))
+        "test_Send_a_message_with_empty_recipient",
+        "test_set_header_with_unicode_value")) # Encoding of unicode in header value seems wrong (underscore instead of space)
