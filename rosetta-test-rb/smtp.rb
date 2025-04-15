@@ -1,4 +1,4 @@
-require_relative "ros"
+require_relative "rosetta"
 require "socket"
 require "net/smtp"
 require "openssl"
