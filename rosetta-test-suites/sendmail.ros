@@ -28,14 +28,14 @@
         (placeholder '(sendmail-connected? connection) "Should return true if the connection is still open")
         
         ; Send Mail
-        (placeholder '(sendmail-send-message-full connection message-content from to-list cc-list bcc-list headers message-options to-list-options) "Send a message to the server. The cc-list and bcc-list are optional. The headers hash is optional. The message-options and the to-list-options are optional. The to-list-options is a list of option tuple lists, one for each receiver. The function should return a list corresponding to the responses from the server for each recipient in the to-list. If there is only a single response, a list with a single response should be returned.")
+        (placeholder '(sendmail-send-message-full connection message-content from to-list cc-list bcc-list headers attachments message-options to-list-options) "Send a message to the server. The cc-list and bcc-list are optional. The headers hash is optional. The message-options and the to-list-options are optional. The to-list-options is a list of option tuple lists, one for each receiver. The function should return a list corresponding to the responses from the server for each recipient in the to-list. If there is only a single response, a list with a single response should be returned.")
          
         (define (sendmail-send-message-with-options connection message-content from to-list message-options to-list-options) 
-            (sendmail-send-message-full connection message-content from to-list '() '() (make-hash-table) message-options to-list-options))
+            (sendmail-send-message-full connection message-content from to-list '() '() (make-hash-table) (make-hash-table) message-options to-list-options))
         (define (sendmail-send-message connection content from to-list)
             (sendmail-send-message-with-options connection content from to-list  '() '()))
         (define (sendmail-send-message-with-headers connection content from to-list headers-hash-map)
-            (sendmail-send-message-full connection content from to-list '() '() headers-hash-map '() '()))
+            (sendmail-send-message-full connection content from to-list '() '() headers-hash-map (make-hash-table) '() '()))
         
         ; Response accessors
         (placeholder '(send-success? response) "Return whether the sending was successful.")
@@ -181,7 +181,7 @@
 
             (test "Send a message to cc recipients" (lambda () 
                 (let
-                    ((responses (sendmail-send-message-full smtp-connection "message content" "sender@sender.to" '() '("user1@recipient.to") '() (make-hash-table) '() '())))
+                    ((responses (sendmail-send-message-full smtp-connection "message content" "sender@sender.to" '() '("user1@recipient.to") '() (make-hash-table) (make-hash-table) '() '())))
                     (assert (all? send-success? responses))
                     (assert (server-message-contains? "user1@recipient.to"))
                     (assert
@@ -193,7 +193,7 @@
 
             (test "Send a message to bcc recipients" (lambda () 
                 (let
-                    ((responses (sendmail-send-message-full smtp-connection "message content" "sender@sender.to" '() '() '("user1@recipient.to") (make-hash-table) '() '())))
+                    ((responses (sendmail-send-message-full smtp-connection "message content" "sender@sender.to" '() '() '("user1@recipient.to") (make-hash-table) (make-hash-table) '() '())))
                     (assert (all? send-success? responses))
                     (assert (not (server-message-contains? "user1@recipient.to")))
                     (assert
@@ -332,6 +332,74 @@
                                 (assert (not (server-message-contains? fragment)) (string-append "The header value: " header-value " should have been stripped of CRLF but did not: " (server-message-data server))))))
 
                 ))
+            ))
+
+        ))
+
+        (capability 'attachments (list
+
+            (define smtp-connection '())
+            (define (connect-smtp-server)
+                (set! smtp-connection (sendmail-connect "localhost" (server-port server))))
+
+            (setup (lambda () 
+                (set! server (start-mock-server))
+                (connect-smtp-server)))
+
+            (tearDown (lambda ()
+                (sendmail-disconnect smtp-connection)
+                (set! smtp-connection '())))
+
+            ; attachments-properties is a list of alists with the following keys: 
+            ; "data", "file-name", "content-type", or "content-disposition"
+            (define sendmail-send-with-attachments (lambda attachments-properties
+                (sendmail-send-message-full 
+                    smtp-connection
+                    "message content" "sender@sender.to" '("recipient@recipient.to")
+                    '() '()
+                    (make-hash-table)
+                    (map alist->hash-table attachments-properties)
+                    '() '())))
+                
+            (test "basic text attachment" (lambda ()
+                (sendmail-send-with-attachments 
+                    '(("data" "info.txt")
+                      ("file-name" "info.txt")
+                      ("content-type" "text/plain")))
+                (assert 
+                    (or
+                        (server-message-contains? "content of info.txt")
+                        (server-message-contains? "Y29udGVudCBvZiBpbmZvLnR4dA==")) 
+                    (string-append "Expected server to receive message with text attachment, but received: " (server-message-data server)))
+                (assert 
+                    (server-message-contains-ci? "content-disposition: attachment")
+                    (string-append "Expected server to receive message with content-disposition: attachment, but received: " (server-message-data server)))))
+
+            (test "basic image attachment" (lambda ()
+                (sendmail-send-with-attachments 
+                    '(("data" "test.png")
+                      ("file-name" "test.png")
+                      ("content-type" "image/png")))
+                (assert 
+                    ; only part of base64 encoded image
+                    (server-message-contains? "iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAIAAAD91JpzAAAAAXNSR0IArs4c6QAAAARnQU1BAACx")  
+                    (string-append "Expected server to receive message with image attachment, but received: " (server-message-data server)))
+                (assert 
+                    (server-message-contains-ci? "content-disposition: attachment")
+                    (string-append "Expected server to receive message with content-disposition: attachment, but received: " (server-message-data server)))))
+
+            ; - Multiple attachments with the same name
+            ; - Attachment without a name
+            ; - inline vs attachment content-disposition
+            ; - inline attachment with ?cid? 
+            ; - content/type multipart/mixed? 
+
+            (capability 'automatic-mime-detection (list
+            
+            ))
+
+            (capability 'unicode-file-name (list
+            
             ))
 
         ))
