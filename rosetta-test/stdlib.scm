@@ -289,5 +289,5 @@
         (if (string-index str substr) #t #f))
     
     (define (string-contains-ci? str substr)
-        (if (string-index-ci (string-downcase str) (string-downcase substr)) #t #f))
+        (if (string-index (string-downcase str) (string-downcase substr)) #t #f))
 )
