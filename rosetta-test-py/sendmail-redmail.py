@@ -4,7 +4,7 @@ import ssl
 from redmail import EmailSender
 import smtplib
 
-sendmail_suite = rosetta.suite("rosetta-test-suites/sendmail.rosetta")
+sendmail_suite = rosetta.suite("rosetta-test-suites/sendmail.ros")
 
 
 #

@@ -1,7 +1,7 @@
 require "json"
-require_relative "rosetta"
+require_relative "ros"
 
-suite "rosetta-test-suites/json-rfc.rosetta" do
+suite "rosetta-test-suites/json-rfc.ros" do
   expected_failures :test_n_string_escape_x,
     :test_n_string_escaped_emoji,
     :test_n_string_incomplete_surrogate_escape_invalid,

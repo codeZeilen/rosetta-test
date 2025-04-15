@@ -2,7 +2,7 @@ import { suite } from "./rosetta-test.js";
 import { readdirSync, readFileSync } from "fs";
 import path from "path";
 
-const jsonSuite = suite("rosetta-test-suites/json-rfc.rosetta");
+const jsonSuite = suite("rosetta-test-suites/json-rfc.ros");
 
 jsonSuite.placeholder("list-json-test-files", (env) => {
     // List the files in the suites/json-rfc-fixtures directory ending with .json
