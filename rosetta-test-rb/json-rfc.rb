@@ -1,5 +1,5 @@
 require "json"
-require_relative "ros"
+require_relative "rosetta"
 
 suite "rosetta-test-suites/json-rfc.ros" do
   expected_failures :test_n_string_escape_x,
