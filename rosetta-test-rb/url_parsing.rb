@@ -1,7 +1,7 @@
 require "uri"
-require_relative "rosetta"
+require_relative "ros"
 
-suite "rosetta-test-suites/url-parsing-rfc.rosetta" do
+suite "rosetta-test-suites/url-parsing-rfc.ros" do
   expected_failures :test_scheme_with_invalid_characters,
     :"test_non-terminated_scheme",
     :test_invalid_ipv4_host

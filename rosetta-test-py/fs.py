@@ -5,7 +5,7 @@ import io
 import os
 import tempfile
 
-fs_suite = rosetta.suite("rosetta-test-suites/fs.rosetta")
+fs_suite = rosetta.suite("rosetta-test-suites/fs.ros")
 
 @fs_suite.setUp()
 def set_up(env):

@@ -1,9 +1,9 @@
-require_relative "rosetta"
+require_relative "ros"
 require "socket"
 require "net/smtp"
 require "openssl"
 
-suite "rosetta-test-suites/smtp.rosetta" do
+suite "rosetta-test-suites/smtp.ros" do
   only_capabilities "root.connection", "root.commands"
 
   exclude_capabilities "root.commands.expn",

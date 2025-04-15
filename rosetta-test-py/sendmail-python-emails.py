@@ -5,7 +5,7 @@ import emails
 from emails.backend.smtp import SMTPBackend
 from emails.backend.response import SMTPResponse
 
-sendmail_suite = rosetta.suite("rosetta-test-suites/sendmail.rosetta")
+sendmail_suite = rosetta.suite("rosetta-test-suites/sendmail.ros")
 
 
 #
