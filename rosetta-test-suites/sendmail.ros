@@ -67,6 +67,9 @@
         (define (server-message-contains? content)
                 (string-contains? (server-message-data server) content))
 
+        (define (server-message-contains-ci? content)
+                (string-contains-ci? (server-message-data server) content))
+
         (setup (lambda ()  
             (set! server '())))
 
@@ -84,7 +87,7 @@
             (setup (lambda ()
                 (set! server (start-mock-server))
                 (server-set-extensions! server '("STARTTLS"))
-            (server-set-auths! server '(("LOGIN" ("account" "password"))))
+                (server-set-auths! server '(("LOGIN" ("account" "password"))))
                 (define (login-auth-proc credentials connection success failure)
                     (let 
                         ((login-user-response
@@ -280,11 +283,7 @@
             (test "set header with unicode value" (lambda ()
                 (sendmail-send-message-with-headers smtp-connection "message content" "sender@sender.to" '("user@recipient.to") (alist->hash-table '(("x-my-header" "¡some value"))))
                 (assert 
-                    (or
-                        (server-message-contains? "x-my-header: =?utf-8?q?=C2=A1some?= value")
-                        (server-message-contains? "x-my-header: =?utf-8?b?wqFzb21lIHZhbHVl?=")
-                        (server-message-contains? "x-my-header: =?UTF-8?Q?=C2=A1some?= value")
-                        (server-message-contains? "x-my-header: =?UTF-8?B?wqFzb21lIHZhbHVl?="))
+                    (server-message-contains-ci? "x-my-header: =?utf-8?q?=C2=A1some?= value")
                     (string-append "Expected x-my-header to contain encoded ¡, but instead got " (server-message-data server)))
                 (assert
                     (server-message-contains? "message content")
