@@ -121,7 +121,7 @@ def sendmail_connected(env, backend):
 #
 
 @sendmail_suite.placeholder("sendmail-send-message-full")
-def sendmail_send_message(env, sender:SMTPBackend, message, sender_address, recipient_addresses, cc_addresses, bcc_addresses, custom_headers, message_options, recipients_options):
+def sendmail_send_message(env, sender:SMTPBackend, message, sender_address, recipient_addresses, cc_addresses, bcc_addresses, custom_headers, attachments, message_options, recipients_options):
     try:
         message = emails.Message(text=message,
                                  subject="Test",
@@ -130,6 +130,23 @@ def sendmail_send_message(env, sender:SMTPBackend, message, sender_address, reci
                                  cc=cc_addresses,
                                  bcc=bcc_addresses,
                                  headers=custom_headers,)
+        for attachment in attachments:
+            message_properties = {
+                "content_disposition": attachment.get("content-disposition", "attachment"),
+            }            
+            
+            if "file-name" in attachment:
+                message_properties["filename"] = attachment["file-name"]
+            
+            read_mode = "r"
+            if attachment["data"].endswith(".png"):
+                read_mode = "rb"    
+            message_properties["data"] = open(rosetta.fixture_path('sendmail-fixtures/' + attachment["data"]), read_mode)
+            
+            if "content-type" in attachment:
+                message_properties["content_type"] = attachment["content-type"]
+            
+            message.attach(**message_properties)
         return [message.send(smtp=sender,smtp_mail_options=message_options, smtp_rcpt_options=recipients_options)]
     except Exception as e:
         return [e]     

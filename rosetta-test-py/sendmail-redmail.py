@@ -2,6 +2,7 @@ import rosetta
 import socket as socketlib
 import ssl
 from redmail import EmailSender
+import pathlib
 import smtplib
 
 sendmail_suite = rosetta.suite("rosetta-test-suites/sendmail.ros")
@@ -131,15 +132,20 @@ def sendmail_connected(env, sender: EmailSender):
 #
 
 @sendmail_suite.placeholder("sendmail-send-message-full")
-def sendmail_send_message(env, sender: EmailSender, message, sender_address, recipient_addresses, cc_addresses, bcc_addresses, custom_headers, message_options, recipients_options):
+def sendmail_send_message(env, sender: EmailSender, message, sender_address, recipient_addresses, cc_addresses, bcc_addresses, custom_headers, attachments, message_options, recipients_options):
     try:
+        redmail_attachments = {
+            attachment["file-name"]: pathlib.Path(rosetta.fixture_path('sendmail-fixtures/' + attachment["data"])) 
+                for attachment in attachments 
+                if attachment.get("content-disposition", "attachment") == "attachment"}        
         sender.send(sender=sender_address,
                        receivers=recipient_addresses,
                        cc=cc_addresses,
                        bcc=bcc_addresses,  
                        headers=custom_headers,
                        subject="test",
-                       text=message)
+                       text=message,
+                       attachments=redmail_attachments)
     except Exception as e:
         return [e]
     return [True] # EmailSender.send does not return anything related to the sending
@@ -161,6 +167,8 @@ def sendmail_error(env, result):
 #
 # Running
 #
+
+#sendmail_suite.run(only=("test_basic_image_attachment",))
 
 sendmail_suite.run(
     exclude=(
