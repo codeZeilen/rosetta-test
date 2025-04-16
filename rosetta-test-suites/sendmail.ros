@@ -457,10 +457,23 @@
 
             (capability 'automatic-mime-detection (list
 
+                ; This is difficult to test, as we would need to find the attachment MIME part and check 
+                ; the MIME type of the attachment.
+
             ))
 
             (capability 'unicode-file-name (list
-                
+
+                (test "basic single text attachment with unicode file name" (lambda ()
+                    (sendmail-send-with-attachments 
+                        '(("data" "info.txt")
+                          ("file-name" "info¡.txt")
+                          ("content-type" "text/plain")))
+                    (assert 
+                        (server-message-contains-ci? "utf-8''info%C2%A1.txt")
+                        (string-append "Expected server to receive a message with an inline attachment, but received: " (server-message-data server)))))
+
+
             ))
 
         ))
