@@ -116,5 +116,13 @@
     {"input": "(begin (hash-table-ref! ht 'c 3) (hash-table-ref ht 'c))", "expected": 3},
     {"input": "(hash-table->alist ht)", "expected": [["b", 2], ["c", 3]]},
     {"input": "(hash-table->alist (make-hash-table))", "expected": []},
-    {"input": "(hash-table-ref (alist->hash-table '((a 10) (b 20))) 'b)", "expected": 20}
+    {"input": "(hash-table-ref (alist->hash-table '((a 10) (b 20))) 'b)", "expected": 20},
+    {"input": "(substring \"abc\" 0 1)", "expected": "a"},
+    {"input": "(substring \"abc\" 0 2)", "expected": "ab"},
+    {"input": "(substring \"abc\" 0 3)", "expected": "abc"},
+    {"input": "(substring \"abc\" 1 3)", "expected": "bc"},
+    {"input": "(substring \"abc\" 0 0)", "expected": ""},
+    {"input": "(substring \"abc\" 2 2)", "expected": ""},
+    {"input": "(substring \"abc\" 3 4)", "expected": {"type": "Error"}},
+    {"input": "(string-contains-every? \"abvabab\" \"ab\")", "expected": [0,3,5]}
 ]
