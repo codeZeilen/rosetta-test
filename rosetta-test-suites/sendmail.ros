@@ -64,6 +64,16 @@
         (define (server-message-contains? content)
                 (string-contains? (server-message-data server) content))
 
+        (define (assert-server-message-contains? content message-property-description)
+                (assert 
+                    (server-message-contains? content)
+                    (string-append "Expected server to receive message with " message-property-description ", but received: " (server-message-data server))))
+
+        (define (assert-server-message-contains-ci? content message-property-description)
+                (assert 
+                    (server-message-contains-ci? content)
+                    (string-append "Expected server to receive message with " message-property-description ", but received: " (server-message-data server))))
+
         (define (server-message-contains-ci? content)
                 (string-contains-ci? (server-message-data server) content))
 
@@ -180,7 +190,7 @@
                 (let
                     ((responses (sendmail-send-message-full smtp-connection "message content" "sender@sender.to" '() '("user1@recipient.to") '() (make-hash-table) (make-hash-table) '() '())))
                     (assert (all? send-success? responses))
-                    (assert (server-message-contains? "user1@recipient.to"))
+                    (assert-server-message-contains? "user1@recipient.to" "cc recipient")
                     (assert
                         (any?
                             (lambda (request) 
@@ -279,20 +289,16 @@
 
             (test "set basic header" (lambda ()
                 (sendmail-send-with-headers '(("x-my-header" "some value")))
-                (assert (server-message-contains? "x-my-header: some value") (string-append "Expected x-my-header to be present, but instead got " (server-message-data server)))))
+                (assert-server-message-contains? "x-my-header" "x-my-header present")))
 
             (test "set header with unicode value" (lambda ()
                 (sendmail-send-with-headers '(("x-my-header" "¡some value")))
-                (assert 
-                    (server-message-contains-ci? "x-my-header: =?utf-8?q?=C2=A1some?= value")
-                    (string-append "Expected x-my-header to contain encoded ¡, but instead got " (server-message-data server)))
-                (assert
-                    (server-message-contains? "message content")
-                    (string-append "Expected message content to be unaltered by unicode header value, but instead got" (server-message-data server)))))
+                (assert-server-message-contains? "x-my-header: =?utf-8?q?=C2=A1some?= value" "x-my-header containing encoded ¡")
+                (assert-server-message-contains? "message content" "unaltered message content despite unicode header value")))
 
             (test "set override standard header" (lambda ()
                 (sendmail-send-with-headers '(("To" "another-user@recipient.to")))
-                (assert (server-message-contains? "To: another-user@recipient.to") (string-append "Expected To header field to include another-user..., but instead got " (server-message-data server)))))
+                (assert-server-message-contains? "To: another-user@recipient.to" "header field that includes another-user@recipient.to")))
 
             (capability 'crlf-injection (list
 
@@ -426,9 +432,7 @@
                 (sendmail-send-with-attachments
                     '(("data" "info.txt")
                       ("content-type" "text/plain")))
-                (assert 
-                    (server-message-contains-ci? "content-disposition: attachment")
-                    (string-append "Expected server to receive a message with an attachment, but received: " (server-message-data server)))
+                (assert-server-message-contains-ci? "content-disposition: attachment" "an attachment")
                 (assert
                     (not (server-message-contains-ci? "info.txt"))
                     (string-append "Expected server to receive a message with an attachment without a name, but received: " (server-message-data server)))))
@@ -439,9 +443,7 @@
                       ("file-name" "test.png")
                       ("content-type" "image/png")
                       ("content-disposition" "inline")))
-                (assert
-                    (server-message-contains-ci? "content-disposition: inline")
-                    (string-append "Expected server to receive a message with an inline attachment, but received: " (server-message-data server)))))
+                (assert-server-message-contains-ci? "content-disposition: inline" "inline attachment")))
 
             (test "text attachment with inline disposition" (lambda ()
                 (sendmail-send-with-attachments
@@ -449,9 +451,7 @@
                       ("file-name" "info.txt")
                       ("content-type" "text/plain")
                       ("content-disposition" "inline")))
-                (assert 
-                    (server-message-contains-ci? "content-disposition: inline")
-                    (string-append "Expected server to receive a message with an inline attachment, but received: " (server-message-data server)))))
+                (assert-server-message-contains-ci? "content-disposition: inline" "inline attachment")))
 
             ; - inline attachment with cid? https://www.rfc-editor.org/rfc/rfc2392
             ; => non-trivial as we either need to do it completely manually or use a template engine. A template engine has 
@@ -471,9 +471,7 @@
                         '(("data" "info.txt")
                           ("file-name" "info¡.txt")
                           ("content-type" "text/plain")))
-                    (assert 
-                        (server-message-contains-ci? "utf-8''info%C2%A1.txt")
-                        (string-append "Expected server to receive a message with an inline attachment, but received: " (server-message-data server)))))
+                    (assert-server-message-contains-ci? "utf-8''info%C2%A1.txt" "unicode file name")))
 
 
             ))
@@ -605,10 +603,7 @@
                                 smtp-connection "¡a test message containing unicode!" "sender@sender.com" '("user@recipient.com") '("BODY=8BITMIME") '())))
                             (assert (all? send-success? send-message-responses))
                             (assert-any-request server "MAIL FROM:<sender@sender.com> BODY=8BITMIME")
-                            (assert 
-                                (server-message-contains? "¡a test message containing unicode!")
-                                (string-append 
-                                    "Expected server to receive message with unicode content directly, but received: " (server-message-data server))))))
+                            (assert-server-message-contains? "¡a test message containing unicode!" "unicode content"))))
                 
                 ))
 
@@ -632,10 +627,7 @@
                                 smtp-connection "¡a test message containing unicode!" "sender@sender.com" '("user@recipient.com") '() '())))
                             (assert (all? send-success? send-message-responses))
                             (assert-any-request server "MAIL FROM:<sender@sender.com> BODY=8BITMIME")
-                            (assert 
-                                (server-message-contains? "¡a test message containing unicode!")
-                                (string-append 
-                                    "Expected server to receive message with unicode content directly, but received: " (server-message-data server))))))
+                            (assert-server-message-contains? "¡a test message containing unicode!" "unicode content directly"))))
                 
                 ))
             ))
