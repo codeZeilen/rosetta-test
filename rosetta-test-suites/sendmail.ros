@@ -5,11 +5,10 @@
     ; indepdenent of whether this is done with an API from the tested library directly or by using 
     ; another library, e.g. a MIME library from the standard library.
     (sources 
-		'("CPython SMTP tests" "Python Foundation" "https://github.com/python/cpython/blob/9ba2a4638d7b620c939face7642b2f53a9fadc4b/Lib/test/test_smtplib.py")
-        '("Ruby net-smtp tests" "MRI maintainers" "https://github.com/ruby/net-smtp/blob/master/test/net/smtp/test_smtp.rb")
+		'("Ruby mail gem spec" "Mikel Lindsaar" "https://github.com/mikel/mail") 
         '("SMTP RFC 2821" "IETF" "https://tools.ietf.org/html/rfc2821")
         '("SMTP RFC 5321" "IETF" "https://tools.ietf.org/html/rfc5321")
-        '("SMTP RFC 4954" "IETF" "https://tools.ietf.org/html/rfc4954"))
+        '("RFC 2183 - Content-Disposition" "IETF" "https://tools.ietf.org/html/rfc2183"))
     
     (list 
         ; Socket
@@ -353,27 +352,46 @@
             ; attachments-properties is a list of alists with the following keys: 
             ; "data", "file-name", "content-type", or "content-disposition"
             (define sendmail-send-with-attachments (lambda attachments-properties
-                (sendmail-send-message-full 
-                    smtp-connection
-                    "message content" "sender@sender.to" '("recipient@recipient.to")
-                    '() '()
-                    (make-hash-table)
-                    (map alist->hash-table attachments-properties)
-                    '() '())))
+                (let 
+                    ((properties-hashs (map alist->hash-table attachments-properties)))
+                    (for-each 
+                        (lambda (property-hash)
+                            (if (not (hash-table-exists? property-hash "content-disposition"))
+                                (hash-table-set! property-hash "content-disposition" "attachment")))
+                        properties-hashs)
+                    (sendmail-send-message-full 
+                        smtp-connection
+                        "message content" "sender@sender.to" '("recipient@recipient.to")
+                        '() '()
+                        (make-hash-table)
+                        properties-hashs
+                        '() '()))))
                 
-            (test "basic text attachment" (lambda ()
+            (test "basic single text attachment" (lambda ()
                 (sendmail-send-with-attachments 
                     '(("data" "info.txt")
                       ("file-name" "info.txt")
                       ("content-type" "text/plain")))
                 (assert 
                     (or
-                        (server-message-contains? "content of info.txt")
-                        (server-message-contains? "Y29udGVudCBvZiBpbmZvLnR4dA==")) 
+                        (server-message-contains? "content of info file")
+                        (server-message-contains? "Y29udGVudCBvZiBpbmZvIGZpbGU=")) 
                     (string-append "Expected server to receive message with text attachment, but received: " (server-message-data server)))
                 (assert 
                     (server-message-contains-ci? "content-disposition: attachment")
                     (string-append "Expected server to receive message with content-disposition: attachment, but received: " (server-message-data server)))))
+
+            (test "basic multiple text attachments" (lambda ()
+                (sendmail-send-with-attachments 
+                    '(("data" "info.txt")
+                      ("file-name" "info.txt")
+                      ("content-type" "text/plain"))
+                    '(("data" "info.txt") 
+                      ("file-name" "second-info.txt")
+                      ("content-type" "text/plain")))
+                (assert 
+                    (and (server-message-contains-ci? "info.txt") (server-message-contains-ci? "second-info.txt"))
+                    (string-append "Expected server to receive message with two attachments, but received: " (server-message-data server)))))
 
             (test "basic image attachment" (lambda ()
                 (sendmail-send-with-attachments 
@@ -388,18 +406,61 @@
                     (server-message-contains-ci? "content-disposition: attachment")
                     (string-append "Expected server to receive message with content-disposition: attachment, but received: " (server-message-data server)))))
 
-            ; - Multiple attachments with the same name
-            ; - Attachment without a name
-            ; - inline vs attachment content-disposition
-            ; - inline attachment with ?cid? 
-            ; - content/type multipart/mixed? 
+            (test "multiple attachments with same name" (lambda ()
+                (sendmail-send-with-attachments
+                    '(("data" "info.txt") 
+                      ("file-name" "info.txt")
+                      ("content-type" "text/plain"))
+                      
+                    '(("data" "info.txt")
+                      ("file-name" "info.txt")
+                      ("content-type" "text/plain")))
+                (assert 
+                    (= 2 (length (string-contains-every? (server-message-data server) "info.txt"))) 
+                    (string-append "Expected server to receive message with two text attachments with the same name, but received: " (server-message-data server)))))
+
+            ; Filename property is optional: https://datatracker.ietf.org/doc/html/rfc2183#section-1
+            (test "attachment without a name" (lambda ()
+                (sendmail-send-with-attachments
+                    '(("data" "info.txt")
+                      ("content-type" "text/plain")))
+                (assert 
+                    (server-message-contains-ci? "content-disposition: attachment")
+                    (string-append "Expected server to receive a message with an attachment, but received: " (server-message-data server)))
+                (assert
+                    (not (server-message-contains-ci? "info.txt"))
+                    (string-append "Expected server to receive a message with an attachment without a name, but received: " (server-message-data server)))))
+
+            (test "image attachment with inline disposition" (lambda ()
+                (sendmail-send-with-attachments
+                    '(("data" "test.png")
+                      ("file-name" "test.png")
+                      ("content-type" "image/png")
+                      ("content-disposition" "inline")))
+                (assert
+                    (server-message-contains-ci? "content-disposition: inline")
+                    (string-append "Expected server to receive a message with an inline attachment, but received: " (server-message-data server)))))
+
+            (test "text attachment with inline disposition" (lambda ()
+                (sendmail-send-with-attachments
+                    '(("data" "info.txt")
+                      ("file-name" "info.txt")
+                      ("content-type" "text/plain")
+                      ("content-disposition" "inline")))
+                (assert 
+                    (server-message-contains-ci? "content-disposition: inline")
+                    (string-append "Expected server to receive a message with an inline attachment, but received: " (server-message-data server)))))
+
+            ; - inline attachment with cid? https://www.rfc-editor.org/rfc/rfc2392
+            ; => non-trivial as we either need to do it completely manually or use a template engine. A template engine has 
+            ; custom syntax, so we can not create a general scenario for it
 
             (capability 'automatic-mime-detection (list
-            
+
             ))
 
             (capability 'unicode-file-name (list
-            
+                
             ))
 
         ))
