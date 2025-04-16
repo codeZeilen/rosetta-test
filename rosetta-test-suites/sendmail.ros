@@ -33,8 +33,6 @@
             (sendmail-send-message-full connection message-content from to-list '() '() (make-hash-table) (make-hash-table) message-options to-list-options))
         (define (sendmail-send-message connection content from to-list)
             (sendmail-send-message-with-options connection content from to-list  '() '()))
-        (define (sendmail-send-message-with-headers connection content from to-list headers-hash-map)
-            (sendmail-send-message-full connection content from to-list '() '() headers-hash-map (make-hash-table) '() '()))
         
         ; Response accessors
         (placeholder '(send-success? response) "Return whether the sending was successful.")
@@ -275,12 +273,16 @@
                 (sendmail-disconnect smtp-connection)
                 (set! smtp-connection '())))
 
+            (define (sendmail-send-with-headers headers)
+                (sendmail-send-message-full 
+                    smtp-connection "message content" "sender@sender.to" '("user@recipient.to") '() '() (alist->hash-table headers) (make-hash-table) '() '()))
+
             (test "set basic header" (lambda ()
-                (sendmail-send-message-with-headers smtp-connection "message content" "sender@sender.to" '("user@recipient.to") (alist->hash-table '(("x-my-header" "some value"))))
+                (sendmail-send-with-headers '(("x-my-header" "some value")))
                 (assert (server-message-contains? "x-my-header: some value") (string-append "Expected x-my-header to be present, but instead got " (server-message-data server)))))
 
             (test "set header with unicode value" (lambda ()
-                (sendmail-send-message-with-headers smtp-connection "message content" "sender@sender.to" '("user@recipient.to") (alist->hash-table '(("x-my-header" "¡some value"))))
+                (sendmail-send-with-headers '(("x-my-header" "¡some value")))
                 (assert 
                     (server-message-contains-ci? "x-my-header: =?utf-8?q?=C2=A1some?= value")
                     (string-append "Expected x-my-header to contain encoded ¡, but instead got " (server-message-data server)))
@@ -289,7 +291,7 @@
                     (string-append "Expected message content to be unaltered by unicode header value, but instead got" (server-message-data server)))))
 
             (test "set override standard header" (lambda ()
-                (sendmail-send-message-with-headers smtp-connection "message content" "sender@sender.to" '("user@recipient.to") (alist->hash-table '(("To" "another-user@recipient.to"))))
+                (sendmail-send-with-headers '(("To" "another-user@recipient.to")))
                 (assert (server-message-contains? "To: another-user@recipient.to") (string-append "Expected To header field to include another-user..., but instead got " (server-message-data server)))))
 
             (capability 'crlf-injection (list
@@ -300,14 +302,14 @@
                         '(("1some\rvalue") ("2some\nvalue") ("3some\r\nvalue"))
                         (lambda (header-value)
                             (let 
-                                ((responses (sendmail-send-message-with-headers smtp-connection "message content" "sender@sender.to" '("user@recipient.to") (alist->hash-table (list (list "x-my-header" header-value))))))
+                                ((responses (sendmail-send-with-headers (list (list "x-my-header" header-value)))))
                                 (assert (all? send-error? responses) (string-append "The header value: " header-value " should have resulted in error but did not:" responses)))))
 
                     (data-test "CRLF detection in unicode header value" 
                         '(("1¡some\rvalue") ("2¡some\nvalue") ("3¡some\r\nvalue"))
                         (lambda (header-value)
                             (let 
-                                ((responses (sendmail-send-message-with-headers smtp-connection "message content" "sender@sender.to" '("user@recipient.to") (alist->hash-table (list (list "x-my-header" header-value))))))
+                                ((responses (sendmail-send-with-headers (list (list "x-my-header" header-value)))))
                                 (assert (all? send-error? responses) (string-append "The header value: " header-value " should have resulted in error but did not:" responses)))))
 
                 ))
@@ -318,7 +320,7 @@
                         '(("1some\rvalue") ("2some\nvalue") ("3some\r\nvalue"))
                         (lambda (header-value)
                             (let 
-                                ((responses (sendmail-send-message-with-headers smtp-connection "message content" "sender@sender.to" '("user@recipient.to") (alist->hash-table (list (list "x-my-header" header-value))))))
+                                ((responses (sendmail-send-with-headers (list (list "x-my-header" header-value)))))
                                 (assert (all? send-success? responses) (string-append "Message was not sent successfully, instead got: " responses))
                                 (assert (not (server-message-contains? header-value)) (string-append "The header value: " header-value " should have been stripped of CRLF but did not:" (server-message-data server))))))
 
@@ -326,7 +328,7 @@
                         '(("1¡some \rvalue" "\rvalue") ("2¡some \nvalue" "\nvalue") ("3¡some \r\nvalue" "\r\nvalue"))
                         (lambda (header-value fragment)
                             (let 
-                                ((responses (sendmail-send-message-with-headers smtp-connection "message content" "sender@sender.to" '("user@recipient.to") (alist->hash-table (list (list "x-my-header" header-value))))))
+                                ((responses (sendmail-send-with-headers (list (list "x-my-header" header-value)))))
                                 (assert (all? send-success? responses) (string-append "Message was not sent successfully, instead got: " responses))
                                 (assert (not (server-message-contains? fragment)) (string-append "The header value: " header-value " should have been stripped of CRLF but did not: " (server-message-data server))))))
 
