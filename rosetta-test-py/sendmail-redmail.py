@@ -137,7 +137,7 @@ def sendmail_send_message(env, sender: EmailSender, message, sender_address, rec
         redmail_attachments = {
             attachment["file-name"]: pathlib.Path(rosetta.fixture_path('sendmail-fixtures/' + attachment["data"])) 
                 for attachment in attachments 
-                if attachment.get("content-disposition", "attachment") == "attachment"}        
+                if attachment["content-disposition"] == "attachment"}  
         sender.send(sender=sender_address,
                        receivers=recipient_addresses,
                        cc=cc_addresses,
@@ -172,6 +172,16 @@ def sendmail_error(env, result):
 
 sendmail_suite.run(
     exclude=(
+        # redmail does not support inline disposition
+        "test_text_attachment_with_inline_disposition", 
+        "test_image_attachment_with_inline_disposition",
+        
+        # redmail does not support attachments without a filename
+        "test_attachment_without_a_name",
+        
+        # redmail does not support multiple attachments with the same name
+        "test_multiple_attachments_with_same_name",
+        
         "test_CRLF_detection_in_send-message_recipient", 
         "test_CRLF_mitigation_in_send-message_sender",
         "test_Connect_with_invalid_credentials"), # TODO redmail leaks sockets when credentials are invalid
