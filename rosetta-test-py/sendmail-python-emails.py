@@ -132,7 +132,7 @@ def sendmail_send_message(env, sender:SMTPBackend, message, sender_address, reci
                                  headers=custom_headers,)
         for attachment in attachments:
             message_properties = {
-                "content_disposition": attachment.get("content-disposition", "attachment"),
+                "content_disposition": attachment["content-disposition"],
             }            
             
             if "file-name" in attachment:
@@ -171,6 +171,9 @@ def sendmail_error(env, result: SMTPResponse):
 # python-emails does mitigation for addresses but detection for other fields
 
 sendmail_suite.run(
+    exclude=(
+        # python-emails does not support attachments without a name
+        "test_attachment_without_a_name",),
     exclude_capabilities=(
         "root.connection.lazy-connection", # TODO: python-emails does not handle failed auth correctly
         "root.connection.eager-connection",
