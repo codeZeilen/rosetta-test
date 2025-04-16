@@ -285,9 +285,42 @@
                     (string-index-help (cdr str) substr (+ index 1)))))
         (string-index-help str substr 0))
 
+    (define (substring str start end)
+        (if (or (< start 0) (< end 0) (> start (length str)) (> end (length str)))
+            (throw (error "substring: out of bounds")))
+        (if (= start end)
+            ""
+            (begin
+                (define (substring-help-to-end str pos end res)
+                    (if (or (empty? str) (= pos end)) 
+                        res
+                        (substring-help-to-end (cdr str) (+ pos 1) end (string-append res (car str)))))
+                (define (substring-help-from-start str start pos)
+                    (if (= start pos)
+                        str
+                        (substring-help-from-start (cdr str) start (+ pos 1))))
+                (substring-help-to-end 
+                    (substring-help-from-start str start 0) 
+                    0 end ""))))
+
     (define (string-contains? str substr)
         (if (string-index str substr) #t #f))
     
     (define (string-contains-ci? str substr)
         (if (string-index (string-downcase str) (string-downcase substr)) #t #f))
+
+    (define (string-contains-every? str substr)
+        (define result '())
+        (define (string-index-help str substr index)
+            (if (empty? str)
+                result
+                (begin
+                    (if (string-prefix? substr str) 
+                        (set! result (append result (list index))))
+                    (string-index-help (cdr str) substr (+ index 1)))))
+        (string-index-help str substr 0))
+
+    (define (string-contains-every-ci? str substr)
+        (string-contains-every? (string-downcase str) (string-downcase substr)))
+
 )
