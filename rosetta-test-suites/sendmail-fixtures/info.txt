@@ -1,1 +1,1 @@
-content of info.txt
+content of info file
