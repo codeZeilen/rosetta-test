@@ -221,6 +221,14 @@ RosettaSuite >> performTest [
 		ifFound: [:test | self rosettaRunTest: test]
 ]
 
+{ #category : #'suite definition' }
+RosettaSuite >> readSuiteFileNamed: suiteFileName [
+
+	^ ((FileDirectory on: ThisOSProcess thisOSProcess getCwd) / 'suites') 
+			readOnlyFileNamed: suiteFileName 
+			do: [:fs | fs contents]
+]
+
 { #category : #'private-rosetta' }
 RosettaSuite >> rosettaEnvironment [
 
@@ -254,14 +262,6 @@ RosettaSuite >> rosettaRunTest: aRosettaTest [
 		schemeEval: '(test-run current-test)' 
 		with: (Dictionary newFrom: {
 			#'current-test' -> aRosettaTest}).
-]
-
-{ #category : #'suite definition' }
-RosettaSuite >> readSuiteFileNamed: suiteFileName [
-
-	^ ((FileDirectory on: ThisOSProcess thisOSProcess getCwd) / 'suites') 
-			readOnlyFileNamed: suiteFileName 
-			do: [:fs | fs contents]
 ]
 
 { #category : #'private-scheme-evaluation' }
