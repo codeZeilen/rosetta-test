@@ -244,7 +244,7 @@ RosettaSuite >> rosettaEnvironment [
 { #category : #'private-rosetta' }
 RosettaSuite >> rosettaLibrarySource [
 
-	^ (FileDirectory default / '..' / '..' / #rosetta / #rosetta) readOnlyFileNamed: 'rosetta.scm' do: [:rosettaFile |
+	^ ((FileDirectory on: ThisOSProcess thisOSProcess getCwd) / 'rosetta-test')readOnlyFileNamed: 'rosetta-test.scm' do: [:rosettaFile |
 		rosettaFile contents]
 ]
 

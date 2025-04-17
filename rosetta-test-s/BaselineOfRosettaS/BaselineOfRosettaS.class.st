@@ -11,9 +11,11 @@ BaselineOfRosettaS >> baseline: spec [
 		for: #common
 		do: [ spec blessing: #baseline.
 			spec
-				package: 'RosettaS-Core';
+				package: 'RosettaS-Core' with: [spec requires: #('OSProcess')];
 				package: 'RosettaS-Interpreter';
 				package: 'RosettaS-Suites' with: [spec requires: #('Core')];
+				package: 'OSProcess' with: [
+					spec repository: 'http://www.squeaksource.com/OSProcess'];
 				group: 'Core' with: #('RosettaS-Interpreter' 'RosettaS-Core');
 				group: 'default' with: #('RosettaS-Suites') ].
 ]
