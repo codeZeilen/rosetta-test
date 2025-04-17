@@ -141,6 +141,12 @@ RosettaSuite >> fillPlaceholders [
 
 ]
 
+{ #category : #'private-rosetta' }
+RosettaSuite >> fixtureFolderNamed: fixtureFolderName [
+
+	^ ((FileDirectory on: ThisOSProcess thisOSProcess getCwd) / 'rosetta-test-suites' / fixtureFolderName)
+]
+
 { #category : #running }
 RosettaSuite >> gatherBridgeFunctions [
 
@@ -224,7 +230,7 @@ RosettaSuite >> performTest [
 { #category : #'suite definition' }
 RosettaSuite >> readSuiteFileNamed: suiteFileName [
 
-	^ ((FileDirectory on: ThisOSProcess thisOSProcess getCwd) / 'suites') 
+	^ ((FileDirectory on: ThisOSProcess thisOSProcess getCwd) / 'rosetta-test-suites') 
 			readOnlyFileNamed: suiteFileName 
 			do: [:fs | fs contents]
 ]

@@ -9,7 +9,7 @@ RosettaJSONRfcSuite >> fileContents: fileName env: env [
 
 	<rosettaPlaceholderName: 'file-contents'>
 	
-	^ (FileDirectory default / '..' / '..' / #rosetta / 'suites' / 'json-rfc-fixtures') readOnlyFileNamed: fileName do: [:stream |
+	^ (self fixtureFolderNamed: 'json-rfc-fixtures') readOnlyFileNamed: fileName do: [:stream |
 		stream binary.
 		stream contents asString]
 ]
@@ -43,5 +43,5 @@ RosettaJSONRfcSuite >> parseSuccess: parseResult env: env [
 { #category : #'suite definition' }
 RosettaJSONRfcSuite >> suiteSource [
 
-	^ self readSuiteFileNamed: 'json-rfc.rosetta'
+	^ self readSuiteFileNamed: 'json-rfc.ros'
 ]

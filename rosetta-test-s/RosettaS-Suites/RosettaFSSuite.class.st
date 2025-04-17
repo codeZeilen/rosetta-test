@@ -84,7 +84,7 @@ RosettaFSSuite >> removeTestFile: fileName env: env [
 { #category : #'spec definition' }
 RosettaFSSuite >> suiteSource [
 
-	^ self readSuiteFileNamed: 'fs.rosetta'
+	^ self readSuiteFileNamed: 'fs.ros'
 ]
 
 { #category : #running }

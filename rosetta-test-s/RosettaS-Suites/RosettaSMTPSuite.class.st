@@ -356,7 +356,7 @@ RosettaSMTPSuite >> socketWrite: socketStream content: content env: env [
 { #category : #'suite definition' }
 RosettaSMTPSuite >> suiteSource [
 
-	^ self readSuiteFileNamed: 'smtp.rosetta'
+	^ self readSuiteFileNamed: 'smtp.ros'
 ]
 
 { #category : #running }
