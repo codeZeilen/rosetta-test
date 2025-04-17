@@ -27,6 +27,12 @@ RosettaPlaceholder >> docString: anObject [
 	docString := anObject.
 ]
 
+{ #category : #'*RosettaS-Interpreter' }
+RosettaPlaceholder >> isRosettaSchemePrimitive [
+
+	^ true
+]
+
 { #category : #testing }
 RosettaPlaceholder >> isValid [
 
@@ -69,5 +75,6 @@ RosettaPlaceholder >> printOn: aStream [
 { #category : #evaluating }
 RosettaPlaceholder >> value: values [
 
+	self assert: self function notNil.
 	^ self function valueWithArguments: values , {self env}
 ]

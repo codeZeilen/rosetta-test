@@ -26,6 +26,13 @@ RosettaScheme >> applyMacroOn: exprs topLevel: isTopLevel [
 	^ self expand: macroResult topLevel: isTopLevel
 ]
 
+{ #category : #'private-evaluating' }
+RosettaScheme >> asTruthy: anObject [
+
+	anObject = false ifTrue: [^ false].
+	^ true
+]
+
 { #category : #'LISP-special forms' }
 RosettaScheme >> begin: aConsCell [
 
@@ -423,7 +430,7 @@ RosettaScheme >> topEnvironment [
 				#list -> [:args | args].
 				#'null?' -> [:args | args first isNil or: [args first isCollection and: [args first isEmpty]]].
 				#cons -> [:args | {args first} , args second "TODO: this is not right"].
-				#not -> [:args | args first not].
+				#not -> [:args | (self asTruthy: args first) not].
 				#apply -> [:args | args first value: args second].
 				#'list-ref' -> [:args | args first at: args second + 1].
 				#'list-set!' -> [:args | args first at: args second + 1 put: args third].
