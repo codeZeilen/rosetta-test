@@ -19,7 +19,7 @@ RosettaJSONRfcSuite >> listJsonTestFiles: env [
 
 	<rosettaPlaceholderName: 'list-json-test-files'>
 	
-	^ (FileDirectory default / '..' / '..' / #rosetta / 'suites' / 'json-rfc-fixtures') fileEntries collect: [:entry | entry name]
+	^ (self fixtureFolderNamed: 'json-rfc-fixtures') fileEntries collect: [:entry | entry name]
 ]
 
 { #category : #placeholders }
