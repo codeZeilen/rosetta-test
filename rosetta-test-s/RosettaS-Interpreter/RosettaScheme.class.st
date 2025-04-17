@@ -386,7 +386,7 @@ RosettaScheme >> rosettaLibrarySource [
 { #category : #evaluating }
 RosettaScheme >> standardLibrarySource [
 
-	^ ((FileDirectory on: ThisOSProcess thisOSProcess getCwd) / #rosetta) 
+	^ ((FileDirectory on: ThisOSProcess thisOSProcess getCwd) / #'rosetta-test') 
 		readOnlyFileNamed: 'stdlib.scm' 
 		do: [:rosettaFile | rosettaFile contents]
 ]
@@ -403,9 +403,15 @@ RosettaScheme >> topEnvironment [
 				#append -> [:args | args fold: #,].
 				#* -> [:args | args first * args second].
 				#/ -> [:args | args first / args second].
+				#modulo -> [:args | args first \\ args second].
 				#= -> [:args | args first = args second].
 				#'eq?' -> [:args | args first == args second].
-				#'equal?' -> [:args | args first = args second].
+				#'eqv?' -> [:args | args first == args second].				
+				#'equal?' -> [:args | 
+					args first isString
+						ifTrue: [args first class = args second class 
+									and: [args first = args second]]
+						ifFalse: [args first = args second]].
 				#> -> [:args | args first > args second].
 				#< -> [:args | args first < args second].
 				#<= -> [:args | args first <= args second].
@@ -421,7 +427,14 @@ RosettaScheme >> topEnvironment [
 				#apply -> [:args | args first value: args second].
 				#'list-ref' -> [:args | args first at: args second + 1].
 				#'list-set!' -> [:args | args first at: args second + 1 put: args third].
-				#raise -> [:args | args first signalerContext ifNil: [args first signal] ifNotNil: [args first pass]].
+				#'make-hash-table' -> [:args | Dictionary new].
+				#'hash-table?' -> [:args | args first isDictionary].
+				#'hash-table-set!' -> [:args | args first at: args second put: args third. nil].
+				#'hash-table-ref-prim' -> [:args | args first at: args second].
+				#'hash-table-delete!' -> [:args | args first removeKey: args second ifAbsent: []. nil].
+				#'hash-table-keys' -> [:args | args first keys].
+				#'hash-table-values' -> [:args | args first values].
+				#raise -> [:args | args first canSearchForSignalerContext ifFalse: [args first signal] ifTrue: [args first pass]].
 				#error -> [:args | Error new messageText: args first; yourself].
 				#'list?' -> [:args | args first isCollection and: [args first isString not]].
 				#'string-upcase' -> [:args | args first asUppercase].
