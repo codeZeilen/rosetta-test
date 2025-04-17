@@ -43,7 +43,8 @@
         (if (not (empty? lst)) 
             (begin 
                 (f (car lst)) 
-                (for-each f (cdr lst)))))
+                (for-each f (cdr lst))))
+        '()) ; no return value
 
     (define (filter pred lst)
         (define (filter-help pred lst res)

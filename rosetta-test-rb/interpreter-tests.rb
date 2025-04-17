@@ -22,6 +22,10 @@ def matches(result, target)
     return result.to_s == target
   end
 
+  if target == nil
+    return (result == nil) || (result == [])
+  end
+
   result == target
 end
 

@@ -18,6 +18,8 @@ def matches(structure, target):
             if not matches(structure[i], target[i]):
                 return False
         return True
+    if target is None:
+        return structure is None or structure == []
         
     return structure == target
 
