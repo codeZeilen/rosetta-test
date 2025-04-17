@@ -1,4 +1,4 @@
-# RosettaTest [![Python Suites](https://github.com/codeZeilen/ports-prototype/actions/workflows/python-suites.yml/badge.svg)](https://github.com/codeZeilen/ports-prototype/actions/workflows/python-suites.yml)
+# RosettaTest [![Python Suites](https://github.com/codeZeilen/rosetta-test/actions/workflows/python-suites.yml/badge.svg)](https://github.com/codeZeilen/rosetta-test/actions/workflows/python-suites.yml)
 
 With the RosettaTest project, you only have to write a test suite once for multiple implementations.
 
