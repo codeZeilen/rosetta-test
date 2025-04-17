@@ -225,7 +225,7 @@
 
                 ; TODO: Invalid userinfo
             
-                (test "invalid port - too many ros" (lambda ()
+                (test "invalid port - too many ports" (lambda ()
                     (assert-parse-error "schema://domain.tld:80:80")
                     (assert-parse-error "schema://domain.tld:80:80:80")))
 
