@@ -29,6 +29,9 @@ function matches(result, target) {
     if (typeof result === 'symbol') {
         return valueToString(result) == target;
     }
+    if (target === null) {
+        return result === null || result === undefined || (Array.isArray(result) && result.length === 0);
+    }
 
     return result == target;
 }
