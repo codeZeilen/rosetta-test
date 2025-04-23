@@ -32,10 +32,9 @@ RosettaSMTPSuite >> excludeCapabilities [
 		'root.commands.expn'
 		'root.crlf-injection-detection.commands.detection.expn'
 		'root.smtputf8'
-		'root.8bitmime.send-message.mandatory-options'
+		'root.8bitmime.send-message.explicit-options'
 	
-
-		"decided to detect"
+		"SMTPClient detects CRLF injection"
 		'root.crlf-injection-detection.commands.mitigation'
 		'root.crlf-injection-detection.send-message.mitigation'
 		
@@ -49,7 +48,13 @@ RosettaSMTPSuite >> excludeTests [
 
 	^ #('test_other_auth_failures'
 		'test_buggy_auth_with_too_many_challenges' "AUTH method not supported"
-		'test_Timeout_during_connect_to_server_with_TLS')
+		
+		"SqueakSSL does not work"
+		'test_Timeout_during_connect_to_server_with_TLS'
+		'test_Connect_to_server_with_TLS'
+		
+		"We do not check types in these situations"
+		'test_Connect_with_non-numeric_port_is_an_error')
 ]
 
 { #category : #private }
@@ -195,7 +200,7 @@ RosettaSMTPSuite >> smtpExtensions: smtp ehloResponse: response env: env [
 
 	<rosettaPlaceholderName: 'smtp-extensions'>
 
-	^ smtp serverCapabilities
+	^ smtp serverCapabilities keys
 ]
 
 { #category : #'suite definition' }
@@ -222,6 +227,17 @@ RosettaSMTPSuite >> smtpMail: smtp from: fromAddress mailOptions: options env: e
 		on: TelnetProtocolError
 		do: [:e | ^ e].
 	^ self getResponse: smtp
+]
+
+{ #category : #'suite definition' }
+RosettaSMTPSuite >> smtpQuit: client env: env [
+
+	<rosettaPlaceholderName: 'smtp-quit'>
+	
+	[client quit]
+		on: ProtocolClientError
+		do: [:e | ^ e].
+	^ self getResponse: client
 ]
 
 { #category : #'suite definition' }
