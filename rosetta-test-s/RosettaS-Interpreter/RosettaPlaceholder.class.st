@@ -75,6 +75,6 @@ RosettaPlaceholder >> printOn: aStream [
 { #category : #evaluating }
 RosettaPlaceholder >> value: values [
 
-	self assert: self function notNil.
+	self assert: self function notNil description: 'Function ' , placeholderName , 'is not defined.'.
 	^ self function valueWithArguments: values , {self env}
 ]

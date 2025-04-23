@@ -94,7 +94,6 @@ RosettaSuite >> createPlaceholder: aConsCell [
 		at: newPlaceholder placeholderName asSymbol
 		put: newPlaceholder.
 		
-	
 	newPlaceholder
 		function: (placeholderFunctions at: aConsCell first ifAbsent: nil).
 		
@@ -156,7 +155,7 @@ RosettaSuite >> gatherBridgeFunctions [
 	placeholderMethods := placeholderMethods groupBy: [:m | 
 		m pragmas 
 			detect: [:p | p keyword = #rosettaPlaceholderName:]
-			ifFound: [:p | p argumentAt: 1]
+			ifFound: [:p | (p argumentAt: 1) asSymbol]
 			ifNone: [self error]].
 	(placeholderMethods select: [:group | group size > 1]) keysAndValuesDo: [:placeholderName :methods | 
 		Notification signal: 'Duplicate placeholder method for: ' , placeholderName].
@@ -246,18 +245,6 @@ RosettaSuite >> rosettaLibrarySource [
 
 	^ ((FileDirectory on: ThisOSProcess thisOSProcess getCwd) / 'rosetta-test')readOnlyFileNamed: 'rosetta-test.scm' do: [:rosettaFile |
 		rosettaFile contents]
-]
-
-{ #category : #running }
-RosettaSuite >> rosettaRun [
-
-	"self assert: self suite notNil.
-	self 
-		fillPlaceholders;
-		installPlaceholders.
-	
-	self allTests do: [:rosettaTest |
-		self rosettaRunTest: rosettaTest]."
 ]
 
 { #category : #running }
