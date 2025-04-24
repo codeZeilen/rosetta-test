@@ -183,8 +183,10 @@ sendmail_suite.run(
         "test_multiple_attachments_with_same_name",
         
         "test_CRLF_detection_in_send-message_recipient", 
-        "test_CRLF_mitigation_in_send-message_sender",
-        "test_Connect_with_invalid_credentials"), # TODO redmail leaks sockets when credentials are invalid
+        "test_CRLF_mitigation_in_send-message_sender",),
+        
+        # redmail leaks sockets when credentials are invalid
+        #"test_Connect_with_invalid_credentials"),
     exclude_capabilities=(
         "root.unicode-messages.8bitmime.automatic-detection",
         "root.unicode-messages.8bitmime.mandatory-options",

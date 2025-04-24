@@ -175,7 +175,9 @@ sendmail_suite.run(
         # python-emails does not support attachments without a name
         "test_attachment_without_a_name",),
     exclude_capabilities=(
-        "root.connection.lazy-connection", # TODO: python-emails does not handle failed auth correctly
+        # python-emails does not close connections gracefully on failed auth
+        # fixed in https://github.com/lavr/python-emails/pull/173
+        "root.connection.lazy-connection", 
         "root.connection.eager-connection",
         "root.general-crlf-injection.detection",
         "root.headers.crlf-injection.mitigation",
@@ -186,8 +188,9 @@ sendmail_suite.run(
         "test_non-ascii_content_in_send-message_with_8BITMIME_option_and_server_support", # 8bitmime is sent but body is not 8bitmime
         "test_Handle_421_at_start_of_data_command",
         "test_Handle_421_during_data_command",
-        # The library should problably automatically detect whether smtputf8 is required
+        # python-emails does does not support SMTPUTF8 on its own
         "test_international_sender_mailbox_in_send-message_with_SMTPUTF8_support",
         "test_international_recipient_mailbox_in_send-message_with_SMTPUTF8_support",
         "test_Send_a_message_with_empty_recipient",
-        "test_set_header_with_unicode_value")) # Encoding of unicode in header value seems wrong (underscore instead of space)
+        # python-emails also encodes the body when a header field is unicode
+        "test_set_header_field_with_unicode_value"))
