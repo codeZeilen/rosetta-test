@@ -64,6 +64,11 @@
         (define (server-message-contains? content)
                 (string-contains? (server-message-data server) content))
 
+        (define (assert-server-message-contains-any? content-list message-property-description)
+                (assert 
+                    (any? (lambda (content) (server-message-contains? content)) content-list)
+                    (string-append "Expected server to receive message with " message-property-description ", but received: " (server-message-data server))))
+
         (define (assert-server-message-contains? content message-property-description)
                 (assert 
                     (server-message-contains? content)
@@ -287,16 +292,19 @@
                 (sendmail-send-message-full 
                     smtp-connection "message content" "sender@sender.to" '("user@recipient.to") '() '() (alist->hash-table headers) (make-hash-table) '() '()))
 
+            ; https://datatracker.ietf.org/doc/html/rfc5322#section-2.2
             (test "set basic header" (lambda ()
                 (sendmail-send-with-headers '(("x-my-header" "some value")))
                 (assert-server-message-contains? "x-my-header" "x-my-header present")))
 
-            (test "set header with unicode value" (lambda ()
+            (test "set header field with unicode value" (lambda ()
                 (sendmail-send-with-headers '(("x-my-header" "¡some value")))
-                (assert-server-message-contains? "x-my-header: =?utf-8?q?=C2=A1some?= value" "x-my-header containing encoded ¡")
+                (assert-server-message-contains-any? 
+                    '("x-my-header: =?utf-8?q?=C2=A1some?= value" "x-my-header: =?utf-8?q?=C2=A1some_value?=")
+                    "x-my-header containing encoded ¡")
                 (assert-server-message-contains? "message content" "unaltered message content despite unicode header value")))
 
-            (test "set override standard header" (lambda ()
+            (test "set override standard header field" (lambda ()
                 (sendmail-send-with-headers '(("To" "another-user@recipient.to")))
                 (assert-server-message-contains? "To: another-user@recipient.to" "header field that includes another-user@recipient.to")))
 
