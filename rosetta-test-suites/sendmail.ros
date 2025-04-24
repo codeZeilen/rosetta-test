@@ -158,31 +158,31 @@
         ; require bridge implementors to use the commands directly
         (capability 'send-message (list
 
-            (define smtp-connection '())
+            (define sendmail-connection '())
             (define (connect-smtp-server)
-                (set! smtp-connection (sendmail-connect "localhost" (server-port server))))
+                (set! sendmail-connection (sendmail-connect "localhost" (server-port server))))
 
             (setup (lambda () 
                 (set! server (start-mock-server))
                 (connect-smtp-server)))
 
             (tearDown (lambda ()
-                (sendmail-disconnect smtp-connection)
-                (set! smtp-connection '())))
+                (sendmail-disconnect sendmail-connection)
+                (set! sendmail-connection '())))
 
             (test "Send a message" (lambda () 
                 (let
-                    ((responses (sendmail-send-message smtp-connection "message content" "sender@sender.to" '("user@recipient.to"))))
+                    ((responses (sendmail-send-message sendmail-connection "message content" "sender@sender.to" '("user@recipient.to"))))
                     (assert (all? send-success? responses)))))
 
             (test "Send a message to multiple recipients" (lambda () 
                 (let
-                    ((responses (sendmail-send-message smtp-connection "message content" "sender@sender.to" '("user1@recipient.to" "user2@recipient.to"))))
+                    ((responses (sendmail-send-message sendmail-connection "message content" "sender@sender.to" '("user1@recipient.to" "user2@recipient.to"))))
                     (assert (all? send-success? responses)))))
 
             (test "Send a message with empty recipient" (lambda () 
                 (let
-                    ((responses (sendmail-send-message smtp-connection "message content" "<>" '("user@recipient.to"))))
+                    ((responses (sendmail-send-message sendmail-connection "message content" "<>" '("user@recipient.to"))))
                     (assert (all? send-success? responses) "Client should be able to send message with empty recipient")
                     (assert
                         (any?
@@ -193,7 +193,7 @@
 
             (test "Send a message to cc recipients" (lambda () 
                 (let
-                    ((responses (sendmail-send-message-full smtp-connection "message content" "sender@sender.to" '() '("user1@recipient.to") '() (make-hash-table) (make-hash-table) '() '())))
+                    ((responses (sendmail-send-message-full sendmail-connection "message content" "sender@sender.to" '() '("user1@recipient.to") '() (make-hash-table) (make-hash-table) '() '())))
                     (assert (all? send-success? responses))
                     (assert-server-message-contains? "user1@recipient.to" "cc recipient")
                     (assert
@@ -205,7 +205,7 @@
 
             (test "Send a message to bcc recipients" (lambda () 
                 (let
-                    ((responses (sendmail-send-message-full smtp-connection "message content" "sender@sender.to" '() '() '("user1@recipient.to") (make-hash-table) (make-hash-table) '() '())))
+                    ((responses (sendmail-send-message-full sendmail-connection "message content" "sender@sender.to" '() '() '("user1@recipient.to") (make-hash-table) (make-hash-table) '() '())))
                     (assert (all? send-success? responses))
                     (assert (not (server-message-contains? "user1@recipient.to")))
                     (assert
@@ -218,7 +218,7 @@
             ; TODO
             ;(test "Send message with a valid and an invalid recipient" (lambda () 
             ;    (let
-            ;       ((response (sendmail-send-message smtp-connection "message content" ""))))))
+            ;       ((response (sendmail-send-message sendmail-connection "message content" ""))))))
 
             (data-test "Failures during send message" 
                 '(("400 BUSY")
@@ -229,7 +229,7 @@
                     (server-set-response-code! server response-code)
                     (let
                         ((responses 
-                            (sendmail-send-message smtp-connection "failure content" "sender@sender.to" '("user@recipient.to"))))
+                            (sendmail-send-message sendmail-connection "failure content" "sender@sender.to" '("user@recipient.to"))))
                         (assert (all? send-error? responses) (string-append "Expected client to fail when server responds with error:" response-code)))))
 
             (capability 'handle-421 (list
@@ -238,37 +238,37 @@
                 (test "Handle 421 during mail command" (lambda ()
                     (server-set-command-response-code! server "MAIL" "421 Service not available")
                     (let
-                        ((responses (sendmail-send-message smtp-connection "message content" "sender@sender.to" '("user@recipient.to"))))
+                        ((responses (sendmail-send-message sendmail-connection "message content" "sender@sender.to" '("user@recipient.to"))))
                         (assert (all? send-error? responses))
-                        (assert (not (sendmail-connected? smtp-connection)) "421 should have lead to client terminating connection."))))
+                        (assert (not (sendmail-connected? sendmail-connection)) "421 should have lead to client terminating connection."))))
 
                 (test "Handle 421 during rcpt command" (lambda ()
                     (server-set-command-response-code! server "RCPT" "421 Service not available")
                     (let
-                        ((responses (sendmail-send-message smtp-connection "message content" "sender@sender.to" '("user@recipient.to"))))
+                        ((responses (sendmail-send-message sendmail-connection "message content" "sender@sender.to" '("user@recipient.to"))))
                         (assert (all? send-error? responses))
-                        (assert (not (sendmail-connected? smtp-connection)) "421 should have lead to client terminating connection."))))
+                        (assert (not (sendmail-connected? sendmail-connection)) "421 should have lead to client terminating connection."))))
 
                 (test "Handle 421 at start of data command" (lambda ()
                     (server-set-command-response-code! server "DATA" "421 Service not available")
                     (let
-                        ((responses (sendmail-send-message smtp-connection "message content" "sender@sender.to" '("user@recipient.to"))))
+                        ((responses (sendmail-send-message sendmail-connection "message content" "sender@sender.to" '("user@recipient.to"))))
                         (assert (all? send-error? responses))
-                        (assert (not (sendmail-connected? smtp-connection)) "421 should have lead to client terminating connection."))))
+                        (assert (not (sendmail-connected? sendmail-connection)) "421 should have lead to client terminating connection."))))
 
                 (test "Handle 421 during data command" (lambda ()
                     (server-set-command-response-code! server "DATA MIDDLE" "421 Service not available")
                     (let
-                        ((responses (sendmail-send-message smtp-connection "message content" "sender@sender.to" '("user@recipient.to"))))
+                        ((responses (sendmail-send-message sendmail-connection "message content" "sender@sender.to" '("user@recipient.to"))))
                         (assert (all? send-error? responses))
-                        (assert (not (sendmail-connected? smtp-connection)) "421 should have lead to client terminating connection."))))
+                        (assert (not (sendmail-connected? sendmail-connection)) "421 should have lead to client terminating connection."))))
 
                 (test "Handle 421 at the end of data command" (lambda ()
                     (server-set-command-response-code! server "DATA END" "421 Service not available")
                     (let
-                        ((responses (sendmail-send-message smtp-connection "message content" "sender@sender.to" '("user@recipient.to"))))
+                        ((responses (sendmail-send-message sendmail-connection "message content" "sender@sender.to" '("user@recipient.to"))))
                         (assert (all? send-error? responses))
-                        (assert (not (sendmail-connected? smtp-connection)) "421 should have lead to client terminating connection."))))
+                        (assert (not (sendmail-connected? sendmail-connection)) "421 should have lead to client terminating connection."))))
 
             ))
 
@@ -276,21 +276,21 @@
 
         (capability 'headers (list
 
-            (define smtp-connection '())
+            (define sendmail-connection '())
             (define (connect-smtp-server)
-                (set! smtp-connection (sendmail-connect "localhost" (server-port server))))
+                (set! sendmail-connection (sendmail-connect "localhost" (server-port server))))
 
             (setup (lambda () 
                 (set! server (start-mock-server))
                 (connect-smtp-server)))
 
             (tearDown (lambda ()
-                (sendmail-disconnect smtp-connection)
-                (set! smtp-connection '())))
+                (sendmail-disconnect sendmail-connection)
+                (set! sendmail-connection '())))
 
             (define (sendmail-send-with-headers headers)
                 (sendmail-send-message-full 
-                    smtp-connection "message content" "sender@sender.to" '("user@recipient.to") '() '() (alist->hash-table headers) (make-hash-table) '() '()))
+                    sendmail-connection "message content" "sender@sender.to" '("user@recipient.to") '() '() (alist->hash-table headers) (make-hash-table) '() '()))
 
             ; https://datatracker.ietf.org/doc/html/rfc5322#section-2.2
             (test "set basic header" (lambda ()
@@ -353,17 +353,17 @@
 
         (capability 'attachments (list
 
-            (define smtp-connection '())
+            (define sendmail-connection '())
             (define (connect-smtp-server)
-                (set! smtp-connection (sendmail-connect "localhost" (server-port server))))
+                (set! sendmail-connection (sendmail-connect "localhost" (server-port server))))
 
             (setup (lambda () 
                 (set! server (start-mock-server))
                 (connect-smtp-server)))
 
             (tearDown (lambda ()
-                (sendmail-disconnect smtp-connection)
-                (set! smtp-connection '())))
+                (sendmail-disconnect sendmail-connection)
+                (set! sendmail-connection '())))
 
             ; attachments-properties is a list of alists with the following keys: 
             ; "data", "file-name", "content-type", or "content-disposition"
@@ -376,7 +376,7 @@
                                 (hash-table-set! property-hash "content-disposition" "attachment")))
                         properties-hashs)
                     (sendmail-send-message-full 
-                        smtp-connection
+                        sendmail-connection
                         "message content" "sender@sender.to" '("recipient@recipient.to")
                         '() '()
                         (make-hash-table)
@@ -488,17 +488,17 @@
 
         (capability 'general-crlf-injection (list
 
-            (define smtp-connection '())
+            (define sendmail-connection '())
             (define (connect-smtp-server)
-                (set! smtp-connection (sendmail-connect "localhost" (server-port server))))
+                (set! sendmail-connection (sendmail-connect "localhost" (server-port server))))
 
             (setup (lambda () 
                 (set! server (start-mock-server))
                 (connect-smtp-server)))
 
             (tearDown (lambda ()
-                (sendmail-disconnect smtp-connection)
-                (set! smtp-connection '())))
+                (sendmail-disconnect sendmail-connection)
+                (set! sendmail-connection '())))
 
             (define (assert-crlf-injection-error test-function failure-description)
                 (let
@@ -521,7 +521,7 @@
                     '(("foo\r\nbar@email.com") ("foo\nbar@email.com") ("foo\rbar@email.com")) 
                     (lambda (sender-string)
                         (let
-                            ((responses (sendmail-send-message smtp-connection "message content" sender-string '("user@recipient.to"))))
+                            ((responses (sendmail-send-message sendmail-connection "message content" sender-string '("user@recipient.to"))))
                             (display responses)
                             (assert (all? send-error? responses) (string-append "Expected client to fail when CR or LF is in sender of send-message: " sender-string)))))
                         
@@ -529,7 +529,7 @@
                     '(("foo\r\nbar@email.com") ("foo\nbar@email.com") ("foo\rbar@email.com")) 
                     (lambda (recipient-string)
                         (let
-                            ((responses (sendmail-send-message smtp-connection "message content" "sender@email.com" (list recipient-string))))
+                            ((responses (sendmail-send-message sendmail-connection "message content" "sender@email.com" (list recipient-string))))
                             (assert (all? send-error? responses) (string-append "Expected client to fail when CR or LF is in recipient of send-message: " recipient-string)))))
         
             ))
@@ -540,7 +540,7 @@
                     '(("foo\r\nbar@email.com" "\r\n") ("foo\nbar@email.com" "\n") ("foo\rbar@email.com" "\r")) 
                     (lambda (sender-string injection)
                         (let
-                            ((responses (sendmail-send-message smtp-connection "message content" sender-string '("user@recipient.to"))))
+                            ((responses (sendmail-send-message sendmail-connection "message content" sender-string '("user@recipient.to"))))
                             (assert (all? send-success? responses))
                             (assert 
                                 (all? 
@@ -552,7 +552,7 @@
                     '(("foo\r\nbar@email.com" "\r\n") ("foo\nbar@email.com" "\n") ("foo\rbar@email.com" "\r")) 
                     (lambda (recipient-string injection)
                         (let
-                            ((responses (sendmail-send-message smtp-connection "message content" "sender@email.com" (list recipient-string))))
+                            ((responses (sendmail-send-message sendmail-connection "message content" "sender@email.com" (list recipient-string))))
                             (assert (all? send-success? responses))
                             (assert 
                                 (all? 
@@ -565,17 +565,17 @@
 
         (capability 'unicode-messages (list
         
-            (define smtp-connection '())
+            (define sendmail-connection '())
             (define (connect-smtp-server)
-                (set! smtp-connection (sendmail-connect "localhost" (server-port server))))
+                (set! sendmail-connection (sendmail-connect "localhost" (server-port server))))
 
             (setup (lambda () 
                 (set! server (start-mock-server))
                 (connect-smtp-server)))
 
             (tearDown (lambda ()
-                (sendmail-disconnect smtp-connection)
-                (set! smtp-connection '())))
+                (sendmail-disconnect sendmail-connection)
+                (set! sendmail-connection '())))
 
             (capability '8bitmime (list
 
@@ -589,7 +589,7 @@
                     (test "non-ascii content in send-message with 8BITMIME option and without 8BITMIME server support" (lambda ()
                         (let
                             ((send-message-responses (sendmail-send-message-with-options 
-                                smtp-connection "¡a test message containing unicode!" "sender@sender.com" '("user@recipient.com") '("BODY=8BITMIME") '())))
+                                sendmail-connection "¡a test message containing unicode!" "sender@sender.com" '("user@recipient.com") '("BODY=8BITMIME") '())))
                             (assert (all? send-error? send-message-responses) "Client should not support sending 8BITMIME body when server does not support it"))))
 
                     ; Use fallback encoding when 8BITMIME options was not set (independent of server support) and should not just go ahead with unicode anyway
@@ -597,7 +597,7 @@
                         (activate-8bitmime server)
                         (let
                             ((send-message-responses (sendmail-send-message-with-options 
-                                smtp-connection "¡a test message containing unicode!" "sender@sender.com" '("user@recipient.com") '() '())))
+                                sendmail-connection "¡a test message containing unicode!" "sender@sender.com" '("user@recipient.com") '() '())))
                             (assert (all? send-success? send-message-responses))    
                             (assert 
                                 (not (server-message-contains? "¡a test message containing unicode!")))
@@ -608,7 +608,7 @@
                         (activate-8bitmime server)
                         (let
                             ((send-message-responses (sendmail-send-message-with-options 
-                                smtp-connection "¡a test message containing unicode!" "sender@sender.com" '("user@recipient.com") '("BODY=8BITMIME") '())))
+                                sendmail-connection "¡a test message containing unicode!" "sender@sender.com" '("user@recipient.com") '("BODY=8BITMIME") '())))
                             (assert (all? send-success? send-message-responses))
                             (assert-any-request server "MAIL FROM:<sender@sender.com> BODY=8BITMIME")
                             (assert-server-message-contains? "¡a test message containing unicode!" "unicode content"))))
@@ -621,7 +621,7 @@
                     (test "non-ascii content in send-message without 8BITMIME support" (lambda ()
                         (let
                             ((send-message-responses (sendmail-send-message-with-options 
-                                smtp-connection "¡a test message containing unicode!" "sender@sender.com" '("user@recipient.com") '() '())))
+                                sendmail-connection "¡a test message containing unicode!" "sender@sender.com" '("user@recipient.com") '() '())))
                             (assert-any-request server "MAIL FROM:<sender@sender.com>")
                             (assert 
                                 (not (server-message-contains? "¡a test message containing unicode!"))
@@ -632,7 +632,7 @@
                         (activate-8bitmime server)
                         (let
                             ((send-message-responses (sendmail-send-message-with-options 
-                                smtp-connection "¡a test message containing unicode!" "sender@sender.com" '("user@recipient.com") '() '())))
+                                sendmail-connection "¡a test message containing unicode!" "sender@sender.com" '("user@recipient.com") '() '())))
                             (assert (all? send-success? send-message-responses))
                             (assert-any-request server "MAIL FROM:<sender@sender.com> BODY=8BITMIME")
                             (assert-server-message-contains? "¡a test message containing unicode!" "unicode content directly"))))
@@ -643,17 +643,17 @@
 
         (capability 'internationalized-email-addresses (list
         
-            (define smtp-connection '())
+            (define sendmail-connection '())
             (define (connect-smtp-server)
-                (set! smtp-connection (sendmail-connect "localhost" (server-port server))))
+                (set! sendmail-connection (sendmail-connect "localhost" (server-port server))))
 
             (setup (lambda () 
                 (set! server (start-mock-server))
                 (connect-smtp-server)))
 
             (tearDown (lambda () 
-                (sendmail-disconnect smtp-connection)
-                (set! smtp-connection '())))
+                (sendmail-disconnect sendmail-connection)
+                (set! sendmail-connection '())))
 
 
             (capability 'smtputf8 (list
@@ -672,14 +672,14 @@
                         
                         (let
                             ((send-message-responses (sendmail-send-message-with-options 
-                                smtp-connection "message content" "sender@sender.com" '("χρήστης@παράδειγμα.ελ") '("SMTPUTF8") '())))
+                                sendmail-connection "message content" "sender@sender.com" '("χρήστης@παράδειγμα.ελ") '("SMTPUTF8") '())))
                             (assert (all? send-error? send-message-responses)))))
 
                     (test "international recipient mailbox in send-message without SMTPUTF8 support and no option" (lambda ()
                         
                         (let
                             ((send-message-responses (sendmail-send-message-with-options 
-                                smtp-connection "message content" "sender@sender.com" '("χρήστης@παράδειγμα.ελ") '() '())))
+                                sendmail-connection "message content" "sender@sender.com" '("χρήστης@παράδειγμα.ελ") '() '())))
                             (assert (all? send-error? send-message-responses)))))
 
                     (test "international recipient mailbox in send-message with SMTPUTF8 support" (lambda ()
@@ -687,7 +687,7 @@
                         
                         (let
                             ((send-message-responses (sendmail-send-message-with-options 
-                                smtp-connection "message content" "sender@sender.com" '("χρήστης@παράδειγμα.ελ") '("SMTPUTF8") '())))
+                                sendmail-connection "message content" "sender@sender.com" '("χρήστης@παράδειγμα.ελ") '("SMTPUTF8") '())))
                             (assert (all? send-success? send-message-responses))
                             (assert-any-request server "MAIL FROM:<sender@sender.com> SMTPUTF8 BODY=8BITMIME"))))
 
@@ -696,7 +696,7 @@
                         
                         (let
                             ((send-message-responses (sendmail-send-message-with-options 
-                                smtp-connection "message content" "sender@sender.com" '("χρήστης@παράδειγμα.ελ") '() '())))
+                                sendmail-connection "message content" "sender@sender.com" '("χρήστης@παράδειγμα.ελ") '() '())))
                             (assert (all? send-error? send-message-responses)))))
 
                     ; Sender
@@ -705,14 +705,14 @@
                         
                         (let
                             ((send-message-responses (sendmail-send-message-with-options 
-                                smtp-connection "message content" "χρήστης@παράδειγμα.ελ" '("recipient@server.com") '("SMTPUTF8") '())))
+                                sendmail-connection "message content" "χρήστης@παράδειγμα.ελ" '("recipient@server.com") '("SMTPUTF8") '())))
                             (assert (all? send-error? send-message-responses)))))
 
                     (test "international sender mailbox in send-message without SMTPUTF8 support and no option" (lambda ()
                         
                         (let
                             ((send-message-responses (sendmail-send-message-with-options 
-                                smtp-connection "message content" "χρήστης@παράδειγμα.ελ" '("recipient@server.com") '() '())))
+                                sendmail-connection "message content" "χρήστης@παράδειγμα.ελ" '("recipient@server.com") '() '())))
                             (assert (all? send-error? send-message-responses)))))
 
                     (test "international sender mailbox in send-message with SMTPUTF8 support" (lambda ()
@@ -720,7 +720,7 @@
                         
                         (let
                             ((send-message-responses (sendmail-send-message-with-options 
-                                smtp-connection "message content" "χρήστης@παράδειγμα.ελ" '("recipient@server.com") '("SMTPUTF8") '())))
+                                sendmail-connection "message content" "χρήστης@παράδειγμα.ελ" '("recipient@server.com") '("SMTPUTF8") '())))
                             (assert (all? send-success? send-message-responses))
                             (assert-any-request server "MAIL FROM:<χρήστης@παράδειγμα.ελ> SMTPUTF8 BODY=8BITMIME"))))
 
@@ -729,7 +729,7 @@
                         
                         (let
                             ((send-message-responses (sendmail-send-message-with-options 
-                                smtp-connection "message content" "χρήστης@παράδειγμα.ελ" '("recipient@server.com") '() '())))
+                                sendmail-connection "message content" "χρήστης@παράδειγμα.ελ" '("recipient@server.com") '() '())))
                             (assert (all? send-error? send-message-responses)))))
                 ))
 
@@ -741,7 +741,7 @@
                         
                         (let
                             ((send-message-responses (sendmail-send-message 
-                                smtp-connection "message content" "sender@sender.com" '("χρήστης@παράδειγμα.ελ"))))
+                                sendmail-connection "message content" "sender@sender.com" '("χρήστης@παράδειγμα.ελ"))))
                             (assert (all? send-error? send-message-responses)))))  
 
                     (test "international recipient mailbox in send-message with SMTPUTF8 support" (lambda ()
@@ -749,7 +749,7 @@
                     
                         (let
                             ((send-message-responses (sendmail-send-message 
-                                smtp-connection "message content" "sender@sender.com" '("χρήστης@παράδειγμα.ελ"))))
+                                sendmail-connection "message content" "sender@sender.com" '("χρήστης@παράδειγμα.ελ"))))
                             (assert (all? send-success? send-message-responses))
                             (assert-any-request server "MAIL FROM:<sender@sender.com> SMTPUTF8 BODY=8BITMIME"))))
 
@@ -759,7 +759,7 @@
                         
                         (let
                             ((send-message-responses (sendmail-send-message 
-                                smtp-connection "message content" "χρήστης@παράδειγμα.ελ" '("recipient@server.com"))))
+                                sendmail-connection "message content" "χρήστης@παράδειγμα.ελ" '("recipient@server.com"))))
                             (assert (all? send-error? send-message-responses)))))
 
                     (test "international sender mailbox in send-message with SMTPUTF8 support" (lambda ()
@@ -767,7 +767,7 @@
                         
                         (let
                             ((send-message-responses (sendmail-send-message 
-                                smtp-connection "message content" "χρήστης@παράδειγμα.ελ" '("recipient@server.com"))))
+                                sendmail-connection "message content" "χρήστης@παράδειγμα.ελ" '("recipient@server.com"))))
                             (assert (all? send-success? send-message-responses))
                             (assert-any-request server "MAIL FROM:<χρήστης@παράδειγμα.ελ> SMTPUTF8 BODY=8BITMIME"))))
                 ))
