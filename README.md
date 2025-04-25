@@ -1,4 +1,8 @@
-# RosettaTest [![Python Suites](https://github.com/codeZeilen/rosetta-test/actions/workflows/python-suites.yml/badge.svg)](https://github.com/codeZeilen/rosetta-test/actions/workflows/python-suites.yml)
+# RosettaTest 
+[![Interpreters Tests](https://github.com/codeZeilen/rosetta-test/actions/workflows/interpreter-tests.yml/badge.svg)](https://github.com/codeZeilen/rosetta-test/actions/workflows/interpreter-tests.yml)
+[![Python Suites](https://github.com/codeZeilen/rosetta-test/actions/workflows/python-suites.yml/badge.svg)](https://github.com/codeZeilen/rosetta-test/actions/workflows/python-suites.yml)
+[![Ruby Suites](https://github.com/codeZeilen/rosetta-test/actions/workflows/ruby-suites.yml/badge.svg)](https://github.com/codeZeilen/rosetta-test/actions/workflows/ruby-suites.yml)
+[![JavaScript Suites](https://github.com/codeZeilen/rosetta-test/actions/workflows/javascript-suites.yml/badge.svg)](https://github.com/codeZeilen/rosetta-test/actions/workflows/javascript-suites.yml)
 
 With the RosettaTest project, you only have to write a test suite once for multiple implementations.
 
