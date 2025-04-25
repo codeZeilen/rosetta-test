@@ -50,3 +50,9 @@ Thus, if you want to execute a RosettaTest suite for your project, you need:
 ## Acknowledgements
 - Syntax tests based on the corpus from [tree-sitter-scheme](https://github.com/6cdh/tree-sitter-scheme)
 - JSON-RFC Suite tests are based on the [JSONTestSuite](https://github.com/nst/JSONTestSuite)
+
+## Identified Defects and Implemented Improvements
+- https://github.com/Miksus/red-mail/pull/96 (proposed)
+- https://github.com/lavr/python-emails/pull/173 (proposed)
+- https://github.com/python/cpython/pull/132797 (proposed)
+- [Squeak/Smalltalk SMTPClient Patch](http://lists.squeakfoundation.org/archives/list/squeak-dev@lists.squeakfoundation.org/message/7DI6KAGWZBRNJCZ4HIM7S2QY5A3L4OO3/) (proposed)
