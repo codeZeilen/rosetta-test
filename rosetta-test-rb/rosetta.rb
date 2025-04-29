@@ -105,11 +105,7 @@ class RosettaTestSuite
     initialize_rosetta
     @suite_source = File.read(file_name)
 
-    @suite_name = nil
-    @suite_version = nil
-    @sources = nil
-    @placeholders = nil
-    @root_capability = nil
+    @suite = nil
 
     @placeholder_functions = {}
     @set_up_functions = []
@@ -119,8 +115,7 @@ class RosettaTestSuite
   end
 
   def initialize_suite
-    @suite_name, @suite_version, @sources,
-    @placeholders, @root_capability = eval_scheme(@suite_source)
+    @suite = eval_scheme(@suite_source)
   end
 
   def eval_scheme(code, env = nil)
@@ -134,6 +129,18 @@ class RosettaTestSuite
       env[key.to_sym] = value
     end
     eval_scheme(code, env)
+  end
+
+  def suite_eval(code, **kwargs)
+    eval_scheme_with_args(code, :the_suite=>@suite, **kwargs)
+  end
+
+  def suite_placeholders()
+    suite_eval("(suite-placeholders the_suite)")
+  end
+
+  def suite_root_capability()
+    suite_eval("(suite-root-capability the_suite)")
   end
 
   def create_placeholder(name, parameters, doc_string = "")
@@ -188,7 +195,7 @@ class RosettaTestSuite
   end
 
   def ensure_placeholders_are_valid
-    invalid_placeholders = @placeholders.reject(&:valid?)
+    invalid_placeholders = suite_placeholders.reject(&:valid?)
     return if invalid_placeholders.empty?
 
     invalid_placeholder_list = invalid_placeholders.map { |p| "- #{p.name}" }.join("\n")
@@ -201,10 +208,10 @@ class RosettaTestSuite
 
   def install_set_up_tear_down_functions
     @set_up_functions.each do |func|
-      @root_capability[2].unshift(RosettaSetup.new(func, @scheme_env))
+      suite_root_capability[2].unshift(RosettaSetup.new(func, @scheme_env))
     end
     @tear_down_functions.each do |func|
-      @root_capability[3].unshift(RosettaTearDown.new(func, @scheme_env))
+      suite_root_capability[3].unshift(RosettaTearDown.new(func, @scheme_env))
     end
   end
 
@@ -213,17 +220,12 @@ class RosettaTestSuite
     install_set_up_tear_down_functions
     ensure_placeholders_are_valid
 
-    # We set the root-capability in the env, as we need it repeatedly
-    @scheme_env[:"root-capability"] = @root_capability
-    args = @config.to_h.merge(
-      suite_name: @suite_name,
-      suite_version: @suite_version
-    )
-
-    eval_scheme_with_args(
-      "(run-suite suite_name suite_version root-capability only_tests only_capabilities exclude exclude_capabilities expected_failures)",
-      **args
-    )
+    suite_eval("(suite-set-only-tests! the_suite only_tests)", :only_tests => @config.only_tests)
+    suite_eval("(suite-set-only-capabilities! the_suite only_capabilities)", :only_capabilities => @config.only_capabilities)
+    suite_eval("(suite-set-exclude-tests! the_suite exclude)", :exclude => @config.exclude)
+    suite_eval("(suite-set-exclude-capabilities! the_suite exclude_capabilities)", :exclude_capabilities => @config.exclude_capabilities)
+    suite_eval("(suite-set-expected-failures! the_suite expected_failures)", :expected_failures => @config.expected_failures)
+    suite_eval("(suite-run the_suite)")
   end
 
   CONFIG_FIELDS = [:only_tests, :only_capabilities, :exclude, :exclude_capabilities, :expected_failures]

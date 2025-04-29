@@ -13,11 +13,63 @@
                 (filter (lambda (e) (not (is-placeholder? e))) suite-contents))))
         (capability-set-children-parent! root-capability)
         (list
+            'suite
             suite-name 
             suite-version 
             suite-sources
             (filter is-placeholder? suite-contents) ; placeholder
-            root-capability)))
+            root-capability
+            '() ; only tests
+            '() ; only capabilities
+            '() ; exclude tests
+            '() ; exclude capabilities
+            '() ; expected failures
+        )))
+
+    (define (suite-name suite)
+        (list-ref suite 1))
+    (define (suite-version suite)
+        (list-ref suite 2))
+    (define (suite-sources suite)
+        (list-ref suite 3))
+    (define (suite-placeholders suite)
+        (list-ref suite 4))
+    (define (suite-root-capability suite)
+        (list-ref suite 5))
+    (define (suite-only-tests suite)
+        (list-ref suite 6))
+    (define (suite-only-capabilities suite) 
+        (list-ref suite 7))
+    (define (suite-exclude-tests suite)
+        (list-ref suite 8))
+    (define (suite-exclude-capabilities suite)
+        (list-ref suite 9))
+    (define (suite-expected-failures suite)
+        (list-ref suite 10))
+    (define (suite-set-only-tests! suite only-tests)
+        (list-set! suite 6 only-tests))
+    (define (suite-set-only-capabilities! suite only-capabilities)
+        (list-set! suite 7 only-capabilities))
+    (define (suite-set-exclude-tests! suite exclude-tests)
+        (list-set! suite 8 exclude-tests))
+    (define (suite-set-exclude-capabilities! suite exclude-capabilities)
+        (list-set! suite 9 exclude-capabilities))
+    (define (suite-set-expected-failures! suite expected-failures)
+        (list-set! suite 10 expected-failures))
+
+    (define (suite-all-tests suite)
+        (capability-all-tests (suite-root-capability suite)))
+
+    (define (suite-run suite)
+        (run-suite 
+            (suite-name suite) 
+            (suite-version suite) 
+            (suite-root-capability suite) 
+            (suite-only-tests suite) 
+            (suite-only-capabilities suite) 
+            (suite-exclude-tests suite) 
+            (suite-exclude-capabilities suite) 
+            (suite-expected-failures suite)))
     
     (define (is-capability? element) (and (list? element) (= 'capability (car element))))
     (define (is-test? element) (and (list? element) (or (= 'test (car element)) (is-data-test? element))))
@@ -344,4 +396,6 @@
                                     (and (is-success? test-result) (expected-failures-test-result? test-result expected-failures)))) 
                             test-results)
                         (exit 1))))))
+
+    
 )

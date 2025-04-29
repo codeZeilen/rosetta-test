@@ -87,11 +87,7 @@ class RosettaTestSuite(object):
         with open(file_name, "r", encoding="utf-8") as file:
             self.suite_source = file.read()
         
-        self.suite_name = None
-        self.suite_version = None
-        self.sources = None
-        self.placeholders = None
-        self.root_capability = None
+        self.suite = None
         
         self.placeholder_functions = {}
         self.setUp_functions = []
@@ -99,7 +95,19 @@ class RosettaTestSuite(object):
 
     def initialize_suite(self):
         """Only called after the Python-side was set up and the suite is ready to run."""
-        self.suite_name, self.suite_version, self.sources, self.placeholders, self.root_capability = self.eval(self.suite_source)
+        self.suite = self.eval(self.suite_source)
+
+    def suite_name(self):
+        return self.suite_eval("(suite-name the_suite)")
+    
+    def suite_version(self):
+        return self.suite_eval("(suite-version the_suite)")
+    
+    def placeholders(self):
+        return self.suite_eval("(suite-placeholders the_suite)")
+    
+    def root_capability(self):
+        return self.suite_eval("(suite-root-capability the_suite)")
 
     def eval(self, code, env=None):
         if not env:
@@ -111,6 +119,9 @@ class RosettaTestSuite(object):
         for key, value in kwargs.items():
             env[lispy.Sym(key)] = value
         return self.eval(code, env)
+    
+    def suite_eval(self, code, **kwargs):
+        return self.eval_with_args(code, the_suite=self.suite, **kwargs)
     
     def create_placeholder(self, name, parameters, doc_string=""):
         newPlaceholder = Placeholder(name, parameters, doc_string)
@@ -158,7 +169,7 @@ class RosettaTestSuite(object):
         return decorator
     
     def ensure_placeholders_are_valid(self):
-        invalid_placeholders = [placeholder for placeholder in self.placeholders if not placeholder.is_valid()]
+        invalid_placeholders = [placeholder for placeholder in self.placeholders() if not placeholder.is_valid()]
         if invalid_placeholders:
             invalid_placeholder_list = "\n".join([("- " + placeholder.name) for placeholder in invalid_placeholders])
             invalid_placeholders_suggestion = "\n\n".join([f"@suite.placeholder(\"{placeholder.name}\")\ndef {placeholder.name.replace('-', '_')}(env,*args):\n\tpass" for placeholder in invalid_placeholders])
@@ -166,9 +177,9 @@ class RosettaTestSuite(object):
         
     def install_setUp_tearDown_functions(self):
         for func in self.setUp_functions:
-            self.root_capability[2].insert(0, RosettaSetup(func, self.lispy_env))
+            self.root_capability()[2].insert(0, RosettaSetup(func, self.lispy_env))
         for func in self.tearDown_functions:
-            self.root_capability[3].insert(0, RosettaTearDown(func, self.lispy_env))
+            self.root_capability()[3].insert(0, RosettaTearDown(func, self.lispy_env))
     
     def generate_test_name(self, rosetta_test):
         return self.eval_with_args("(test-full-name current_test)", current_test=rosetta_test)
@@ -185,7 +196,7 @@ class RosettaTestSuite(object):
         self.install_setUp_tearDown_functions()
         self.ensure_placeholders_are_valid()
         self.lispy_env.update({
-            lispy.Sym("root-capability"): self.root_capability,
+            lispy.Sym("root-capability"): self.root_capability(),
         })
         tests = self.eval("(capability-all-tests root-capability)")
         
@@ -210,15 +221,12 @@ class RosettaTestSuite(object):
         self.initialize_suite()
         self.install_setUp_tearDown_functions()
         self.ensure_placeholders_are_valid()
-        self.lispy_env.update({
-            lispy.Sym("root-capability"): self.root_capability,
-        })
-        self.eval_with_args(
-            "(run-suite suite_name suite_version root-capability only_tests only_capabilities exclude exclude_capabilities expected_failures)", 
-            suite_name=self.suite_name,
-            suite_version=self.suite_version,
-            only_tests=only, only_capabilities=only_capabilities, exclude=exclude, exclude_capabilities=exclude_capabilities,
-            expected_failures=expected_failures)
+        self.suite_eval("(suite-set-only-tests! the_suite only)", only=only)
+        self.suite_eval("(suite-set-only-capabilities! the_suite only_capabilities)", only_capabilities=only_capabilities)
+        self.suite_eval("(suite-set-exclude-tests! the_suite exclude)", exclude=exclude)
+        self.suite_eval("(suite-set-exclude-capabilities! the_suite exclude_capabilities)", exclude_capabilities=exclude_capabilities)
+        self.suite_eval("(suite-set-expected-failures! the_suite expected_failures)", expected_failures=expected_failures)
+        self.suite_eval("(suite-run the_suite)")
         
 
 def suite(file_name):

@@ -54,6 +54,7 @@ RosettaTestLang does not support hygenic macros, as we expect macros to be almos
 - hash-table-keys, hash-table-values
 
 <!-- - apply? -->
+<!-- Potentially: - argv (without binary name (but including the language-specific script part is fine)) -->
 
 <!-- 
 Should be ported to RosettaTestLang

@@ -78,20 +78,23 @@ class RosettaTestSuite {
         this.initializeRosetta();
         this.suiteSource = readFileSync(fileName, 'utf8');
         
-        this.suiteName = null;
-        this.suiteVersion = null;
-        this.sources = null;
-        this.placeholders = null;
-        this.rootCapability = null;
-        
+        this.suite = null;
+
         this.placeholderFunctions = {};
         this.setUpFunctions = [];
         this.tearDownFunctions = [];
     }
 
     initializeSuite() {
-        [this.suiteName, this.suiteVersion, this.sources, 
-         this.placeholders, this.rootCapability] = this.evalScheme(this.suiteSource);
+        this.suite = this.evalScheme(this.suiteSource);
+    }
+
+    placeholders() {
+        return this.suiteEval("(suite-placeholders the-suite)");
+    }
+
+    rootCapability() {
+        return this.suiteEval("(root-capability the-suite)");
     }
 
     evalScheme(code, env = null) {
@@ -107,6 +110,11 @@ class RosettaTestSuite {
             env.set(Sym(key), value);
         });
         return this.evalScheme(code, env);
+    }
+
+    suiteEval(code, kwargs={}) {
+        kwargs["the-suite"] = this.suite;
+        return this.evalSchemeWithArgs(code, kwargs);
     }
 
     createPlaceholder(name, parameters, docString = "") {
@@ -156,7 +164,7 @@ class RosettaTestSuite {
     }
 
     ensurePlaceholdersAreValid() {
-        const invalidPlaceholders = this.placeholders.filter(p => !p.isValid());
+        const invalidPlaceholders = this.placeholders().filter(p => !p.isValid());
         if (invalidPlaceholders.length > 0) {
             const invalidPlaceholderList = invalidPlaceholders.map(p => `- ${asString(p.name)}`).join("\n");
             const invalidPlaceholdersSuggestion = invalidPlaceholders.map(
@@ -169,10 +177,10 @@ class RosettaTestSuite {
 inval
     installSetUpTearDownFunctions() {
         this.setUpFunctions.forEach(func => {
-            this.rootCapability[2].unshift(new RosettaSetup(func, this.schemeEnv));
+            this.rootCapability()[2].unshift(new RosettaSetup(func, this.schemeEnv));
         });
         this.tearDownFunctions.forEach(func => {
-            this.rootCapability[3].unshift(new RosettaTearDown(func, this.schemeEnv));
+            this.rootCapability()[3].unshift(new RosettaTearDown(func, this.schemeEnv));
         });
     }
 
@@ -180,19 +188,13 @@ inval
         this.initializeSuite();
         this.installSetUpTearDownFunctions();
         this.ensurePlaceholdersAreValid();
-        
-        // We set the root-capability in the env, as we need it repeatedly
-        this.schemeEnv.set(Sym("root-capability"), this.rootCapability);
 
-        this.evalSchemeWithArgs(
-            "(run-suite suite_name suite_version root-capability only_tests only_capabilities exclude exclude_capabilities expected_failures)", 
-            {suite_name: this.suiteName,
-            suite_version: this.suiteVersion,
-            only_tests: only, 
-            only_capabilities: onlyCapabilities, 
-            exclude: exclude, 
-            exclude_capabilities: excludeCapabilities,
-            expected_failures: expectedFailures});
+        this.suiteEval("(suite-set-only-tests! the-suite only)", {"only": only});
+        this.suiteEval("(suite-set-only-capabilities! the-suite only-capabilities)", {"only-capabilities": onlyCapabilities});
+        this.suiteEval("(suite-set-exclude-tests! the-suite exclude)", {"exclude": exclude});
+        this.suiteEval("(suite-set-exclude-capabilities! the-suite exclude-capabilities)", {"exclude-capabilities": excludeCapabilities});
+        this.suiteEval("(suite-set-expected-failures! the-suite expected-failures)", {"expected-failures": expectedFailures});
+        this.suiteEval("(suite-run the-suite)");
     }
 }
 
