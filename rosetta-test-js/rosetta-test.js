@@ -194,7 +194,7 @@ inval
         this.suiteEval("(suite-set-exclude-tests! the-suite exclude)", {"exclude": exclude});
         this.suiteEval("(suite-set-exclude-capabilities! the-suite exclude-capabilities)", {"exclude-capabilities": excludeCapabilities});
         this.suiteEval("(suite-set-expected-failures! the-suite expected-failures)", {"expected-failures": expectedFailures});
-        this.suiteEval("(suite-run the-suite)");
+        this.suiteEval("(suite-run the-suite argv)", {"argv": process.argv});
     }
 }
 

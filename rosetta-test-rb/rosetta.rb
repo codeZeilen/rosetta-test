@@ -225,7 +225,7 @@ class RosettaTestSuite
     suite_eval("(suite-set-exclude-tests! the_suite exclude)", :exclude => @config.exclude)
     suite_eval("(suite-set-exclude-capabilities! the_suite exclude_capabilities)", :exclude_capabilities => @config.exclude_capabilities)
     suite_eval("(suite-set-expected-failures! the_suite expected_failures)", :expected_failures => @config.expected_failures)
-    suite_eval("(suite-run the_suite)")
+    suite_eval("(suite-run the_suite argv)", :argv => ARGV)
   end
 
   CONFIG_FIELDS = [:only_tests, :only_capabilities, :exclude, :exclude_capabilities, :expected_failures]

@@ -60,16 +60,71 @@
     (define (suite-all-tests suite)
         (capability-all-tests (suite-root-capability suite)))
 
-    (define (suite-run suite)
-        (run-suite 
-            (suite-name suite) 
-            (suite-version suite) 
-            (suite-root-capability suite) 
+    (define (suite-selected-tests suite)
+        (select-tests 
+            (capability-all-tests (suite-root-capability suite)) 
             (suite-only-tests suite) 
             (suite-only-capabilities suite) 
             (suite-exclude-tests suite) 
-            (suite-exclude-capabilities suite) 
-            (suite-expected-failures suite)))
+            (suite-exclude-capabilities suite)))
+
+    (define (select-tests tests only-tests only-capabilities exclude-tests exclude-capabilities)
+        (define (test-capability-identifier-matches test capability-prefix-patterns)
+            (any? 
+                (lambda (capability-prefix-pattern) 
+                    (string-prefix? capability-prefix-pattern (capability-full-name (test-capability test))))
+                capability-prefix-patterns))
+        (filter 
+            (lambda (test)
+                (not (or
+                    ; The following are exclusion criteria, if one of them applies, the test should be excluded
+                    (and only-tests (not (member (test-full-name test) only-tests)))
+                    (and only-capabilities (not (test-capability-identifier-matches test only-capabilities)))
+                    (and exclude-tests (member (test-full-name test) exclude-tests))
+                    (and exclude-capabilities (test-capability-identifier-matches test exclude-capabilities)))))
+            tests))
+
+    (define (run-options-full-report? options)
+        (and (not (null? options)) (list? options) (member "--full-report" options)))
+
+    (define (run-options-help? options)
+        (and (not (null? options)) (list? options) (member "--help" options)))
+
+    (define (display-run-options-help)
+        (display "Options:\n")
+        (display " --full-report: Write a full report of suite results to file [suite-name]-[suite-version]-results.xml.\n")
+        (display " --help: Display this help message.\n"))
+
+    (define (write-full-report suite test-results expected-failures)
+        (display "Writing full report not implemented yet\n"))
+
+    (define (suite-run suite options)
+        (display (string-append "Running suite: " (suite-name suite) " " (suite-version suite) "\n"))
+        (if (run-options-help? options)
+            (begin 
+                (display-run-options-help)
+                (exit 0)))
+        (let 
+            ((expected-failures (suite-expected-failures suite)))
+            (let 
+                ((test-results 
+                    (map  
+                        (lambda (test)
+                            (let ((test-result (test-run-with-result test)))
+                                (display (short-hand-test-result test-result expected-failures))
+                                test-result))
+                        (suite-selected-tests suite))))
+                (display-test-results test-results expected-failures)
+                (if (run-options-full-report? options)
+                    (write-full-report suite test-results expected-failures))
+                (if (any? 
+                        (lambda (test-result) 
+                            (or 
+                                (and (is-failure? test-result) (not (expected-failures-test-result? test-result expected-failures)))
+                                (and (is-error? test-result) (not (expected-failures-test-result? test-result expected-failures)))
+                                (and (is-success? test-result) (expected-failures-test-result? test-result expected-failures)))) 
+                        test-results)
+                    (exit 1)))))
     
     (define (is-capability? element) (and (list? element) (= 'capability (car element))))
     (define (is-test? element) (and (list? element) (or (= 'test (car element)) (is-data-test? element))))
@@ -286,21 +341,7 @@
     ; Executing suites
     ;
 
-    (define (select-tests tests only-tests only-capabilities exclude-tests exclude-capabilities)
-        (define (test-capability-identifier-matches test capability-prefix-patterns)
-            (any? 
-                (lambda (capability-prefix-pattern) 
-                    (string-prefix? capability-prefix-pattern (capability-full-name (test-capability test))))
-                capability-prefix-patterns))
-        (filter 
-            (lambda (test)
-                (not (or
-                    ; The following are exclusion criteria, if one of them applies, the test should be excluded
-                    (and only-tests (not (member (test-full-name test) only-tests)))
-                    (and only-capabilities (not (test-capability-identifier-matches test only-capabilities)))
-                    (and exclude-tests (member (test-full-name test) exclude-tests))
-                    (and exclude-capabilities (test-capability-identifier-matches test exclude-capabilities)))))
-            tests))
+    
 
     (define (expected-failures-test-result? test-result expected-failures)
         (member (test-full-name (test-result-test test-result)) expected-failures))
@@ -372,30 +413,5 @@
                         unexpected-passes
                         (lambda (test-result) ""))))
     ))
-
-    (define (run-suite suite-name suite-version root-capability only-tests only-capabilities exclude-tests exclude-capabilities expected-failures)
-        (display (string-append "Running suite: " suite-name " " suite-version "\n"))
-        (let 
-            ((tests (capability-all-tests root-capability)))
-            (let 
-                ((selected-tests (select-tests tests only-tests only-capabilities exclude-tests exclude-capabilities)))
-                (let 
-                    ((test-results 
-                    (map  
-                        (lambda (test)
-                            (let ((test-result (test-run-with-result test)))
-                                (display (short-hand-test-result test-result expected-failures))
-                                test-result))
-                        selected-tests)))
-                    (display-test-results test-results expected-failures)
-                    (if (any? 
-                            (lambda (test-result) 
-                                (or 
-                                    (and (is-failure? test-result) (not (expected-failures-test-result? test-result expected-failures)))
-                                    (and (is-error? test-result) (not (expected-failures-test-result? test-result expected-failures)))
-                                    (and (is-success? test-result) (expected-failures-test-result? test-result expected-failures)))) 
-                            test-results)
-                        (exit 1))))))
-
     
 )

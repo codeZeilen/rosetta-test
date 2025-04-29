@@ -2,6 +2,7 @@ import lispy
 import unittest
 import threading
 import time
+import sys
 from pathlib import Path
 
 class TestRosettaUnittestContainer(unittest.TestCase):
@@ -226,7 +227,7 @@ class RosettaTestSuite(object):
         self.suite_eval("(suite-set-exclude-tests! the_suite exclude)", exclude=exclude)
         self.suite_eval("(suite-set-exclude-capabilities! the_suite exclude_capabilities)", exclude_capabilities=exclude_capabilities)
         self.suite_eval("(suite-set-expected-failures! the_suite expected_failures)", expected_failures=expected_failures)
-        self.suite_eval("(suite-run the_suite)")
+        self.suite_eval("(suite-run the_suite argv)", argv=sys.argv)
         
 
 def suite(file_name):
