@@ -32,6 +32,7 @@ function parseTokens(tokens) {
     if (token === '(') {
         const list = [];
         while (tokens[0] !== ')') {
+            // TODO: This seems to lead to infinite loops if input ends
             list.push(parseTokens(tokens));
         }
         tokens.shift();
