@@ -130,7 +130,7 @@
     
     (define alist (lambda args
         (if (not (= 0 (modulo (length args) 2))) 
-            (throw (error "alist: odd number of arguments"))
+            (raise (error "alist: odd number of arguments"))
             (begin
                 (define (alist-help args res)
                     (if (null? args) res
@@ -161,7 +161,7 @@
 
     (define (alist-cons key value alist)
         (if (not (list? alist)) 
-            (throw (error "alist-cons: alist is not a list"))
+            (raise (error "alist-cons: alist is not a list"))
             (cons (list key value) alist)))
 
     (define (alist-delete key alist)
@@ -256,10 +256,14 @@
         (let 
             ((str-list (first args))
              (delimiter (if (= (length args) 2) (car (cdr args)) "")))
-            (fold-left 
-                (lambda (acc x) (string-append acc delimiter x))
-                (car str-list) 
-                (cdr str-list)))))
+            (if (not (list? str-list)) 
+                (raise (error "string-join: first argument is not a list"))
+                (if (empty? str-list) 
+                    ""
+                    (fold-left 
+                        (lambda (acc x) (string-append acc delimiter x))
+                        (car str-list) 
+                        (cdr str-list)))))))
 
     (define (string-suffix? suffix string)
         (string-prefix? (string-reverse suffix) (string-reverse string)))
@@ -288,7 +292,7 @@
 
     (define (substring str start end)
         (if (or (< start 0) (< end 0) (> start (length str)) (> end (length str)))
-            (throw (error "substring: out of bounds")))
+            (raise (error "substring: out of bounds")))
         (if (= start end)
             ""
             (begin
@@ -323,5 +327,31 @@
 
     (define (string-contains-every-ci? str substr)
         (string-contains-every? (string-downcase str) (string-downcase substr)))
+
+    ; Ports
+    ;
+
+    (define (call-with-output-file file-name proc)
+        (let 
+            ((out-port (open-output-file file-name)))
+            (with-exception-handler
+                (lambda (e)
+                    (close-output-port out-port)
+                    (raise e))
+                (lambda ()
+                    (define out-port (open-output-file file-name))
+                    (proc out-port)
+                    (close-output-port out-port)))))
+
+    (define (write-string str port)
+        (define (write-string-help str port)
+            (if (empty? str) 
+                #t
+                (begin
+                    (write-char (car str) port)
+                    (write-string-help (cdr str) port))))
+        (if (not (port? port)) 
+            (raise (error "write-string: not a port"))
+            (write-string-help str port)))
 
 )
