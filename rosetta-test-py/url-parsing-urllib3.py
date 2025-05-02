@@ -1,7 +1,7 @@
 import rosetta
 import urllib3 
 
-suite = rosetta.suite("rosetta-test-suites/url-parsing-rfc.ros")
+suite = rosetta.suite("url parsing - urllib3", "rosetta-test-suites/url-parsing-rfc.ros")
 
 @suite.placeholder("url-parse")
 def url_parse(env, url_string):

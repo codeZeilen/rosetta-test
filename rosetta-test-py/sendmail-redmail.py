@@ -5,7 +5,7 @@ from redmail import EmailSender
 import pathlib
 import smtplib
 
-sendmail_suite = rosetta.suite("rosetta-test-suites/sendmail.ros")
+sendmail_suite = rosetta.suite("redmail", "rosetta-test-suites/sendmail.ros")
 
 
 #

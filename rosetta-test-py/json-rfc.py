@@ -2,7 +2,7 @@ import rosetta
 from pathlib import Path
 import json
 
-suite = rosetta.suite("rosetta-test-suites/json-rfc.ros")
+suite = rosetta.suite("stdlib json", "rosetta-test-suites/json-rfc.ros")
 
 @suite.placeholder("list-json-test-files")
 def listTestFiles(env):
