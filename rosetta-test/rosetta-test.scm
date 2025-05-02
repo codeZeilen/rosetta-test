@@ -24,6 +24,7 @@
             '() ; exclude tests
             '() ; exclude capabilities
             '() ; expected failures
+            ""  ; bridge name 
         )))
 
     (define (suite-name suite)
@@ -46,6 +47,8 @@
         (list-ref suite 9))
     (define (suite-expected-failures suite)
         (list-ref suite 10))
+    (define (suite-bridge-name suite)
+        (list-ref suite 11))
     (define (suite-set-only-tests! suite only-tests)
         (list-set! suite 6 only-tests))
     (define (suite-set-only-capabilities! suite only-capabilities)
@@ -56,6 +59,8 @@
         (list-set! suite 9 exclude-capabilities))
     (define (suite-set-expected-failures! suite expected-failures)
         (list-set! suite 10 expected-failures))
+    (define (suite-set-bridge-name! suite bridge-name)
+        (list-set! suite 11 bridge-name))
 
     (define (suite-all-tests suite)
         (capability-all-tests (suite-root-capability suite)))
@@ -92,11 +97,83 @@
 
     (define (display-run-options-help)
         (display "Options:\n")
-        (display " --full-report: Write a full report of suite results to file [suite-name]-[suite-version]-results.xml.\n")
+        (display " --full-report: Write a full report of suite results to file [suite-name]-[suite-version]-results.json.\n")
         (display " --help: Display this help message.\n"))
 
+    ; Writes full report to .json file
+    ; Full report includes:
+    ; - Hierarchical structure of capabilities and tests
+    ; - Test results (success, failure, error, expected failure, unexpected pass, skipped)
+    ; - Capabilities skipped
     (define (write-full-report suite test-results expected-failures)
-        (display "Writing full report not implemented yet\n"))
+        (let 
+            ((test-results-hash (alist->hash-table (map 
+                (lambda (test-result) (list (test-full-name (test-result-test test-result)) test-result)) 
+                test-results))))
+            (call-with-output-file 
+                (string-append (suite-name suite) "-" (suite-version suite) "-results.json")
+                (lambda (out)
+                    (write-string 
+                        (string-append
+                            "{"
+                            "    \"suite\": {\n"
+                            "    \"name\": \"" (suite-name suite) "\",\n"
+                            "    \"version\": \"" (suite-version suite) "\",\n"
+                            "    \"host\": \"" (rosetta-test-host) "\",\n"
+                            "    \"bridge\": \"" (suite-bridge-name suite) "\",\n"
+                            "    \"capabilities\": [\n"
+                                    (full-capability-report (suite-root-capability suite) test-results-hash suite expected-failures)
+                            "\n    ]"
+                            "  }"
+                            "}")
+                        out)))))
+                
+    (define (full-capability-report capability test-results-hash suite expected-failures)
+        (let 
+            ((capability-name (capability-name capability))
+             (capability-child-capabilities (capability-child-capabilities capability))
+             (capability-tests (capability-tests capability)))
+            (string-append 
+                "      {"
+                "        \"name\": \"" capability-name "\",\n"
+                "        \"state\": \"" (if (member capability-name (suite-exclude-capabilities suite)) "skipped" "run") "\",\n" ; TODO: This is not perfect, the capability might have been in the only list
+                "        \"capabilities\": [\n"
+                    (if (null? capability-child-capabilities)
+                        ""
+                        (string-join 
+                            (map 
+                                (lambda (child-capability) 
+                                    (full-capability-report child-capability test-results-hash suite expected-failures))
+                                capability-child-capabilities)
+                            ",\n"))
+                "        ],\n"
+                "        \"tests\": [\n"
+                            (full-test-report capability-tests test-results-hash expected-failures)
+                "        ]\n"
+                "      }")))
+
+    ; Write out json array of test result objects with state (success, failure, error, expected failure, unexpected pass, skipped)
+    (define (full-test-report tests test-results-hash expected-failures)
+        (let 
+            ((selected-test-results (alist->hash-table (map 
+                (lambda (test) 
+                    (if (member (test-full-name test) (hash-keys test-results-hash))
+                        (list 
+                            (test-full-name test) 
+                            (short-hand-test-result (hash-ref test-results-hash (test-full-name test)) expected-failures))
+                        (list (test-full-name test) "skipped")))
+                tests))))
+            (string-join 
+                (map 
+                    (lambda (test)
+                        (string-append 
+                            "          {\n"
+                            "            \"name\": \"" (test-name test) "\",\n"
+                            "            \"state\": \"" (hash-ref selected-test-results (test-full-name test)) "\""
+                            (if (= "E" (hash-ref selected-test-results (test-full-name test))) ",\n            \"exception\": \"some error\"\n" "\n")
+                            "          }"))
+                    tests)
+                ",\n")))
 
     (define (suite-run suite options)
         (display (string-append "Running suite: " (suite-name suite) " " (suite-version suite) "\n"))
@@ -340,8 +417,6 @@
 
     ; Executing suites
     ;
-
-    
 
     (define (expected-failures-test-result? test-result expected-failures)
         (member (test-full-name (test-result-test test-result)) expected-failures))
