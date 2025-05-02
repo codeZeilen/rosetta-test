@@ -3,7 +3,7 @@ import socket as socketlib
 import ssl
 import smtplib
 
-smtp_suite = rosetta.suite("rosetta-test-suites/smtp.ros")
+smtp_suite = rosetta.suite("stdlib smtp", "rosetta-test-suites/smtp.ros")
 
 
 #

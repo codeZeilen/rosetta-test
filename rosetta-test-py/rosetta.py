@@ -81,7 +81,7 @@ def rosetta_thread_yield():
 class RosettaTestSuite(object):
 
     # TODO: Consider simplyfing the macros to just add to a single list of annotations and extract the relevant parts afterwards (using functions written in rosetta)
-    def __init__(self, file_name) -> None:
+    def __init__(self, bridge_name, file_name) -> None:
         self.lispy_env = lispy.Env(outer=lispy.global_env)
         self.initialize_rosetta_primitives()
         self.initialize_rosetta()
@@ -89,6 +89,7 @@ class RosettaTestSuite(object):
             self.suite_source = file.read()
         
         self.suite = None
+        self.bridge_name = bridge_name
         
         self.placeholder_functions = {}
         self.setUp_functions = []
@@ -97,6 +98,7 @@ class RosettaTestSuite(object):
     def initialize_suite(self):
         """Only called after the Python-side was set up and the suite is ready to run."""
         self.suite = self.eval(self.suite_source)
+        self.suite_eval("(suite-set-bridge-name! the_suite bridge_name)", bridge_name=self.bridge_name)
 
     def suite_name(self):
         return self.suite_eval("(suite-name the_suite)")
@@ -145,6 +147,7 @@ class RosettaTestSuite(object):
             lispy.Sym("thread-wait-for-completion"): rosetta_thread_join,
             lispy.Sym("thread-sleep!"): lambda x: time.sleep(float(x)),
             lispy.Sym("thread-yield"): rosetta_thread_yield,
+            lispy.Sym("rosetta-test-host"): lambda: "python"
         })
 
     def initialize_rosetta(self):
@@ -230,8 +233,8 @@ class RosettaTestSuite(object):
         self.suite_eval("(suite-run the_suite argv)", argv=sys.argv)
         
 
-def suite(file_name):
-    return RosettaTestSuite(file_name)
+def suite(bridge_name, file_name):
+    return RosettaTestSuite(bridge_name, file_name)
     
 def fixture_path(file_name: str):
     return (Path('./rosetta-test-suites') / Path(file_name)).absolute().as_posix()

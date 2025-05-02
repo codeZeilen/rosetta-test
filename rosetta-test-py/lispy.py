@@ -118,6 +118,7 @@ def atom(token: str):
         raw_string = raw_string.replace('\\n', '\n')
         raw_string = raw_string.replace('\\r', '\r')
         raw_string = raw_string.replace('\\t', '\t')
+        raw_string = raw_string.replace('\\"', '"')
         return raw_string
     try: return int(token)
     except ValueError:
@@ -263,13 +264,20 @@ def add_globals(self):
      'string-trim': lambda s: str(s).strip(),'number->string': lambda x: str(x),
      'null?':lambda x:x==() or x==[] or x==None, 'symbol?':lambda x: isa(x, Symbol),
      'boolean?':lambda x: isa(x, bool), 'pair?':is_pair, 
-     'port?': lambda x:isa(x,file), 'apply':lambda proc,l: proc(*l), 
+     'port?': lambda x:isa(x,io.IOBase), 'apply':lambda proc,l: proc(*l), 
      'eval':lambda x: eval(expand(x)), 'load':lambda fn: load(fn), 'call/cc':callcc,
-     'open-input-file':open,'close-input-port':lambda p: p.file.close(), 
-     'open-output-file':lambda f:open(f,'w'), 'close-output-port':lambda p: p.close(),
-     'eof-object?':lambda x:x is eof_object, 'read-char':readchar,
-     'read':read, 'write':lambda x,port=sys.stdout:port.write(to_string(x)),
-     'display':lambda x:print(x if isa(x,str) else to_string(x), end="",flush=True),
+     
+     # Port prims
+     'open-input-file':open, 
+     'close-input-port':lambda p: p.file.close(), 
+     'open-output-file': lambda f: open(f,'w'), 
+     'close-output-port':lambda p: p.close(),
+     'eof-object?':lambda x:x is eof_object, 
+     'read-char':readchar,
+     'read':read, 
+     'write':lambda x,port=sys.stdout: port.write(to_string(x)),
+     'write-char':lambda x,port=sys.stdout: port.write(x),
+     'display':lambda x: print(x if isa(x,str) else to_string(x), end="",flush=True),
      'exit':lambda code: sys.exit(code)}.items()))
     self.update(prims)
     return self
@@ -465,6 +473,7 @@ global_env.update({
     'map':lambda fn, l: list(map(fn, l)), 
     'for-each':lambda fn, l: [fn(x) for x in l],
     'empty?':lambda ls:len(ls) == 0,
+    'write-string':lambda s, port=sys.stdout: port.write(s),
 })
 
 
