@@ -264,19 +264,20 @@ def add_globals(self):
      'string-trim': lambda s: str(s).strip(),'number->string': lambda x: str(x),
      'null?':lambda x:x==() or x==[] or x==None, 'symbol?':lambda x: isa(x, Symbol),
      'boolean?':lambda x: isa(x, bool), 'pair?':is_pair, 
-     'port?': lambda x:isa(x,io.IOBase), 'apply':lambda proc,l: proc(*l), 
+     'apply':lambda proc,l: proc(*l), 
      'eval':lambda x: eval(expand(x)), 'load':lambda fn: load(fn), 'call/cc':callcc,
      
      # Port prims
      'open-input-file':open, 
-     'close-input-port':lambda p: p.file.close(), 
+     'close-port':lambda p: p.close(), 
      'open-output-file': lambda f: open(f,'w'), 
-     'close-output-port':lambda p: p.close(),
      'eof-object?':lambda x:x is eof_object, 
-     'read-char':readchar,
-     'read':read, 
+     'read-char': lambda p: p.read(1) if p else None,
+     'port?': lambda x:isa(x,io.IOBase),
+     'output-port?': lambda x: isinstance(x, io.IOBase) and x.writable(),
+     'input-port?': lambda x: isinstance(x, io.IOBase) and x.readable(),
      'write':lambda x,port=sys.stdout: port.write(to_string(x)),
-     'write-char':lambda x,port=sys.stdout: port.write(x),
+     'write-char':lambda x,port=sys.stdout: port.write(x) ,
      'display':lambda x: print(x if isa(x,str) else to_string(x), end="",flush=True),
      'exit':lambda code: sys.exit(code)}.items()))
     self.update(prims)
@@ -474,6 +475,7 @@ global_env.update({
     'for-each':lambda fn, l: [fn(x) for x in l],
     'empty?':lambda ls:len(ls) == 0,
     'write-string':lambda s, port=sys.stdout: port.write(s),
+    'read-string':lambda k, port: port.read(k) if port else None,
 })
 
 

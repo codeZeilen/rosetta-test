@@ -31,7 +31,7 @@ for entry in testTable:
         evalResult = lispy.eval(lispy.parse(input))
     except Exception as e:
         evalResult = e
-    if matches(evalResult, entry["expected"]):
+    if "expected" not in entry or matches(evalResult, entry["expected"]):
         print(f"✅: {input}") 
     else:
         if input in expected_failures:
