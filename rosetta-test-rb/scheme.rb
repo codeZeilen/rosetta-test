@@ -49,6 +49,8 @@ module Scheme
     end
   end
 
+  EOF_OBJECT = :"#<eof-object>"
+
   GLOBAL_DICT = {
     :+ => proc { |a, b| a + b },
     :* => proc { |a, b| a * b },
@@ -98,6 +100,7 @@ module Scheme
     :"string-split" => proc { |s, sep| s.split(sep) },
     :"string-trim" => proc { |s| s.strip },
     :"string-upcase" => proc { |s| s.upcase },
+    :"eof-object?" => proc { |a| a == EOF_OBJECT },
     :symbol? => proc { |a| a.is_a?(Symbol) },
     :"with-exception-handler" => proc { |handler, body|
       begin
@@ -105,7 +108,21 @@ module Scheme
       rescue => e
         handler.call(e)
       end
-    }
+    },
+    :"open-output-file" => proc { |filename| [File.open(filename, "w"), "w"] },
+    :"open-input-file" => proc { |filename| [File.open(filename, "r"), "r"] },
+    :"close-port" => proc { |port_tuple | port_tuple[0].close },
+    :"port?" => proc { |port_tuple| port_tuple[0].is_a?(File) },
+    :"output-port?" => proc { |port_tuple| port_tuple[0].is_a?(File) && port_tuple[1] == "w" },
+    :"input-port?" => proc { |port_tuple| port_tuple[0].is_a?(File) && port_tuple[1] == "r" },
+    :"read-char" => proc { |port_tuple| 
+      begin
+        port_tuple[0].readchar
+      rescue EOFError
+        EOF_OBJECT
+      end},
+    :"write-char" => proc { |char, port_tuple| port_tuple[0].write(char) }
+
   }.entries.transpose
   GLOBAL_ENV = Environment.new(GLOBAL_DICT[0], GLOBAL_DICT[1])
 

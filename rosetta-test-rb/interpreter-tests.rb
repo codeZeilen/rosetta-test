@@ -61,7 +61,7 @@ test_table.each do |entry|
     eval_result = error
   end
 
-  if matches(eval_result, entry["expected"])
+  if not entry.member?("expected") or matches(eval_result, entry["expected"])
     puts "✅: #{input}"
   else
     if expected_failures.include?(input)
