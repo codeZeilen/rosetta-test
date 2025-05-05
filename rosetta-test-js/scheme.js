@@ -1,6 +1,6 @@
 import { parseWithoutExpand } from './parser.js';
 
-import { readFile, readFileSync } from 'fs';
+import { readFileSync, openSync, closeSync, writeSync } from 'fs';
 import URL from 'url';
 
 // Use JavaScript native Symbol instead of custom implementation
@@ -241,6 +241,8 @@ macro_table.set(_let, letMacro);
 // Global environment setup
 export const globalEnv = new Env();
 
+const EOF_OBJECT = Symbol.for('#<eof-object>');
+
 function addGlobals(env) {
   // Add basic operations
   env.set(Sym('+'), (a, b) => a + b);
@@ -273,6 +275,30 @@ function addGlobals(env) {
   env.set(Sym('hash-table-delete!'), (table, key) => { table.delete(key); });
   env.set(Sym('hash-table-keys'), table => Array.from(table.keys()));
   env.set(Sym('hash-table-values'), table => Array.from(table.values()));
+
+  // File operations
+  function isIteratorLike(obj) {
+    // Copied from https://github.com/ayonli/check-iterable/
+    return typeof obj === "object"
+        && obj !== null
+        && typeof obj.next === "function";
+  }
+  env.set(Sym('open-output-file'), filename => openSync(filename, 'w'));
+  env.set(Sym('open-input-file'), filename => readFileSync(filename, "utf-8")[Symbol.iterator]());
+  env.set(Sym('close-port'), (port) => {
+    if (typeof port === "number") {
+      closeSync(port);
+    }
+  });
+  env.set(Sym('read-char'), (port) => {
+    const value = port.next();
+    return value.done ? EOF_OBJECT : value.value;
+  });
+  env.set(Sym('write-char'), (char, fd) => { writeSync(fd, char); });
+  env.set(Sym('eof-object?'), object => object === EOF_OBJECT);
+  env.set(Sym('port?'), port => isIteratorLike(port) || typeof port === "number");
+  env.set(Sym('input-port?'), port => isIteratorLike(port));
+  env.set(Sym('output-port?'), port => typeof port === "number");
   
   // Error handling
   env.set(Sym('error'), msg => { throw new Error(msg); });

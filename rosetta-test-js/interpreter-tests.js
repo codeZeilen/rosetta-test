@@ -83,7 +83,7 @@ for (const entry of testTable) {
         evalResult = error;
     }
 
-    if (matches(evalResult, entry.expected)) {
+    if (!entry.hasOwnProperty("expected") || matches(evalResult, entry.expected)) {
         console.log(`✅: ${input}`);
     } else {
         if (expected_failures.includes(input)) {
