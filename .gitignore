@@ -7,3 +7,4 @@ rosetta-test-j/**/target/
 rosetta-test.code-workspace
 .devenv
 .direnv
+the-test-files-*

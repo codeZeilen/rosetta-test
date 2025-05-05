@@ -125,13 +125,14 @@
     {"input": "(substring \"abc\" 2 2)", "expected": ""},
     {"input": "(substring \"abc\" 3 4)", "expected": {"type": "Error"}},
     {"input": "(string-contains-every? \"abvabab\" \"ab\")", "expected": [0,3,5]},
-    {"input": "(call-with-output-file \"foo\" (lambda (file) (port? file)))", "expected": true},
-    {"input": "(call-with-output-file \"foo\" (lambda (file) (output-port? file)))", "expected": true},
-    {"input": "(call-with-output-file \"foo\" (lambda (file) (write-char \"c\" file)))"},
-    {"input": "(call-with-input-file \"foo\" (lambda (file) (port? file)))", "expected": true},
-    {"input": "(call-with-input-file \"foo\" (lambda (file) (input-port? file)))", "expected": true},
-    {"input": "(call-with-input-file \"foo\" (lambda (file) (read-char file)))", "expected": "c"},
-    {"input": "(call-with-output-file \"foo\" (lambda (file) (write-string \"abc\" file)))"},
-    {"input": "(call-with-input-file \"foo\" (lambda (file) (read-string 10 file)))", "expected": "abc"}
-
+    {"input": "(call-with-output-file \"the-test-files-foo\" (lambda (file) (port? file)))", "expected": true},
+    {"input": "(call-with-output-file \"the-test-files-foo\" (lambda (file) (output-port? file)))", "expected": true},
+    {"input": "(call-with-output-file \"the-test-files-foo\" (lambda (file) (write-char \"c\" file)))"},
+    {"input": "(call-with-input-file \"the-test-files-foo\" (lambda (file) (port? file)))", "expected": true},
+    {"input": "(call-with-input-file \"the-test-files-foo\" (lambda (file) (input-port? file)))", "expected": true},
+    {"input": "(call-with-input-file \"the-test-files-foo\" (lambda (file) (read-char file)))", "expected": "c"},
+    {"input": "(call-with-output-file \"the-test-files-foo\" (lambda (file) (write-string \"abc\" file)))"},
+    {"input": "(call-with-input-file \"the-test-files-foo\" (lambda (file) (read-string 10 file)))", "expected": "abc"},
+    {"input": "(call-with-output-file \"the-test-files-empty\" (lambda (file) (write-string \"\" file)))"},
+    {"input": "(call-with-input-file \"the-test-files-empty\" (lambda (file) (read-char file)))", "expected": "#<eof-object>"}
 ]
