@@ -336,12 +336,26 @@
             ((out-port (open-output-file file-name)))
             (with-exception-handler
                 (lambda (e)
-                    (close-output-port out-port)
+                    (close-port out-port)
                     (raise e))
                 (lambda ()
-                    (define out-port (open-output-file file-name))
-                    (proc out-port)
-                    (close-output-port out-port)))))
+                    (let 
+                        ((result (proc out-port)))
+                        (close-port out-port)
+                        result)))))
+
+    (define (call-with-input-file file-name proc)
+        (let 
+            ((in-port (open-input-file file-name)))
+            (with-exception-handler
+                (lambda (e)
+                    (close-port in-port)
+                    (raise e))
+                (lambda ()
+                    (let 
+                        ((result (proc in-port)))
+                        (close-port in-port)
+                        result)))))
 
     (define (write-string str port)
         (define (write-string-help str port)
@@ -353,5 +367,19 @@
         (if (not (port? port)) 
             (raise (error "write-string: not a port"))
             (write-string-help str port)))
+
+    (define (read-string k port)
+        (define (read-string-help num port result)
+            (if (= num 0) 
+                result
+                (begin
+                    (let
+                        ((next-char (read-char port)))
+                        (if (eof-object? next-char)
+                            result
+                            (read-string-help (- num 1) port (string-append result next-char)))))))
+        (if (not (port? port)) 
+            (raise (error "read-string: not a port"))
+            (read-string-help k port "")))
 
 )

@@ -52,9 +52,14 @@ RosettaTestLang does not support hygenic macros, as we expect macros to be almos
 - hash-table-ref-prim (Should only access the value from the dictionary and do nothing else, the correct handling of missing keys and default values is implemented in the standard lib)
 - hash-table-delete!
 - hash-table-keys, hash-table-values
+- port?, input-port?, output-port?
+- open-output-file, open-input-file
+- close-port
+- write-char
+- read-char
+- eof-object?
 
 <!-- - apply? -->
-<!-- Potentially: - argv (without binary name (but including the language-specific script part is fine)) -->
 
 <!-- 
 Should be ported to RosettaTestLang
@@ -92,14 +97,14 @@ A RosettaTestLang interpreter implementation should load the core procedures in 
 ### Required mechanisms
 - Declaring which suite is to be used
 - Filling placeholders, e.g. by implementing methods and adding annotations, or a dictionary mapping placeholder names to function identifiers
-- Starting the execution of the test suite, by calling `run-suite` with the required parameters
+- Starting the execution of the test suite, by calling `run-suite`
 
 
 ### Optional mechanisms
 - Warning when placeholders are not defined
 - Proposing snippets to fill placeholders quickly
-- Selecting/excluding tests and capabilities (only, exclude for tests and capabilities) to denote that a certain features is not supported at all
-- Expected failures to denote that a feature should be supported but is currently not passing the marked tests
+- Selecting/excluding tests and capabilities (only, exclude for tests and capabilities) to denote that a certain features is not supported at all (done by configuring the suite record)
+- Expected failures to denote that a feature should be supported but is currently not passing the marked tests (done by configuring the suite record)
 - Integration with host test runner
 
 
@@ -114,3 +119,4 @@ A RosettaTestLang interpreter implementation should load the core procedures in 
  - thread-wait-for-completion
  - thread-sleep!
  - thread-yield
+ - rosetta-test-host
