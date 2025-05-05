@@ -272,7 +272,7 @@ def add_globals(self):
      'close-port':lambda p: p.close(), 
      'open-output-file': lambda f: open(f,'w'), 
      'eof-object?':lambda x:x is eof_object, 
-     'read-char': lambda p: p.read(1) if p else None,
+     'read-char': lambda p: p.read(1) or eof_object,
      'port?': lambda x:isa(x,io.IOBase),
      'output-port?': lambda x: isinstance(x, io.IOBase) and x.writable(),
      'input-port?': lambda x: isinstance(x, io.IOBase) and x.readable(),
