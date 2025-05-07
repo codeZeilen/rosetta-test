@@ -88,7 +88,7 @@ class RosettaTestSuite {
 
     initializeSuite() {
         this.suite = this.evalScheme(this.suiteSource);
-        this.suiteEval("(suite-set-bridge-name! the_suite bridge_name)", {"bridge_name": this.bridgeName});
+        this.suiteEval("(suite-set-bridge-name! the-suite bridge_name)", {"bridge_name": this.bridgeName});
     }
 
     placeholders() {

@@ -63,9 +63,11 @@ function parseAtom(token) {
     }
     if (token[0] === '"') {
         const rawString = token.slice(1, -1);
-        return rawString.replace(/\\n/g, '\n')
+        return rawString
+            .replace(/\\n/g, '\n')
             .replace(/\\r/g, '\r')
-            .replace(/\\t/g, '\t');
+            .replace(/\\t/g, '\t')
+            .replace(/\\"/g, '"');
     }
     
     let numberParseTry = parseInt(token);
