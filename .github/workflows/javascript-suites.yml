@@ -18,7 +18,6 @@ jobs:
       uses: actions/setup-node@v4
       with:
         node-version: "lts/Hydrogen"
-        cache: 'npm'
     - name: Run JSON RFC Tests
       run: |
         node rosetta-test-js/json-rfc.js
