@@ -3,7 +3,7 @@ require "socket"
 require "net/smtp"
 require "openssl"
 
-suite "rosetta-test-suites/smtp.ros" do
+suite "stdlib smtp", "rosetta-test-suites/smtp.ros" do
   only_capabilities "root.connection", "root.commands"
 
   exclude_capabilities "root.commands.expn",

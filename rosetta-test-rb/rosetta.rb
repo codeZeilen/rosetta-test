@@ -96,14 +96,15 @@ def rosetta_thread_yield
 end
 
 class RosettaTestSuite
-  attr_reader :scheme_env, :suite_name, :suite_version, :sources,
-    :placeholders, :root_capability
+  attr_reader :scheme_env, :suite_name, :bridge_name, :suite_version, 
+    :sources, :placeholders, :root_capability
 
-  def initialize(file_name)
+  def initialize(bridge_name, file_name)
     @scheme_env = Scheme::Environment.new([], [], Scheme::GLOBAL_ENV)
     initialize_rosetta_primitives
     initialize_rosetta
     @suite_source = File.read(file_name)
+    @bridge_name = bridge_name
 
     @suite = nil
 
@@ -116,6 +117,7 @@ class RosettaTestSuite
 
   def initialize_suite
     @suite = eval_scheme(@suite_source)
+    suite_eval("(suite-set-bridge-name! the_suite bridge_name)", :bridge_name => @bridge_name)
   end
 
   def eval_scheme(code, env = nil)
@@ -165,7 +167,8 @@ class RosettaTestSuite
       "thread" => method(:rosetta_thread),
       "thread-wait-for-completion" => method(:rosetta_thread_join),
       "thread-sleep!" => method(:rosetta_thread_sleep),
-      "thread-yield" => method(:rosetta_thread_yield)
+      "thread-yield" => method(:rosetta_thread_yield),
+      "rosetta-test-host" => lambda { "ruby" }
     }
 
     primitives.each do |key, value|
@@ -252,8 +255,8 @@ class RosettaTestSuite
   end
 end
 
-def suite(file_name, &block)
-  obj = RosettaTestSuite.new(file_name)
+def suite(bridge_name, file_name, &block)
+  obj = RosettaTestSuite.new(bridge_name, file_name)
   obj.instance_eval(&block)
   obj.run
 end
