@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rosetta Test Results Comparison</title>
+    <style>
+        body {
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            margin: 2rem;
+            line-height: 1.5;
+        }
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            margin-top: 20px;
+            font-size: 14px;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        th {
+            background-color: #f2f2f2;
+            position: sticky;
+            top: 0;
+        }
+        .pass {
+            background-color: #dff0d8;
+            color: #3c763d;
+            text-align: center;
+        }
+        .fail {
+            background-color: #f2dede;
+            color: #a94442;
+            text-align: center;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .file-selector {
+            margin-bottom: 20px;
+        }
+        .file-selector button {
+            margin-left: 10px;
+            padding: 5px 10px;
+        }
+        .filters {
+            margin: 20px 0;
+            display: flex;
+            gap: 10px;
+        }
+        .filters input {
+            margin-right: 5px;
+        }
+        .legend {
+            margin: 10px 0;
+            display: flex;
+            gap: 20px;
+        }
+        .legend-item {
+            display: flex;
+            align-items: center;
+        }
+        .legend-color {
+            width: 20px;
+            height: 20px;
+            margin-right: 5px;
+        }
+        .implementation-name {
+            max-width: 150px;
+            word-wrap: break-word;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Rosetta Test Results Comparison</h1>
+        
+        <div class="file-selector">
+            <input type="file" id="file-input" multiple accept=".json">
+            <button id="load-btn">Load Selected Files</button>
+            <button id="load-all-btn">Auto-Load Results Files</button>
+        </div>
+        
+        <div id="file-list"></div>
+        
+        <div class="filters">
+            <label><input type="checkbox" id="show-only-failures" /> Show only tests with failures</label>
+            <label><input type="checkbox" id="show-only-differences" /> Show only tests with differences</label>
+        </div>
+        
+        <div class="legend">
+            <div class="legend-item">
+                <div class="legend-color pass"></div>
+                <div>Pass</div>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color fail"></div>
+                <div>Fail</div>
+            </div>
+        </div>
+        
+        <div id="results-container">
+            <p>Select JSON result files to compare</p>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const fileInput = document.getElementById('file-input');
+            const loadBtn = document.getElementById('load-btn');
+            const loadAllBtn = document.getElementById('load-all-btn');
+            const fileListDiv = document.getElementById('file-list');
+            const resultsContainer = document.getElementById('results-container');
+            const showOnlyFailures = document.getElementById('show-only-failures');
+            const showOnlyDifferences = document.getElementById('show-only-differences');
+            
+            let allResults = [];
+
+            // Event listeners for filter checkboxes
+            showOnlyFailures.addEventListener('change', renderResults);
+            showOnlyDifferences.addEventListener('change', renderResults);
+            
+            // Load selected files
+            loadBtn.addEventListener('click', async () => {
+                allResults = [];
+                const files = fileInput.files;
+                if (files.length === 0) {
+                    alert('Please select at least one results file');
+                    return;
+                }
+                
+                for (const file of files) {
+                    try {
+                        const content = await readFile(file);
+                        const json = JSON.parse(content);
+                        allResults.push({
+                            name: file.name,
+                            data: json,
+                            displayName: getImplementationName(json, file.name)
+                        });
+                    } catch (error) {
+                        console.error(`Error loading ${file.name}:`, error);
+                    }
+                }
+                
+                renderResults();
+            });
+            
+            // Auto-load all *-results.json files in the directory
+            loadAllBtn.addEventListener('click', async () => {
+
+            });
+            
+            // Function to extract a display name from the host and bridge fields in the data
+            function getImplementationName(data, fallbackName) {
+                try {
+                    const suite = data.suite;
+                    if (suite) {
+                        const host = suite.host || '';
+                        const bridge = suite.bridge || '';
+                        
+                        if (host && bridge) {
+                            return `${host} (${bridge})`;
+                        } else if (host) {
+                            return host;
+                        } else if (suite.name) {
+                            return suite.name;
+                        }
+                    }
+                } catch (e) {
+                    console.warn(`Could not extract host/bridge for ${fallbackName}`, e);
+                }
+                
+                // If we couldn't extract meaningful information, return the filename
+                return fallbackName;
+            }
+            
+            // Function to read file content
+            function readFile(file) {
+                return new Promise((resolve, reject) => {
+                    const reader = new FileReader();
+                    reader.onload = event => resolve(event.target.result);
+                    reader.onerror = error => reject(error);
+                    reader.readAsText(file);
+                });
+            }
+            
+            // Extract test information from result data
+            function extractTestsFromResults(results) {
+                const allTests = {};
+                
+                results.forEach(result => {
+                    const suite = result.data.suite;
+                    if (!suite || !suite.capabilities) return;
+                    
+                    // Process each capability group (string, number, array, etc.)
+                    suite.capabilities.forEach(capGroup => {
+                        processCapability(capGroup, result.name, '', allTests);
+                    });
+                });
+                
+                return allTests;
+            }
+            
+            // Recursively process capability and its nested capabilities
+            function processCapability(capability, resultName, parentCategory, allTests) {
+                if (!capability) return;
+                
+                const currentCategory = parentCategory ? 
+                    `${parentCategory} > ${capability.name}` : 
+                    capability.name;
+                
+                // Process tests in this capability
+                if (capability.tests && Array.isArray(capability.tests)) {
+                    capability.tests.forEach(test => {
+                        if (!test.name) return;
+                        
+                        // Create test entry if it doesn't exist
+                        if (!allTests[test.name]) {
+                            allTests[test.name] = {
+                                name: test.name,
+                                category: currentCategory,
+                                results: {}
+                            };
+                        }
+                        
+                        // Store test result
+                        allTests[test.name].results[resultName] = {
+                            state: test.state,
+                            pass: test.state === '.'
+                        };
+                    });
+                }
+                
+                // Process nested capabilities recursively
+                if (capability.capabilities && Array.isArray(capability.capabilities)) {
+                    capability.capabilities.forEach(subCapability => {
+                        processCapability(subCapability, resultName, currentCategory, allTests);
+                    });
+                }
+            }
+            
+            // Render the comparison table
+            function renderResults() {
+                if (allResults.length === 0) {
+                    return;
+                }
+                
+                // Show loaded files
+                fileListDiv.innerHTML = `<p>Loaded ${allResults.length} files: ${allResults.map(r => r.name).join(', ')}</p>`;
+                
+                // Extract all tests
+                const tests = extractTestsFromResults(allResults);
+                
+                // Convert to array and sort by category then name
+                let testArray = Object.values(tests).sort((a, b) => {
+                    if (a.category !== b.category) return a.category.localeCompare(b.category);
+                    return a.name.localeCompare(b.name);
+                });
+                
+                // Apply filters
+                if (showOnlyFailures.checked) {
+                    testArray = testArray.filter(test => {
+                        return Object.values(test.results).some(result => !result.pass);
+                    });
+                }
+                
+                if (showOnlyDifferences.checked) {
+                    testArray = testArray.filter(test => {
+                        const results = Object.values(test.results);
+                        if (results.length < 2) return false;
+                        const firstResult = results[0].pass;
+                        return results.some(r => r.pass !== firstResult);
+                    });
+                }
+                
+                // Group tests by category
+                const testsByCategory = {};
+                testArray.forEach(test => {
+                    if (!testsByCategory[test.category]) {
+                        testsByCategory[test.category] = [];
+                    }
+                    testsByCategory[test.category].push(test);
+                });
+                
+                // Create table
+                let html = '';
+                
+                // For each category
+                Object.keys(testsByCategory).sort().forEach(category => {
+                    const categoryTests = testsByCategory[category];
+                    
+                    html += `<h2>${category}</h2>`;
+                    html += '<table>';
+                    
+                    // Header row
+                    html += '<tr><th>Test</th>';
+                    allResults.forEach(result => {
+                        html += `<th class="implementation-name">${result.displayName}</th>`;
+                    });
+                    html += '</tr>';
+                    
+                    // Data rows
+                    categoryTests.forEach(test => {
+                        html += `<tr><td>${test.name}</td>`;
+                        
+                        allResults.forEach(result => {
+                            const testResult = test.results[result.name];
+                            if (!testResult) {
+                                html += '<td>N/A</td>';
+                            } else {
+                                const className = testResult.pass ? 'pass' : 'fail';
+                                html += `<td class="${className}">${testResult.state || '-'}</td>`;
+                            }
+                        });
+                        
+                        html += '</tr>';
+                    });
+                    
+                    html += '</table>';
+                });
+                
+                if (testArray.length === 0) {
+                    html = '<p>No tests match the current filter criteria</p>';
+                }
+                
+                resultsContainer.innerHTML = html;
+            }
+        });
+    </script>
+</body>
+</html>
+``` 
