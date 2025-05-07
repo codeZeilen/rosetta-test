@@ -72,11 +72,12 @@ function rosettaAssertEq(expected, actual) {
 }
 
 class RosettaTestSuite {
-    constructor(fileName) {
+    constructor(bridgeName, fileName) {
         this.schemeEnv = new Env([],[], globalEnv);
         this.initializeRosettaPrimitives();
         this.initializeRosetta();
         this.suiteSource = readFileSync(fileName, 'utf8');
+        this.bridgeName = bridgeName;
         
         this.suite = null;
 
@@ -87,6 +88,7 @@ class RosettaTestSuite {
 
     initializeSuite() {
         this.suite = this.evalScheme(this.suiteSource);
+        this.suiteEval("(suite-set-bridge-name! the_suite bridge_name)", {"bridge_name": this.bridgeName});
     }
 
     placeholders() {
@@ -136,6 +138,7 @@ class RosettaTestSuite {
             "assert": rosettaAssert,
             "assert-equal": rosettaAssertEq,
             "is-assertion-error?": e => {return e instanceof RosettaAssertionError},
+            "rosetta-test-host": () => "javascript",
        };
         
         Object.keys(primitives).forEach((key) => {
@@ -198,7 +201,7 @@ inval
     }
 }
 
-export function suite(fileName) {
-    return new RosettaTestSuite(fileName);
+export function suite(bridgeName, fileName) {
+    return new RosettaTestSuite(bridgeName, fileName);
 }
 

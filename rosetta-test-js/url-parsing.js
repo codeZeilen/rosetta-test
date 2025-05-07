@@ -1,7 +1,7 @@
 import { suite } from './rosetta-test.js';
 import { URL } from 'url';
 
-const urlParsingSuite = suite("rosetta-test-suites/url-parsing-rfc.ros");
+const urlParsingSuite = suite("stdlib url parsing", "rosetta-test-suites/url-parsing-rfc.ros");
 
 urlParsingSuite.placeholder("url-parse", (env, urlString) => {
     try {
