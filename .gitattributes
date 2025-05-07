@@ -1,1 +1,3 @@
 *.rosetta linguist-language=Scheme
+*.ros linguist-language=Scheme
+*.st linguist-detectable=false
