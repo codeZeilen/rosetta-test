@@ -111,7 +111,7 @@
                 (lambda (test-result) (list (test-full-name (test-result-test test-result)) test-result)) 
                 test-results))))
             (call-with-output-file 
-                (string-append (suite-name suite) "-" (suite-version suite) "-results.json")
+                (string-append (suite-name suite) "-" (suite-version suite) "-" (rosetta-test-host) "-" (suite-bridge-name suite) "-results.json")
                 (lambda (out)
                     (write-string 
                         (string-append

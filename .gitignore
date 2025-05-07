@@ -8,3 +8,4 @@ rosetta-test.code-workspace
 .devenv
 .direnv
 the-test-files-*
+*-results.json
