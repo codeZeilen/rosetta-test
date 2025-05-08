@@ -87,6 +87,7 @@
         <div class="file-selector">
             <input type="file" id="file-input" multiple accept=".json">
             <button id="load-btn">Load Selected Files</button>
+            <button id="export-btn" disabled>Export Results</button>
         </div>
         
         <div id="file-list"></div>
@@ -116,6 +117,7 @@
         document.addEventListener('DOMContentLoaded', () => {
             const fileInput = document.getElementById('file-input');
             const loadBtn = document.getElementById('load-btn');
+            const exportBtn = document.getElementById('export-btn');
             const fileListDiv = document.getElementById('file-list');
             const resultsContainer = document.getElementById('results-container');
             const showOnlyFailures = document.getElementById('show-only-failures');
@@ -151,7 +153,72 @@
                 }
                 
                 renderResults();
+                exportBtn.disabled = allResults.length === 0;
             });
+            
+            // Export results button
+            exportBtn.addEventListener('click', () => {
+                exportResults();
+            });
+
+            // Function to export results as a standalone HTML file
+            function exportResults() {
+                if (allResults.length === 0) {
+                    alert('No results to export');
+                    return;
+                }
+
+                // Create a clone of the current document
+                const docClone = document.documentElement.cloneNode(true);
+                
+                // Create a script element to contain our data
+                const dataScript = document.createElement('script');
+                dataScript.textContent = `
+                    // Embedded data from the export
+                    const embeddedResults = ${JSON.stringify(allResults)};
+                    
+                    // Override the DOM content loaded event to initialize with our data
+                    document.addEventListener('DOMContentLoaded', () => {
+                        // Remove the file input section since we're loading embedded data
+                        document.querySelector('.file-selector').style.display = 'none';
+                        
+                        // Add an indicator that this is an exported report
+                        const container = document.querySelector('.container');
+                        const exportInfo = document.createElement('div');
+                        exportInfo.innerHTML = '<p><strong>Exported Report</strong> - Created: ${new Date().toLocaleString()}</p>';
+                        container.insertBefore(exportInfo, container.firstChild.nextSibling);
+                        
+                        // Load the embedded results and render
+                        window.allResults = embeddedResults;
+                        renderResults();
+                    });
+                `;
+                
+                // Find the script section in the clone and add our data script before it
+                const scripts = docClone.querySelectorAll('script');
+                const lastScript = scripts[scripts.length - 1];
+                lastScript.parentNode.insertBefore(dataScript, lastScript);
+                
+                // Create a downloadable HTML file
+                const html = docClone.outerHTML;
+                const blob = new Blob([html], { type: 'text/html' });
+                const url = URL.createObjectURL(blob);
+                
+                // Create a download link and click it
+                const downloadLink = document.createElement('a');
+                const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+                downloadLink.download = `rosetta-comparison-export-${timestamp}.html`;
+                downloadLink.href = url;
+                downloadLink.style.display = 'none';
+                document.body.appendChild(downloadLink);
+                downloadLink.click();
+                
+                // Clean up
+                setTimeout(() => {
+                    document.body.removeChild(downloadLink);
+                    URL.revokeObjectURL(url);
+                }, 100);
+            }
             
             // Function to extract a display name from the host and bridge fields in the data
             function getImplementationName(data, fallbackName) {
@@ -248,6 +315,9 @@
                     return;
                 }
                 
+                // Enable export button when we have results
+                exportBtn.disabled = false;
+
                 // Show loaded files
                 fileListDiv.innerHTML = `<p>Loaded ${allResults.length} files: ${allResults.map(r => r.name).join(', ')}</p>`;
                 
