@@ -36,6 +36,11 @@
             color: #a94442;
             text-align: center;
         }
+        .skip {
+            background-color: #f5f5f5;
+            color: #777777;
+            text-align: center;
+        }
         .container {
             max-width: 1200px;
             margin: 0 auto;
@@ -82,7 +87,6 @@
         <div class="file-selector">
             <input type="file" id="file-input" multiple accept=".json">
             <button id="load-btn">Load Selected Files</button>
-            <button id="load-all-btn">Auto-Load Results Files</button>
         </div>
         
         <div id="file-list"></div>
@@ -112,7 +116,6 @@
         document.addEventListener('DOMContentLoaded', () => {
             const fileInput = document.getElementById('file-input');
             const loadBtn = document.getElementById('load-btn');
-            const loadAllBtn = document.getElementById('load-all-btn');
             const fileListDiv = document.getElementById('file-list');
             const resultsContainer = document.getElementById('results-container');
             const showOnlyFailures = document.getElementById('show-only-failures');
@@ -148,11 +151,6 @@
                 }
                 
                 renderResults();
-            });
-            
-            // Auto-load all *-results.json files in the directory
-            loadAllBtn.addEventListener('click', async () => {
-
             });
             
             // Function to extract a display name from the host and bridge fields in the data
@@ -287,45 +285,55 @@
                     testsByCategory[test.category].push(test);
                 });
                 
-                // Create table
+                // Create a single table
                 let html = '';
                 
-                // For each category
-                Object.keys(testsByCategory).sort().forEach(category => {
-                    const categoryTests = testsByCategory[category];
+                if (testArray.length === 0) {
+                    html = '<p>No tests match the current filter criteria</p>';
+                } else {
+                    // Start a single table
+                    html = '<table>';
                     
-                    html += `<h2>${category}</h2>`;
-                    html += '<table>';
-                    
-                    // Header row
+                    // Header row with column titles
                     html += '<tr><th>Test</th>';
                     allResults.forEach(result => {
                         html += `<th class="implementation-name">${result.displayName}</th>`;
                     });
                     html += '</tr>';
                     
-                    // Data rows
-                    categoryTests.forEach(test => {
-                        html += `<tr><td>${test.name}</td>`;
+                    // For each category
+                    Object.keys(testsByCategory).sort().forEach(category => {
+                        const categoryTests = testsByCategory[category];
+                        const columnCount = allResults.length + 1; // +1 for the test name column
                         
-                        allResults.forEach(result => {
-                            const testResult = test.results[result.name];
-                            if (!testResult) {
-                                html += '<td>N/A</td>';
-                            } else {
-                                const className = testResult.pass ? 'pass' : 'fail';
-                                html += `<td class="${className}">${testResult.state || '-'}</td>`;
-                            }
+                        // Category header row
+                        html += `<tr><th colspan="${columnCount}" style="background-color: #e9ecef; text-align: left;">${category}</th></tr>`;
+                        
+                        // Data rows for this category
+                        categoryTests.forEach(test => {
+                            html += `<tr><td>${test.name}</td>`;
+                            
+                            allResults.forEach(result => {
+                                const testResult = test.results[result.name];
+                                if (!testResult) {
+                                    html += '<td>N/A</td>';
+                                } else {
+                                    let className = 'fail';
+                                    if (testResult.pass) {
+                                        className = 'pass';
+                                    } else if (testResult.state === 'skipped') {
+                                        className = 'skip';
+                                    }
+                                    html += `<td class="${className}">${testResult.state || '-'}</td>`;
+                                }
+                            });
+                            
+                            html += '</tr>';
                         });
-                        
-                        html += '</tr>';
                     });
                     
+                    // Close the table
                     html += '</table>';
-                });
-                
-                if (testArray.length === 0) {
-                    html = '<p>No tests match the current filter criteria</p>';
                 }
                 
                 resultsContainer.innerHTML = html;
@@ -334,4 +342,3 @@
     </script>
 </body>
 </html>
-``` 
