@@ -257,14 +257,16 @@
             // Extract test information from result data
             function extractTestsFromResults(results) {
                 const allTests = {};
+                let positionCounter = 0;
                 
                 results.forEach(result => {
                     const suite = result.data.suite;
                     if (!suite || !suite.capabilities) return;
                     
                     // Process each capability group (string, number, array, etc.)
-                    suite.capabilities.forEach(capGroup => {
-                        processCapability(capGroup, result.name, '', allTests);
+                    suite.capabilities.forEach((capGroup, index) => {
+                        processCapability(capGroup, result.name, '', allTests, positionCounter, index);
+                        positionCounter += 1000; // Large increment to leave room for nested capabilities
                     });
                 });
                 
@@ -272,29 +274,33 @@
             }
             
             // Recursively process capability and its nested capabilities
-            function processCapability(capability, resultName, parentCategory, allTests) {
+            function processCapability(capability, resultName, parentCategory, allTests, basePosition, localIndex) {
                 if (!capability) return;
                 
+                const position = basePosition + localIndex;
                 const currentCategory = parentCategory ? 
                     `${parentCategory} > ${capability.name}` : 
                     capability.name;
                 
                 // Process tests in this capability
                 if (capability.tests && Array.isArray(capability.tests)) {
-                    capability.tests.forEach(test => {
+                    capability.tests.forEach((test, testIndex) => {
                         if (!test.name) return;
                         
                         // Create test entry if it doesn't exist
-                        if (!allTests[test.name]) {
-                            allTests[test.name] = {
+                        const testKey = `${currentCategory}|${test.name}`;
+                        if (!allTests[testKey]) {
+                            allTests[testKey] = {
                                 name: test.name,
                                 category: currentCategory,
+                                categoryPosition: position,
+                                testPosition: testIndex,
                                 results: {}
                             };
                         }
                         
                         // Store test result
-                        allTests[test.name].results[resultName] = {
+                        allTests[testKey].results[resultName] = {
                             state: test.state,
                             pass: test.state === '.'
                         };
@@ -303,8 +309,10 @@
                 
                 // Process nested capabilities recursively
                 if (capability.capabilities && Array.isArray(capability.capabilities)) {
-                    capability.capabilities.forEach(subCapability => {
-                        processCapability(subCapability, resultName, currentCategory, allTests);
+                    capability.capabilities.forEach((subCapability, subIndex) => {
+                        // For nested capabilities, use the current position as base and add subIndex
+                        const nestedPosition = position + 1 + (subIndex * 0.01); // Small increments for nested items
+                        processCapability(subCapability, resultName, currentCategory, allTests, nestedPosition, 0);
                     });
                 }
             }
@@ -324,10 +332,14 @@
                 // Extract all tests
                 const tests = extractTestsFromResults(allResults);
                 
-                // Convert to array and sort by category then name
+                // Convert to array and sort by category position then test position
                 let testArray = Object.values(tests).sort((a, b) => {
-                    if (a.category !== b.category) return a.category.localeCompare(b.category);
-                    return a.name.localeCompare(b.name);
+                    // First sort by category position
+                    if (a.categoryPosition !== b.categoryPosition) {
+                        return a.categoryPosition - b.categoryPosition;
+                    }
+                    // Then by test position within the same category
+                    return a.testPosition - b.testPosition;
                 });
                 
                 // Apply filters
@@ -346,14 +358,23 @@
                     });
                 }
                 
-                // Group tests by category
+                // Group tests by category but maintain order
                 const testsByCategory = {};
+                const categoryOrder = [];
+                
                 testArray.forEach(test => {
                     if (!testsByCategory[test.category]) {
                         testsByCategory[test.category] = [];
+                        categoryOrder.push({
+                            name: test.category,
+                            position: test.categoryPosition
+                        });
                     }
                     testsByCategory[test.category].push(test);
                 });
+                
+                // Sort category order by position
+                categoryOrder.sort((a, b) => a.position - b.position);
                 
                 // Create a single table
                 let html = '';
@@ -371,8 +392,9 @@
                     });
                     html += '</tr>';
                     
-                    // For each category
-                    Object.keys(testsByCategory).sort().forEach(category => {
+                    // For each category in the correct order
+                    categoryOrder.forEach(categoryInfo => {
+                        const category = categoryInfo.name;
                         const categoryTests = testsByCategory[category];
                         const columnCount = allResults.length + 1; // +1 for the test name column
                         
@@ -380,6 +402,9 @@
                         html += `<tr><th colspan="${columnCount}" style="background-color: #e9ecef; text-align: left;">${category}</th></tr>`;
                         
                         // Data rows for this category
+                        // Sort tests within category by test position
+                        categoryTests.sort((a, b) => a.testPosition - b.testPosition);
+                        
                         categoryTests.forEach(test => {
                             html += `<tr><td>${test.name}</td>`;
                             
