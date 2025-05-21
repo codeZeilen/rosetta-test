@@ -21,7 +21,7 @@ suite "stdlib uri parsing", "rosetta-test-suites/url-parsing-rfc.ros" do
   end
 
   placeholder "url-authority" do |_env, uri|
-    authority = uri.host
+    authority = uri.host || ""
     authority = "#{uri.userinfo}@#{authority}" if uri.userinfo
     authority = "#{authority}:#{uri.port}" if uri.port
     authority
