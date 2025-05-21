@@ -23,13 +23,13 @@
 			(remove-test-file "my-test-file")))
 	
 		(capability 'open (list
-			(test "open returns a file descriptor" (lambda () 
-				(assert (is-file-descriptor? (open "my-test-file" "r")))))
+			(test "open returns a file descriptor" 
+				(assert (is-file-descriptor? (open "my-test-file" "r"))))
 				
-			(test "opening with non-existant mode, results in error" (lambda () (begin
+			(test "opening with non-existant mode, results in error" 
 				(assert (is-file-error? (open "my-test-file" "g")))
 				(assert (is-file-error? (open "my-test-file" "rq")))
-				(assert (is-file-error? (open "my-test-file" "qr"))))))))
+				(assert (is-file-error? (open "my-test-file" "qr"))))))
 
 		(capability 'close (list
 			(setup (lambda () 
@@ -39,13 +39,13 @@
 				(close test-file)
 				(set! test-file '()))))
 
-			(test "a closed file descriptor does not allow further reads" (lambda ()
+			(test "a closed file descriptor does not allow further reads"
 				(close test-file) 
-				(assert (is-file-error? (read test-file 1)))))
+				(assert (is-file-error? (read test-file 1))))
 
-			(test "a closed file descriptor does not allow further writes" (lambda ()
+			(test "a closed file descriptor does not allow further writes"
 				(close test-file) 
-				(assert (is-file-error? (write test-file "abc")))))))
+				(assert (is-file-error? (write test-file "abc"))))))
 
 		(capability 'read (list
 			(setup (lambda () 
@@ -55,18 +55,18 @@
 				(close test-file)
 				(set! test-file '()))))
 
-			(test "read can read one value" (lambda () 
+			(test "read can read one value" 
 				(assert-equal
 					(read test-file 1)
-					"f")))
+					"f"))
 
-			(test "read can read all of the content" (lambda ()
+			(test "read can read all of the content"
 				(assert-equal
 					(read test-file 23)
-					"first line\nsecond line")))
+					"first line\nsecond line"))
 			
-			(test "read on a write-only file is an error" (lambda () (begin
+			(test "read on a write-only file is an error" (begin
 				(close test-file) ; to ensure we can open it write-only
 				(let 
 					((write-only-file (open "my-test-file" "w"))) 
-					(assert (is-file-error? (read write-only-file 1)))))))))))
+					(assert (is-file-error? (read write-only-file 1))))))))))

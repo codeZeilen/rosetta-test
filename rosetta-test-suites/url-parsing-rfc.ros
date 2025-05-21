@@ -27,47 +27,47 @@
                     (string-downcase scheme-string) 
                     (string-downcase (url-scheme (url-parse url-string)))))
 
-            (test "basic scheme" (lambda ()
-                (assert-scheme "http" "http://domain.tld")))
+            (test "basic scheme"
+                (assert-scheme "http" "http://domain.tld"))
 
-            (test "short scheme" (lambda ()
-                (assert-scheme "a" "a:path")))
+            (test "short scheme"
+                (assert-scheme "a" "a:path"))
 
-            (test "scheme with digits" (lambda ()
+            (test "scheme with digits"
                 (assert-scheme "a1" "a1:path")
-                (assert-scheme "a00" "a00:path")))
+                (assert-scheme "a00" "a00:path"))
 
-            (test "scheme with special characters" (lambda ()
+            (test "scheme with special characters"
                 (assert-scheme "a+1" "a+1:path")
                 (assert-scheme "a-1" "a-1:path")
                 (assert-scheme "a.1" "a.1:path")
-                (assert-scheme "a+" "a+:path")))
+                (assert-scheme "a+" "a+:path"))
 
-            (test "scheme is case insensitive" (lambda ()
-                (assert-scheme "http" "HTTP://domain.tld")))
+            (test "scheme is case insensitive"
+                (assert-scheme "http" "HTTP://domain.tld"))
 
             (capability 'invalid (list
             
-                (test "scheme starting with digits" (lambda ()
+                (test "scheme starting with digits"
                     (assert-parse-error "1:path")
-                    (assert-parse-error "0a:path")))
+                    (assert-parse-error "0a:path"))
 
-                (test "scheme starting with special characters" (lambda ()
+                (test "scheme starting with special characters"
                     (assert-parse-error "+:path")
                     (assert-parse-error "-a:path")
-                    (assert-parse-error ".a:path")))
+                    (assert-parse-error ".a:path"))
                 
-                (test "scheme with invalid characters" (lambda ()
+                (test "scheme with invalid characters"
                     (assert-parse-error "ab@c:path")
                     (assert-parse-error "ab&c:path")
                     (assert-parse-error "abä:path")
                     (assert-parse-error "ab#c:path")
                     (assert-parse-error "ab[]c:path")
                     (assert-parse-error "ab?c:path")
-                    (assert-parse-error "ab/c:path")))
+                    (assert-parse-error "ab/c:path"))
 
-                (test "non-terminated scheme" (lambda ()
-                    (assert-parse-error "a//domain.tld")))
+                (test "non-terminated scheme"
+                    (assert-parse-error "a//domain.tld"))
                     
             ))
 
@@ -87,48 +87,48 @@
                     (string-downcase authority-string) 
                     (string-downcase (url-authority (url-parse url-string)))))
 
-            (test "basic authority" (lambda ()
+            (test "basic authority"
                 (assert-authority "named-authority" "scheme://named-authority/path")
                 (assert-authority "named-authority" "scheme://named-authority?query")
                 (assert-authority "named-authority" "scheme://named-authority#fragment")
-                (assert-authority "named-authority" "scheme://named-authority")))
+                (assert-authority "named-authority" "scheme://named-authority"))
 
-            (test "basic not-a-authority" (lambda ()
+            (test "basic not-a-authority"
                 (assert-authority "" "mailto:test@recipient.org")
-                (assert-authority "" "some-prot:/path:100")))
+                (assert-authority "" "some-prot:/path:100"))
 
             ; Host parts
             ; RFC 3986 - 3.2.2. Host
             ; The host subcomponent of authority is identified by an IP literal
             ; encapsulated within square brackets, an IPv4 address in dotted-
             ; decimal form, or a registered name.
-            (test "ipv4 host" (lambda ()
+            (test "ipv4 host"
                 (assert-authority "0.0.0.0" "schema://0.0.0.0")
                 (assert-authority "11.11.11.11" "schema://11.11.11.11")
                 (assert-authority "210.210.210.210" "schema://210.210.210.210")
                 (assert-authority "255.255.255.255" "schema://255.255.255.255")
-                (assert-authority "0.11.210.255" "schema://0.11.210.255")))
+                (assert-authority "0.11.210.255" "schema://0.11.210.255"))
 
-            (test "reg-name host" (lambda ()
-                (assert-authority "domain.tld" "schema://domain.tld")))
+            (test "reg-name host"
+                (assert-authority "domain.tld" "schema://domain.tld"))
 
-            (test "empty reg-name host" (lambda ()
-                (assert-authority "" "schema:///path")))
+            (test "empty reg-name host"
+                (assert-authority "" "schema:///path"))
 
-            (test "reg-name host with all special characters" (lambda ()
-                (assert-authority "ab-._~!$&'()*+,;=" "schema://ab-._~!$&'()*+,;=")))
+            (test "reg-name host with all special characters"
+                (assert-authority "ab-._~!$&'()*+,;=" "schema://ab-._~!$&'()*+,;="))
 
-            (test "reg-name host with digits" (lambda ()
+            (test "reg-name host with digits"
                 (assert-authority "a1" "schema://a1")
                 (assert-authority "a00" "schema://a00")
-                (assert-authority "00a99" "schema://00a99")))
+                (assert-authority "00a99" "schema://00a99"))
             
-            (test "reg-name host with schema name" (lambda ()
-                (assert-authority "http-bin.org" "schema://http-bin.org")))
+            (test "reg-name host with schema name"
+                (assert-authority "http-bin.org" "schema://http-bin.org"))
 
             ; TODO: reg-name host with percent encoded characters
 
-            (test "ipv6 host" (lambda ()
+            (test "ipv6 host"
                 (assert-authority "[21DA:00D3:0000:2F3B:02AA:00FF:FE28:9C5A]" "schema://[21DA:00D3:0000:2F3B:02AA:00FF:FE28:9C5A]")
                 (assert-authority "[::1]" "schema://[::1]")
                 (assert-authority "[21DA:D3:0:2F3B:2AA:FF:FE28:9C5A]" "schema://[21DA:D3:0:2F3B:2AA:FF:FE28:9C5A]")
@@ -137,7 +137,7 @@
                 (assert-authority "[FFFF::]" "schema://[FFFF::]")
                 (assert-authority "[FF02:3::5]" "schema://[FF02:3::5]")
                 (assert-authority "[FF02:0:0:0:0:0:0:2]" "schema://[FF02:0:0:0:0:0:0:2]")
-                (assert-authority "[FF02:30:0:0:0:0:0:5]" "schema://[FF02:30:0:0:0:0:0:5]")))
+                (assert-authority "[FF02:30:0:0:0:0:0:5]" "schema://[FF02:30:0:0:0:0:0:5]"))
 
             ; Userinfo
             ; The userinfo subcomponent may consist of a user name and, optionally,
@@ -145,23 +145,23 @@
             ; the resource.  The user information, if present, is followed by a
             ; commercial at-sign ("@") that delimits it from the host.
 
-            (test "basic userinfo" (lambda ()
+            (test "basic userinfo"
                 (assert-authority "user@domain.tld" "schema://user@domain.tld")
-                (assert-authority "2user:pwd2@domain.tld" "schema://2user:pwd2@domain.tld")))
+                (assert-authority "2user:pwd2@domain.tld" "schema://2user:pwd2@domain.tld"))
 
-            (test "empty userinfo" (lambda ()
+            (test "empty userinfo"
                 (assert (or
                     (= "@domain.tld" (url-authority (url-parse "schema://@domain.tld")))
                     (= "domain.tld" (url-authority (url-parse "schema://@domain.tld")))))
                 (assert (or
                     (= ":@domain.tld" (url-authority (url-parse "schema://:@domain.tld")))
-                    (= "domain.tld" (url-authority (url-parse "schema://:@domain.tld")))))))
+                    (= "domain.tld" (url-authority (url-parse "schema://:@domain.tld"))))))
 
-            (test "multiple parts userinfo" (lambda ()
-                (assert-authority "a:b:c::@domain.tld" "schema://a:b:c::@domain.tld")))
+            (test "multiple parts userinfo"
+                (assert-authority "a:b:c::@domain.tld" "schema://a:b:c::@domain.tld"))
 
-            (test "userinfo with all special characters" (lambda ()
-                (assert-authority "-._~!:$&'()*+,;=@domain.tld" "schema://-._~!:$&'()*+,;=@domain.tld")))
+            (test "userinfo with all special characters"
+                (assert-authority "-._~!:$&'()*+,;=@domain.tld" "schema://-._~!:$&'()*+,;=@domain.tld"))
 
             ; TODO: userinfo with percent encoded characters
 
@@ -169,43 +169,43 @@
             ; The port subcomponent of authority is designated by an optional port
             ; number in decimal following the host and delimited from it by a
             ; single colon (":") character.
-            (test "authority with a port" (lambda ()
+            (test "authority with a port"
                 (assert-authority "domain.tld:80" "schema://domain.tld:80")
                 (assert-authority "1.1.1.1:8080" "schema://1.1.1.1:8080")
-                (assert-authority "[::1]:65535" "schema://[::1]:65535")))
+                (assert-authority "[::1]:65535" "schema://[::1]:65535"))
 
-            (test "long port" (lambda ()
-                (assert-authority "domain.tld:65535" "schema://domain.tld:65535")))
+            (test "long port"
+                (assert-authority "domain.tld:65535" "schema://domain.tld:65535"))
 
-            (test "empty port" (lambda ()
+            (test "empty port"
                 (assert (or
                     (= "domain.tld" (url-authority (url-parse "schema://domain.tld:")))
-                    (= "domain.tld:" (url-authority (url-parse "schema://domain.tld:")))))))
+                    (= "domain.tld:" (url-authority (url-parse "schema://domain.tld:"))))))
 
 
             (capability 'invalid (list
             
-                (test "invalid ipv4 host" (lambda ()
+                (test "invalid ipv4 host"
                     (assert-parse-error "schema://1.1")
                     (assert-parse-error "schema://1.1.1")
                     (assert-parse-error "schema://1.1.1.1.1")
                     (assert-parse-error "schema://1..1.1")
                     (assert-parse-error "schema://1.1.1.")
                     (assert-parse-error "schema://.1.1.1")
-                    (assert-parse-error "schema://256.256.256.256")))
+                    (assert-parse-error "schema://256.256.256.256"))
 
-                (test "invalid ipv6 host - missing brackets" (lambda ()
+                (test "invalid ipv6 host - missing brackets"
                     (assert-parse-error "schema://::1")
                     (assert-parse-error "schema://[::1")
-                    (assert-parse-error "schema://::1]")))
+                    (assert-parse-error "schema://::1]"))
 
-                (test "invalid ipv6 host - too many double colons" (lambda ()
-                    (assert-parse-error "schema://[FF02::3::5]")))
+                (test "invalid ipv6 host - too many double colons"
+                    (assert-parse-error "schema://[FF02::3::5]"))
 
-                (test "invalid ipv6 host - improperly compacted" (lambda ()
-                    (assert-parse-error "schema://[FADF:01]")))
+                (test "invalid ipv6 host - improperly compacted"
+                    (assert-parse-error "schema://[FADF:01]"))
 
-                (test "invalid ipv6 host - invalid mixture of hosts" (lambda ()
+                (test "invalid ipv6 host - invalid mixture of hosts"
                     (assert-parse-error "scheme://prefix.[v6a.ip]")
                     (assert-parse-error "scheme://[v6a.ip].suffix")
                     (assert-parse-error "scheme://prefix.[v6a.ip]/")
@@ -228,13 +228,13 @@
                     (assert-parse-error "scheme://[::1].suffix:/")
                     (assert-parse-error "scheme://prefix.[::1]:?")
                     (assert-parse-error "scheme://user@prefix.[v6a.ip]")
-                    (assert-parse-error "scheme://user@[v6a.ip].suffix")))
+                    (assert-parse-error "scheme://user@[v6a.ip].suffix"))
 
                 ; TODO: Invalid userinfo
             
-                (test "invalid port - too many ports" (lambda ()
+                (test "invalid port - too many ports"
                     (assert-parse-error "schema://domain.tld:80:80")
-                    (assert-parse-error "schema://domain.tld:80:80:80")))
+                    (assert-parse-error "schema://domain.tld:80:80:80"))
 
             ))
 

@@ -105,14 +105,14 @@
             (setup (lambda ()
                 (set! server (start-mock-server))))
 
-            (test "Connect to server" (lambda () 
-                (assert (smtp-connected? (smtp-connect "localhost" (server-port server))))))
+            (test "Connect to server" 
+                (assert (smtp-connected? (smtp-connect "localhost" (server-port server)))))
 
-            (test "Connect with non-numeric port is an error" (lambda ()
+            (test "Connect with non-numeric port is an error"
                 (let
                     ((result (smtp-connect "localhost" "not-a-port")))
                     (assert (smtp-error? result) (string-append "Expected " result " to be an SMTP error"))
-                    (smtp-connect "localhost" (server-port server))))) ; Give the mock server a chance to terminate 
+                    (smtp-connect "localhost" (server-port server)))) ; Give the mock server a chance to terminate 
         ))
 
         (capability 'tls-connection (list
@@ -128,17 +128,17 @@
                         (set! secure-server-socket-wrap original-secure-server-socket-wrap)
                         (set! original-secure-server-socket-wrap '())))))
 
-            (test "Connect to server with TLS" (lambda ()
+            (test "Connect to server with TLS"
                 (start-tls-mock-server)
-                (smtp-secure-connect "localhost" (server-port server) "./smtp-fixtures/cacert.pem")))
+                (smtp-secure-connect "localhost" (server-port server) "./smtp-fixtures/cacert.pem"))
 
-            (test "Timeout during connect to server with TLS" (lambda ()
+            (test "Timeout during connect to server with TLS"
                 (set! original-secure-server-socket-wrap secure-server-socket-wrap)
                 (set! secure-server-socket-wrap (lambda (socket x xx xxx xxxx) (begin 
                     (thread-sleep! 0.5)
                     (socket-close socket))))
                 (start-tls-mock-server)
-                (assert (smtp-error? (smtp-secure-connect-with-timeout "localhost" (server-port server) "./smtp-fixtures/cacert.pem" 0.1)))))
+                (assert (smtp-error? (smtp-secure-connect-with-timeout "localhost" (server-port server) "./smtp-fixtures/cacert.pem" 0.1))))
             
         ))
 
@@ -391,17 +391,17 @@
                 (smtp-disconnect smtp-connection)
                 (set! smtp-connection '())))
 
-            (test "Send a message" (lambda () 
+            (test "Send a message" 
                 (let
                     ((response (smtp-send-message smtp-connection "message content" "sender@sender.to" '("user@recipient.to"))))
-                    (assert-response-codes response 250))))
+                    (assert-response-codes response 250)))
 
-            (test "Send a message to multiple recipients" (lambda () 
+            (test "Send a message to multiple recipients" 
                 (let
                     ((response (smtp-send-message smtp-connection "message content" "sender@sender.to" '("user1@recipient.to" "user2@recipient.to"))))
-                    (assert-response-codes response 250))))
+                    (assert-response-codes response 250)))
 
-            (test "Send a message with empty recipient" (lambda () 
+            (test "Send a message with empty recipient" 
                 (let
                     ((response (smtp-send-message smtp-connection "message content" "<>" '("user@recipient.to"))))
                     (assert-response-codes response 250)
@@ -410,10 +410,10 @@
                             (lambda (request) 
                                 (string-prefix? "FROM:<>" (first (request-arguments request))))
                             (server-requests-with-command server "MAIL"))
-                        (string-append "Expected client to send empty sender: " (server-requests-with-command server "MAIL"))))))
+                        (string-append "Expected client to send empty sender: " (server-requests-with-command server "MAIL")))))
 
             ; TODO
-            ;(test "Send message with a valid and an invalid recipient" (lambda () 
+            ;(test "Send message with a valid and an invalid recipient" 
             ;    (let
             ;       ((response (smtp-send-message smtp-connection "message content" ""))))))
 
@@ -432,40 +432,40 @@
             (capability 'handle-421 (list
                 ; As send-message handles multiple commands and responses, it also needs to deal with responses that
                 ; indicate that the connection has been terminated.
-                (test "Handle 421 during mail command" (lambda ()
+                (test "Handle 421 during mail command"
                     (server-set-command-response-code! server "MAIL" "421 Service not available")
                     (let
                         ((response (smtp-send-message smtp-connection "message content" "sender@sender.to" '("user@recipient.to"))))
                         (assert-response-codes response 421)
-                        (assert (not (smtp-connected? smtp-connection)) "421 should have lead to client terminating connection."))))
+                        (assert (not (smtp-connected? smtp-connection)) "421 should have lead to client terminating connection.")))
 
-                (test "Handle 421 during rcpt command" (lambda ()
+                (test "Handle 421 during rcpt command"
                     (server-set-command-response-code! server "RCPT" "421 Service not available")
                     (let
                         ((response (smtp-send-message smtp-connection "message content" "sender@sender.to" '("user@recipient.to"))))
                         (assert-response-codes response 421)
-                        (assert (not (smtp-connected? smtp-connection)) "421 should have lead to client terminating connection."))))
+                        (assert (not (smtp-connected? smtp-connection)) "421 should have lead to client terminating connection.")))
 
-                (test "Handle 421 at start of data command" (lambda ()
+                (test "Handle 421 at start of data command"
                     (server-set-command-response-code! server "DATA" "421 Service not available")
                     (let
                         ((response (smtp-send-message smtp-connection "message content" "sender@sender.to" '("user@recipient.to"))))
                         (assert-response-codes response 421)
-                        (assert (not (smtp-connected? smtp-connection)) "421 should have lead to client terminating connection."))))
+                        (assert (not (smtp-connected? smtp-connection)) "421 should have lead to client terminating connection.")))
 
-                (test "Handle 421 during data command" (lambda ()
+                (test "Handle 421 during data command"
                     (server-set-command-response-code! server "DATA MIDDLE" "421 Service not available")
                     (let
                         ((response (smtp-send-message smtp-connection "message content" "sender@sender.to" '("user@recipient.to"))))
                         (assert-response-codes response 421)
-                        (assert (not (smtp-connected? smtp-connection)) "421 should have lead to client terminating connection."))))
+                        (assert (not (smtp-connected? smtp-connection)) "421 should have lead to client terminating connection.")))
 
-                (test "Handle 421 at the end of data command" (lambda ()
+                (test "Handle 421 at the end of data command"
                     (server-set-command-response-code! server "DATA END" "421 Service not available")
                     (let
                         ((response (smtp-send-message smtp-connection "message content" "sender@sender.to" '("user@recipient.to"))))
                         (assert-response-codes response 421)
-                        (assert (not (smtp-connected? smtp-connection)) "421 should have lead to client terminating connection."))))
+                        (assert (not (smtp-connected? smtp-connection)) "421 should have lead to client terminating connection.")))
 
             ))
 
@@ -490,7 +490,7 @@
 
             (capability 'manual-commands (list
 
-                (test "full 8BITMIME scenario" (lambda () 
+                (test "full 8BITMIME scenario" 
                     (activate-8bitmime server)
                     (smtp-ehlo smtp-connection "")
                     (let ((mail-response (smtp-mail-with-options smtp-connection "sender@sender.com" '("BODY=8BITMIME"))))
@@ -499,15 +499,15 @@
                         (smtp-rcpt smtp-connection '("recipient@recipient.com") '())
                         (let 
                             ((data-response (smtp-data smtp-connection "¡a test message containing unicode!")))
-                            (assert-response-code mail-response 250)))))
+                            (assert-response-code mail-response 250))))
 
-                (test "sending unicode without 8BITMIME results in error" (lambda ()
+                (test "sending unicode without 8BITMIME results in error"
                     (smtp-ehlo smtp-connection "")
                     (let ((mail-response (smtp-mail-with-options smtp-connection "sender@sender.com" '())))
                         (smtp-rcpt smtp-connection '("recipient@recipient.com") '())                        
                         (let 
                             ((data-response (smtp-data smtp-connection "¡a test message containing unicode!")))
-                            (assert (smtp-error? data-response) "Client should not support sending unicode data when server does not support it")))))
+                            (assert (smtp-error? data-response) "Client should not support sending unicode data when server does not support it"))))
 
             ))
 
@@ -516,56 +516,56 @@
                 (capability 'explicit-options (list
 
                     ; 6152 - Section 3, end of section 
-                    (test "non-ascii content in send-message without 8BITMIME support" (lambda ()
+                    (test "non-ascii content in send-message without 8BITMIME support"
                         (smtp-ehlo smtp-connection "")
                         (let
                             ((send-message-responses (smtp-send-message-with-options 
                                 smtp-connection "¡a test message containing unicode!" "sender@sender.com" '("user@recipient.com") '("BODY=8BITMIME") '())))
-                            (assert (all? smtp-error? send-message-responses) "Client should not support sending 8BITMIME body when server does not support it"))))
+                            (assert (all? smtp-error? send-message-responses) "Client should not support sending 8BITMIME body when server does not support it")))
 
-                    (test "non-ascii content in send-message without 8BITMIME support and no option" (lambda ()
+                    (test "non-ascii content in send-message without 8BITMIME support and no option"
                         (smtp-ehlo smtp-connection "")
                         (let
                             ((send-message-responses (smtp-send-message-with-options 
                                 smtp-connection "¡a test message containing unicode!" "sender@sender.com" '("user@recipient.com") '() '())))
-                            (assert (all? smtp-error? send-message-responses)))))
+                            (assert (all? smtp-error? send-message-responses))))
 
-                    (test "non-ascii content in send-message with 8BITMIME support and option" (lambda ()
+                    (test "non-ascii content in send-message with 8BITMIME support and option"
                         (activate-8bitmime server)
                         (smtp-ehlo smtp-connection "")
                         (let
                             ((send-message-responses (smtp-send-message-with-options 
                                 smtp-connection "¡a test message containing unicode!" "sender@sender.com" '("user@recipient.com") '("BODY=8BITMIME") '())))
                             (assert-response-codes send-message-responses 250)
-                            (assert-any-request server "MAIL FROM:<sender@sender.com> BODY=8BITMIME"))))
+                            (assert-any-request server "MAIL FROM:<sender@sender.com> BODY=8BITMIME")))
 
-                    (test "non-ascii content in send-message with 8BITMIME support and no option" (lambda ()
+                    (test "non-ascii content in send-message with 8BITMIME support and no option"
                         (activate-8bitmime server)
                         (smtp-ehlo smtp-connection "")
                         (let
                             ((send-message-responses (smtp-send-message-with-options 
                                 smtp-connection "¡a test message containing unicode!" "sender@sender.com" '("user@recipient.com") '() '())))
-                            (assert (all? smtp-error? send-message-responses)))))
+                            (assert (all? smtp-error? send-message-responses))))
                 
                 ))
 
                 (capability 'automatic-8bitmime-detection (list
 
-                    (test "non-ascii content in send-message without 8BITMIME support" (lambda ()
+                    (test "non-ascii content in send-message without 8BITMIME support"
                         (smtp-ehlo smtp-connection "")
                         (let
                             ((send-message-responses (smtp-send-message-with-options 
                                 smtp-connection "¡a test message containing unicode!" "sender@sender.com" '("user@recipient.com") '() '())))
-                            (assert (all? smtp-error? send-message-responses)))))
+                            (assert (all? smtp-error? send-message-responses))))
 
-                    (test "non-ascii content in send-message with 8BITMIME support" (lambda ()
+                    (test "non-ascii content in send-message with 8BITMIME support"
                         (activate-8bitmime server)
                         (smtp-ehlo smtp-connection "")
                         (let
                             ((send-message-responses (smtp-send-message-with-options 
                                 smtp-connection "¡a test message containing unicode!" "sender@sender.com" '("user@recipient.com") '() '())))
                             (assert-response-codes send-message-responses 250)
-                            (assert-any-request server "MAIL FROM:<sender@sender.com> BODY=8BITMIME"))))
+                            (assert-any-request server "MAIL FROM:<sender@sender.com> BODY=8BITMIME")))
                 
                 ))
 
@@ -597,59 +597,59 @@
             (capability 'mail (list
 
                 (capability 'explicit-options (list
-                    (test "International mailbox in mail without SMTPUTF8 support" (lambda ()
+                    (test "International mailbox in mail without SMTPUTF8 support"
                         (server-set-extensions! server '())
                         (smtp-ehlo smtp-connection "")
                         (let
                             ((mail-response (smtp-mail-with-options smtp-connection "χρήστης@παράδειγμα.ελ" '("SMTPUTF8"))))
-                            (assert (smtp-error? mail-response)))))
+                            (assert (smtp-error? mail-response))))
 
-                    (test "International mailbox in mail without SMTPUTF8 support and no option" (lambda ()
+                    (test "International mailbox in mail without SMTPUTF8 support and no option"
                         (server-set-extensions! server '())
                         (smtp-ehlo smtp-connection "")
                         (let
                             ((mail-response (smtp-mail-with-options smtp-connection "χρήστης@παράδειγμα.ελ" '())))
-                            (assert (smtp-error? mail-response)))))
+                            (assert (smtp-error? mail-response))))
 
-                    (test "international mailbox in mail with SMTPUTF8 support" (lambda ()
+                    (test "international mailbox in mail with SMTPUTF8 support"
                         (activate-smtputf8 server)
                         (smtp-ehlo smtp-connection "")
                         (let
                             ((mail-response (smtp-mail-with-options smtp-connection "χρήστης@παράδειγμα.ελ" '("SMTPUTF8"))))
                             (assert-response-code mail-response 250)
-                            (assert-last-request server "MAIL FROM:<χρήστης@παράδειγμα.ελ> SMTPUTF8"))))
+                            (assert-last-request server "MAIL FROM:<χρήστης@παράδειγμα.ελ> SMTPUTF8")))
 
-                    (test "international mailbox in mail with SMTPUTF8 support but no option" (lambda ()
+                    (test "international mailbox in mail with SMTPUTF8 support but no option"
                         (activate-smtputf8 server)
                         (smtp-ehlo smtp-connection "")
                         (let
                             ((mail-response (smtp-mail-with-options smtp-connection "χρήστης@παράδειγμα.ελ" '())))
-                            (assert (smtp-error? mail-response)))))
+                            (assert (smtp-error? mail-response))))
                 ))
 
                 (capability 'automatic-smtputf8-detection (list
-                    (test "International mailbox in mail without SMTPUTF8 support" (lambda ()
+                    (test "International mailbox in mail without SMTPUTF8 support"
                         (server-set-extensions! server '())
                         (smtp-ehlo smtp-connection "")
                         (let
                             ((mail-response (smtp-mail smtp-connection "χρήστης@παράδειγμα.ελ")))
-                            (assert (smtp-error? mail-response)))))
+                            (assert (smtp-error? mail-response))))
 
-                    (test "international mailbox in mail with SMTPUTF8 support" (lambda ()
+                    (test "international mailbox in mail with SMTPUTF8 support"
                         (activate-smtputf8 server)
                         (smtp-ehlo smtp-connection "")
                         (let
                             ((mail-response (smtp-mail smtp-connection "χρήστης@παράδειγμα.ελ")))
                             (assert-response-code mail-response 250)
-                            (assert-last-request server "MAIL FROM:<χρήστης@παράδειγμα.ελ> SMTPUTF8"))))    
+                            (assert-last-request server "MAIL FROM:<χρήστης@παράδειγμα.ελ> SMTPUTF8")))   
 
-                    (test "international mailbox in mail with SMTPUTF8 support and an unrelated option" (lambda ()
+                    (test "international mailbox in mail with SMTPUTF8 support and an unrelated option"
                         (activate-smtputf8 server)
                         (smtp-ehlo smtp-connection "")
                         (let
                             ((mail-response (smtp-mail-with-options smtp-connection "χρήστης@παράδειγμα.ελ" '("RET=FULL"))))
                             (assert-response-code mail-response 250)
-                            (assert-last-request server "MAIL FROM:<χρήστης@παράδειγμα.ελ> RET=FULL SMTPUTF8"))))
+                            (assert-last-request server "MAIL FROM:<χρήστης@παράδειγμα.ελ> RET=FULL SMTPUTF8")))
                 ))
             ))
 
@@ -657,22 +657,22 @@
                 ; No test with server without SMTPUTF8 support, as the smtp-mail command would
                 ; already fail to initiate a mail transaction.
 
-                (test "international mailbox in rcpt with SMTPUTF8 support" (lambda ()
+                (test "international mailbox in rcpt with SMTPUTF8 support"
                     (activate-smtputf8 server)
                     (smtp-ehlo smtp-connection "")
                     (smtp-mail-with-options smtp-connection "sender@sender.com" '("SMTPUTF8"))
                     (let
                         ((rcpt-response (smtp-rcpt smtp-connection '("χρήστης@παράδειγμα.ελ") '())))
                         (assert-response-codes rcpt-response 250)
-                        (assert-last-request server "RCPT TO:<χρήστης@παράδειγμα.ελ>"))))
+                        (assert-last-request server "RCPT TO:<χρήστης@παράδειγμα.ελ>")))
 
-                (test "international mailbox in rcpt with SMTPUTF8 support but no option" (lambda ()
+                (test "international mailbox in rcpt with SMTPUTF8 support but no option"
                     (activate-smtputf8 server)
                     (smtp-ehlo smtp-connection "")
                     (smtp-mail-with-options smtp-connection "sender@sender.com" '())
                     (let
                         ((rcpt-response (first (smtp-rcpt smtp-connection '("χρήστης@παράδειγμα.ελ") '()))))
-                        (assert (smtp-error? rcpt-response)))))
+                        (assert (smtp-error? rcpt-response))))
             ))
 
             (capability 'send-message (list
@@ -685,108 +685,108 @@
 
                     ; Recipient
 
-                    (test "international recipient mailbox in send-message without SMTPUTF8 support" (lambda ()
+                    (test "international recipient mailbox in send-message without SMTPUTF8 support"
                         (smtp-ehlo smtp-connection "")
                         (let
                             ((send-message-responses (smtp-send-message-with-options 
                                 smtp-connection "message content" "sender@sender.com" '("χρήστης@παράδειγμα.ελ") '("SMTPUTF8") '())))
-                            (assert (all? smtp-error? send-message-responses)))))
+                            (assert (all? smtp-error? send-message-responses))))
 
-                    (test "international recipient mailbox in send-message without SMTPUTF8 support and no option" (lambda ()
+                    (test "international recipient mailbox in send-message without SMTPUTF8 support and no option"
                         (smtp-ehlo smtp-connection "")
                         (let
                             ((send-message-responses (smtp-send-message-with-options 
                                 smtp-connection "message content" "sender@sender.com" '("χρήστης@παράδειγμα.ελ") '() '())))
-                            (assert (all? smtp-error? send-message-responses)))))
+                            (assert (all? smtp-error? send-message-responses))))
 
-                    (test "international recipient mailbox in send-message with SMTPUTF8 support" (lambda ()
+                    (test "international recipient mailbox in send-message with SMTPUTF8 support"
                         (activate-smtputf8 server)
                         (smtp-ehlo smtp-connection "")
                         (let
                             ((send-message-responses (smtp-send-message-with-options 
                                 smtp-connection "message content" "sender@sender.com" '("χρήστης@παράδειγμα.ελ") '("SMTPUTF8") '())))
                             (assert-response-codes send-message-responses 250)
-                            (assert-any-request server "MAIL FROM:<sender@sender.com> SMTPUTF8"))))
+                            (assert-any-request server "MAIL FROM:<sender@sender.com> SMTPUTF8")))
 
-                    (test "international recipient mailbox in send-message with SMTPUTF8 support but no option" (lambda ()
+                    (test "international recipient mailbox in send-message with SMTPUTF8 support but no option"
                         (activate-smtputf8 server)
                         (smtp-ehlo smtp-connection "")
                         (let
                             ((send-message-responses (smtp-send-message-with-options 
                                 smtp-connection "message content" "sender@sender.com" '("χρήστης@παράδειγμα.ελ") '() '())))
-                            (assert (all? smtp-error? send-message-responses)))))
+                            (assert (all? smtp-error? send-message-responses))))
 
                     ; Sender
 
-                    (test "international sender mailbox in send-message without SMTPUTF8 support" (lambda ()
+                    (test "international sender mailbox in send-message without SMTPUTF8 support"
                         (smtp-ehlo smtp-connection "")
                         (let
                             ((send-message-responses (smtp-send-message-with-options 
                                 smtp-connection "message content" "χρήστης@παράδειγμα.ελ" '("recipient@server.com") '("SMTPUTF8") '())))
-                            (assert (all? smtp-error? send-message-responses)))))
+                            (assert (all? smtp-error? send-message-responses))))
 
-                    (test "international sender mailbox in send-message without SMTPUTF8 support and no option" (lambda ()
+                    (test "international sender mailbox in send-message without SMTPUTF8 support and no option"
                         (smtp-ehlo smtp-connection "")
                         (let
                             ((send-message-responses (smtp-send-message-with-options 
                                 smtp-connection "message content" "χρήστης@παράδειγμα.ελ" '("recipient@server.com") '() '())))
-                            (assert (all? smtp-error? send-message-responses)))))
+                            (assert (all? smtp-error? send-message-responses))))
 
-                    (test "international sender mailbox in send-message with SMTPUTF8 support" (lambda ()
+                    (test "international sender mailbox in send-message with SMTPUTF8 support"
                         (activate-smtputf8 server)
                         (smtp-ehlo smtp-connection "")
                         (let
                             ((send-message-responses (smtp-send-message-with-options 
                                 smtp-connection "message content" "χρήστης@παράδειγμα.ελ" '("recipient@server.com") '("SMTPUTF8") '())))
                             (assert-response-codes send-message-responses 250)
-                            (assert-any-request server "MAIL FROM:<χρήστης@παράδειγμα.ελ> SMTPUTF8"))))
+                            (assert-any-request server "MAIL FROM:<χρήστης@παράδειγμα.ελ> SMTPUTF8")))
 
-                    (test "international sender mailbox in send-message with SMTPUTF8 support but no option" (lambda ()
+                    (test "international sender mailbox in send-message with SMTPUTF8 support but no option"
                         (activate-smtputf8 server)
                         (smtp-ehlo smtp-connection "")
                         (let
                             ((send-message-responses (smtp-send-message-with-options 
                                 smtp-connection "message content" "χρήστης@παράδειγμα.ελ" '("recipient@server.com") '() '())))
-                            (assert (all? smtp-error? send-message-responses)))))
+                            (assert (all? smtp-error? send-message-responses))))
                 ))
 
                 (capability 'automatic-smtputf8-detection (list
 
                     ; Recipient
 
-                    (test "international recipient mailbox in send-message without SMTPUTF8 support" (lambda ()
+                    (test "international recipient mailbox in send-message without SMTPUTF8 support"
                         (smtp-ehlo smtp-connection "")
                         (let
                             ((send-message-responses (smtp-send-message 
                                 smtp-connection "message content" "sender@sender.com" '("χρήστης@παράδειγμα.ελ"))))
-                            (assert (all? smtp-error? send-message-responses)))))  
+                            (assert (all? smtp-error? send-message-responses))))
 
-                    (test "international recipient mailbox in send-message with SMTPUTF8 support" (lambda ()
+                    (test "international recipient mailbox in send-message with SMTPUTF8 support"
                         (activate-smtputf8 server)
                         (smtp-ehlo smtp-connection "")
                         (let
                             ((send-message-responses (smtp-send-message 
                                 smtp-connection "message content" "sender@sender.com" '("χρήστης@παράδειγμα.ελ"))))
                             (assert-response-codes send-message-responses 250)
-                            (assert-any-request server "MAIL FROM:<sender@sender.com> SMTPUTF8"))))
+                            (assert-any-request server "MAIL FROM:<sender@sender.com> SMTPUTF8")))
 
                     ; Sender
 
-                    (test "international sender mailbox in send-message without SMTPUTF8 support" (lambda ()
+                    (test "international sender mailbox in send-message without SMTPUTF8 support"
                         (smtp-ehlo smtp-connection "")
                         (let
                             ((send-message-responses (smtp-send-message 
                                 smtp-connection "message content" "χρήστης@παράδειγμα.ελ" '("recipient@server.com"))))
-                            (assert (all? smtp-error? send-message-responses)))))
+                            (assert (all? smtp-error? send-message-responses))))
 
-                    (test "international sender mailbox in send-message with SMTPUTF8 support" (lambda ()
+                    (test "international sender mailbox in send-message with SMTPUTF8 support"
                         (activate-smtputf8 server)
                         (smtp-ehlo smtp-connection "")
                         (let
                             ((send-message-responses (smtp-send-message 
                                 smtp-connection "message content" "χρήστης@παράδειγμα.ελ" '("recipient@server.com"))))
                             (assert-response-codes send-message-responses 250)
-                            (assert-any-request server "MAIL FROM:<χρήστης@παράδειγμα.ελ> SMTPUTF8"))))
+                            (assert-any-request server "MAIL FROM:<χρήστης@παράδειγμα.ελ> SMTPUTF8")))
                 ))
 
             ))
@@ -810,10 +810,10 @@
                 (setup (lambda () 
                     (connect-smtp-server)))
 
-                (test "basic ehlo" (lambda () 
-                    (smtp-ehlo smtp-connection "")))
+                (test "basic ehlo" 
+                    (smtp-ehlo smtp-connection ""))
                     
-                (test "ehlo with identifier" (lambda () 
+                (test "ehlo with identifier" 
                     (let
                         ((ehlo-response (smtp-ehlo smtp-connection "553.231.231.234")))
                         (assert-equal
@@ -821,40 +821,40 @@
                             (smtp-response-code ehlo-response))
                         (assert-equal
                             "553.231.231.234"
-                            (string-trim (smtp-response-message ehlo-response))))))
+                            (string-trim (smtp-response-message ehlo-response)))))
 
-                (test "server answers a single extension" (lambda ()
+                (test "server answers a single extension"
                     (server-set-extensions! server (list "8BITMIME"))
                     (let
                         ((ehlo-response (smtp-ehlo smtp-connection "")))
                         (assert-response-code ehlo-response 250)
-                        (assert-extensions smtp-connection ehlo-response (list "8BITMIME")))))
+                        (assert-extensions smtp-connection ehlo-response (list "8BITMIME"))))
 
-                (test "server answers multiple extensions" (lambda ()
+                (test "server answers multiple extensions"
                     (server-set-extensions! server (list "8BITMIME" "VERB"))
                     (let
                         ((ehlo-response (smtp-ehlo smtp-connection "")))
                         (assert-response-code ehlo-response 250)
-                        (assert-extensions smtp-connection ehlo-response (list "8BITMIME" "VERB")))))
+                        (assert-extensions smtp-connection ehlo-response (list "8BITMIME" "VERB"))))
 
-                (test "server answers extension with parameter" (lambda ()
+                (test "server answers extension with parameter"
                     (server-set-extensions! server (list "SIZE 2000"))
                     (let
                         ((ehlo-response (smtp-ehlo smtp-connection "")))
                         (assert-response-code ehlo-response 250)
-                        (assert-extensions smtp-connection ehlo-response (list '("SIZE" "2000"))))))
+                        (assert-extensions smtp-connection ehlo-response (list '("SIZE" "2000")))))
 
-                (test "server answers ehlo with error code" (lambda ()
+                (test "server answers ehlo with error code"
                     (server-set-response-code! server "550 not message")
                     (let
                         ((ehlo-response (smtp-ehlo smtp-connection "")))
-                        (assert-response-code ehlo-response 550))))
+                        (assert-response-code ehlo-response 550)))
 
-                (test "two subsequent ehlos should be possible" (lambda ()
+                (test "two subsequent ehlos should be possible"
                     (smtp-ehlo smtp-connection "")
                     (let
                         ((ehlo-response (smtp-ehlo smtp-connection "")))
-                        (assert-response-code ehlo-response 250))))
+                        (assert-response-code ehlo-response 250)))
 
                 ))
 
@@ -867,11 +867,11 @@
                 (tearDown (lambda () 
                     (smtp-disconnect smtp-connection)))
 
-                (test "basic rset" (lambda ()
+                (test "basic rset"
                     (server-set-response-code! server "250")
                     (let
                         ((rset-response (smtp-rset smtp-connection)))
-                        (assert-response-code rset-response 250))))
+                        (assert-response-code rset-response 250)))
 
                 ))
 
@@ -884,20 +884,20 @@
                 (tearDown (lambda () 
                     (smtp-disconnect smtp-connection)))
 
-                (test "basic expn" (lambda ()
+                (test "basic expn"
                     (server-set-response-code! server "250-Jon Postel <Postel@isi.edu>\r\n250-Fred Fonebone <Fonebone@physics.foo-u.edu>\r\n250 Sam Q. Smith <SQSmith@specific.generic.com>")
                     (let
                         ((expn-response (smtp-expn smtp-connection "Example-People")))
                         (assert-response-code expn-response 250)
                         (assert-equal
                             (smtp-expn-response-users-list expn-response)
-                            (list "Jon Postel <Postel@isi.edu>" "Fred Fonebone <Fonebone@physics.foo-u.edu>" "Sam Q. Smith <SQSmith@specific.generic.com>")))))
+                            (list "Jon Postel <Postel@isi.edu>" "Fred Fonebone <Fonebone@physics.foo-u.edu>" "Sam Q. Smith <SQSmith@specific.generic.com>"))))
 
-                (test "error expn" (lambda ()
+                (test "error expn"
                     (server-set-response-code! server "550 Access Denied to You")
                     (let
                         ((expn-response (smtp-expn smtp-connection "Executive-Washroom-List")))
-                        (assert-response-code expn-response 550))))
+                        (assert-response-code expn-response 550)))
                 ))
 
 
@@ -910,12 +910,12 @@
                 (tearDown (lambda () 
                     (smtp-disconnect smtp-connection)))
 
-                (test "basic help" (lambda ()
+                (test "basic help"
                     (server-set-response-code! server "250 Supported commands: EHLO HELO MAIL")
                     (let
                         ((help-response (smtp-help smtp-connection "")))
                         (assert-response-code help-response 250)
-                        (assert-equal (smtp-response-message help-response) "Supported commands: EHLO HELO MAIL"))))
+                        (assert-equal (smtp-response-message help-response) "Supported commands: EHLO HELO MAIL")))
 
                 ))
 
@@ -940,24 +940,24 @@
                             (assert-response-code vrfy-response 250)
                             (assert-equal expected-message (smtp-response-message vrfy-response))))))
 
-                (test "verify of an email address with apparent validity" (lambda () 
+                (test "verify of an email address with apparent validity" 
                     (server-set-response-code! server "252 Cannot verify the user, but it will try to deliver the message anyway")
                     (let
                         ((vrfy-response (smtp-vrfy smtp-connection "user@otherserver.org")))
                         (assert-response-code vrfy-response 252)
-                        (assert-equal "Cannot verify the user, but it will try to deliver the message anyway" (smtp-response-message vrfy-response)))))
+                        (assert-equal "Cannot verify the user, but it will try to deliver the message anyway" (smtp-response-message vrfy-response))))
 
-                (test "verify of an unknown user" (lambda () 
+                (test "verify of an unknown user" 
                     (server-set-response-code! server "550 No such user")
                     (let
                         ((vrfy-response (smtp-vrfy smtp-connection "nouser")))
                         (assert-response-code vrfy-response 550)
-                        (assert-equal "No such user" (smtp-response-message vrfy-response)))))
+                        (assert-equal "No such user" (smtp-response-message vrfy-response))))
 
                 ; TODO
-                ;(test "verify resulting in forwarding response" (lambda () 
+                ;(test "verify resulting in forwarding response" 
                 ;    ))
-                ;(test "verify resulting in mailbox disabled response" (lambda () 
+                ;(test "verify resulting in mailbox disabled response" 
                 ;    ))
 
                 ; RFC 2821 - Section 3.5: https://datatracker.ietf.org/doc/html/rfc2821#section-3.5
@@ -985,28 +985,28 @@
                 (tearDown (lambda () 
                     (smtp-disconnect smtp-connection)))
 
-                (test "basic mail" (lambda () 
+                (test "basic mail" 
                     (let
                         ((mail-response (smtp-mail smtp-connection "foo@example.com")))
-                        (assert-response-code mail-response 250))))
+                        (assert-response-code mail-response 250)))
 
                 ; RFC 2476 - 3.2
-                (test "mail with empty email address" (lambda () 
+                (test "mail with empty email address" 
                     (let
                         ((mail-response (smtp-mail smtp-connection "")))
                         (assert-response-code mail-response 250)
-                        (assert-last-request server "MAIL FROM:<>"))))
+                        (assert-last-request server "MAIL FROM:<>")))
 
-                (test "mail with invalid email address" (lambda () 
+                (test "mail with invalid email address" 
                     (let
                         ((mail-response (smtp-mail smtp-connection "invalid")))
-                        (assert-response-code mail-response 500))))
+                        (assert-response-code mail-response 500)))
 
-                (test "mail with an option" (lambda () 
+                (test "mail with an option" 
                     (let
                         ((mail-response (smtp-mail-with-options smtp-connection "sender@sender.com" '("SIZE=1234"))))
                         (assert-response-code mail-response 250)
-                        (assert-last-request server "MAIL FROM:<sender@sender.com> SIZE=1234"))))
+                        (assert-last-request server "MAIL FROM:<sender@sender.com> SIZE=1234")))
                 
 
                 ))
@@ -1020,22 +1020,22 @@
                 (tearDown (lambda () 
                     (smtp-disconnect smtp-connection)))
 
-                (test "basic data" (lambda () 
+                (test "basic data" 
                     (let
                         ((data-response (smtp-data smtp-connection "message content")))
-                        (assert-response-code data-response 250))))
+                        (assert-response-code data-response 250)))
 
                 ; Client should not be confused by an accidental message content termination sequence in the content
-                (test "CRLF detection in DATA command" (lambda () 
+                (test "CRLF detection in DATA command" 
                     (let
                         ((data-response (smtp-data smtp-connection "message content\r\n.\r\n")))
-                        (assert-response-code data-response 250))))
+                        (assert-response-code data-response 250)))
 
-                (test "handling server does not acknowledge data correctly" (lambda () 
+                (test "handling server does not acknowledge data correctly" 
                     (server-set-response-code! server "250")
                     (let
                         ((data-response (smtp-data smtp-connection "message content")))
-                        (assert (smtp-error? data-response) "Expected client to fail when server does not acknowledge data correctly"))))
+                        (assert (smtp-error? data-response) "Expected client to fail when server does not acknowledge data correctly")))
 
                 ; Dot-quoting prevents stray dots at the beginning of lines to cause problems
                 ; https://datatracker.ietf.org/doc/html/rfc2821#section-4.5.2
@@ -1063,32 +1063,32 @@
                     (smtp-disconnect smtp-connection)))
 
 
-                (test "basic rcpt" (lambda () 
+                (test "basic rcpt" 
                     (let
                         ((mail-responses (smtp-rcpt smtp-connection '("user@recipient.to") '())))
                         (assert-response-codes mail-responses 250)
-                        (assert-last-request server "RCPT TO:<user@recipient.to>"))))
+                        (assert-last-request server "RCPT TO:<user@recipient.to>")))
 
-                (test "rcpt with special addresses" (lambda () 
+                (test "rcpt with special addresses" 
                     (let
                         ((mail-responses (smtp-rcpt smtp-connection '("postmaster" "postmaster@recipient.to") '())))
                         (assert-response-codes mail-responses 250)
                         (assert-any-request server "RCPT TO:<postmaster>")
-                        (assert-any-request server "RCPT TO:<postmaster@recipient.to>"))))
+                        (assert-any-request server "RCPT TO:<postmaster@recipient.to>")))
 
-                (test "rcpt with multiple receivers" (lambda () 
+                (test "rcpt with multiple receivers" 
                     (let
                         ((mail-responses (smtp-rcpt smtp-connection '("user@recipient.to" "user2@recipient.to") '())))
                         (assert-response-codes mail-responses 250)
                         (assert-any-request server "RCPT TO:<user@recipient.to>")
-                        (assert-any-request server "RCPT TO:<user2@recipient.to>"))))
+                        (assert-any-request server "RCPT TO:<user2@recipient.to>")))
 
-                (test "rcpt with invalid email address" (lambda ()
+                (test "rcpt with invalid email address"
                     (let
                         ((mail-responses (smtp-rcpt smtp-connection '("invalid") '())))
-                        (assert-response-codes mail-responses 500))))
+                        (assert-response-codes mail-responses 500)))
 
-                (test "rcpt with options - DSN" (lambda ()
+                (test "rcpt with options - DSN"
                     (server-set-extensions! server '("DSN"))
                     (let
                         ((mail-responses (smtp-rcpt 
@@ -1099,7 +1099,7 @@
                               (("NOTIFY" "NEVER"))))))
                         (assert-response-codes mail-responses 250)
                         (assert-any-request server "RCPT TO:<user@recipient.to> NOTIFY=SUCCESS,FAILURE")
-                        (assert-any-request server "RCPT TO:<user2@recipient.to> NOTIFY=NEVER"))))
+                        (assert-any-request server "RCPT TO:<user2@recipient.to> NOTIFY=NEVER")))
                     
             ))
 
@@ -1111,33 +1111,33 @@
                 (tearDown (lambda () 
                     (smtp-disconnect smtp-connection)))
 
-                (test "basic starttls" (lambda () 
+                (test "basic starttls" 
                     (server-set-extensions! server '("STARTTLS"))
                     (smtp-ehlo smtp-connection "")
                     (let
                         ((starttls-response (smtp-starttls smtp-connection '() '())))
                         (let-server-complete-handler)
                         (assert-response-code starttls-response 220)
-                        (assert (server-tls-started? server) "Sending STARTTLS should result in a successful TLS connection on the server."))))
+                        (assert (server-tls-started? server) "Sending STARTTLS should result in a successful TLS connection on the server.")))
 
-                (test "starttls without server support" (lambda () 
+                (test "starttls without server support" 
                     (server-set-extensions! server '())
                     (smtp-ehlo smtp-connection "")
                     (let
                         ((starttls-response (smtp-starttls smtp-connection '() '())))
                         (assert (smtp-extension-not-supported-error? starttls-response)
                                 (string-append "Expected \"" starttls-response "\" to be an unsupported SMTP extension error"))
-                        (assert (not (server-tls-started? server))))))
+                        (assert (not (server-tls-started? server)))))
 
                 ; RFC 3207 - 4.2
-                (test "After starttls extensions need to be refetched" (lambda () 
+                (test "After starttls extensions need to be refetched" 
                     (server-set-extensions! server '("STARTTLS"))
                     (smtp-ehlo smtp-connection "")
                     (server-set-extensions! server '("FUNKY" "FOO"))
                     (let
                         ((starttls-response (smtp-starttls smtp-connection '() '()))
                          (ehlo-response (smtp-ehlo smtp-connection "")))
-                        (assert-extensions smtp-connection ehlo-response '("FUNKY" "FOO")))))
+                        (assert-extensions smtp-connection ehlo-response '("FUNKY" "FOO"))))
                   
             ))
 
@@ -1145,61 +1145,61 @@
             ; a connection to TLS when the server suprosetta it
             (capability 'automatic-starttls (list
             
-                (test "automatic starttls active and server suprosetta starttls" (lambda ()
+                (test "automatic starttls active and server suprosetta starttls"
                     (server-set-extensions! server '("STARTTLS"))
                     (let 
                         ((connection (smtp-connect-with-auto-starttls "localhost" (server-port server) 'automatic)))
                         (let 
                             ((ehlo-response (smtp-ehlo connection "")))
                             (assert-response-code echo-response 220)
-                            (assert (server-tls-started? server))))))
+                            (assert (server-tls-started? server)))))
 
-                (test "automatic starttls active and server does not support starttls" (lambda ()
+                (test "automatic starttls active and server does not support starttls"
                     (server-set-extensions! server '())
                     (let 
                         ((connection (smtp-connect-with-auto-starttls "localhost" (server-port server) 'automatic)))
                         (let 
                             ((ehlo-response (smtp-ehlo connection "")))
                             (assert-response-code echo-response 220)
-                            (assert (not (server-tls-started? server)))))))
+                            (assert (not (server-tls-started? server))))))
 
-                (test "automatic starttls not active and server does support starttls" (lambda ()
+                (test "automatic starttls not active and server does support starttls"
                     (server-set-extensions! server '("STARTTLS"))
                     (let 
                         ((connection (smtp-connect-with-auto-starttls "localhost" (server-port server) 'never)))
                         (let 
                             ((ehlo-response (smtp-ehlo connection "")))
                             (assert-response-code echo-response 220)
-                            (assert (not (server-tls-started? server)))))))
+                            (assert (not (server-tls-started? server))))))
 
-                (test "automatic starttls not active and server does not support starttls" (lambda ()
+                (test "automatic starttls not active and server does not support starttls"
                     (server-set-extensions! server '())
                     (let 
                         ((connection (smtp-connect-with-auto-starttls "localhost" (server-port server) 'never)))
                         (let 
                             ((ehlo-response (smtp-ehlo connection "")))
                             (assert-response-code echo-response 220)
-                            (assert (not (server-tls-started? server)))))))
+                            (assert (not (server-tls-started? server))))))
 
                 ; 'required-starttls covers modes in which starttls should always be used and the connection
                 ; should be terminated in case the server does not support it
                 (capability 'required-starttls (list 
 
-                    (test "required starttls active and server suprosetta starttls" (lambda ()
+                    (test "required starttls active and server suprosetta starttls"
                         (server-set-extensions! server '("STARTTLS"))
                         (let 
                             ((connection (smtp-connect-with-auto-starttls "localhost" (server-port server) 'required)))
                             (let 
                                 ((ehlo-response (smtp-ehlo connection "")))
                                 (assert-response-code echo-response 220)
-                                (assert (server-tls-started? server))))))
+                                (assert (server-tls-started? server)))))
 
-                    (test "required starttls active and server does not support starttls" (lambda ()
+                    (test "required starttls active and server does not support starttls"
                         (server-set-extensions! server '())
                         (let 
                             ((connection (smtp-connect-with-auto-starttls "localhost" (server-port server) 'required)))
                             (assert (smtp-error? connection))
-                            (assert (server-tls-started? server)))))
+                            (assert (server-tls-started? server))))
                         
                 ))
             ))
@@ -1244,39 +1244,39 @@
                     (setup (lambda () 
                         (server-set-auth-proc! server plain-auth-proc)))
 
-                    (test "plain auth success" (lambda ()
+                    (test "plain auth success"
                         (server-set-auths! server '(("PLAIN" ("account" "password"))))
                         (connect-and-ehlo-smtp-server)
                         (let 
                             ((auth-result 
                                 (smtp-authenticate smtp-connection 'PLAIN (list "account" "password"))))
-                            (assert (smtp-auth-successful? auth-result)))))
+                            (assert (smtp-auth-successful? auth-result))))
 
-                    (test "plain auth unsuccessful" (lambda () 
+                    (test "plain auth unsuccessful" 
                         (server-set-auths! server '(("PLAIN" ("account" "password"))))
                         (connect-and-ehlo-smtp-server)
                         (let 
                             ((auth-result (smtp-authenticate smtp-connection 'PLAIN '("account" "foo"))))
                             (assert (not (smtp-auth-successful? auth-result)))
-                            (assert (smtp-auth-credentials-error? auth-result) "Expected credentials error"))))
+                            (assert (smtp-auth-credentials-error? auth-result) "Expected credentials error")))
 
-                    (test "plain auth not supported" (lambda () 
+                    (test "plain auth not supported" 
                         (server-set-auths! server '())
                         (connect-and-ehlo-smtp-server)
                         (let 
                             ((auth-result (smtp-authenticate smtp-connection 'PLAIN '("account" "foo"))))
                             (assert (not (smtp-auth-successful? auth-result)))
-                            (assert (smtp-auth-not-supported-error? auth-result)))))
+                            (assert (smtp-auth-not-supported-error? auth-result))))
 
                     (capability 'initial-response (list
 
-                        (test "plain auth with initial response" (lambda ()
+                        (test "plain auth with initial response"
                             (server-set-auths! server '(("PLAIN" ("account" "password"))))
                             (connect-and-ehlo-smtp-server)
                             (let 
                                 ((auth-result 
                                     (smtp-authenticate-initial-response smtp-connection 'PLAIN '("account" "password") #t)))
-                                (assert (smtp-auth-successful? auth-result)))))
+                                (assert (smtp-auth-successful? auth-result))))
 
                     ))
 
@@ -1293,29 +1293,29 @@
                     (setup (lambda () 
                         (server-set-auth-proc! server xoauth2-auth-proc)))
 
-                    (test "xoauth2 success" (lambda ()
+                    (test "xoauth2 success"
                         (server-set-auths! server '(("XOAUTH2" ("account" "token"))))
                         (connect-and-ehlo-smtp-server)
                         (let 
                             ((auth-result 
                                 (smtp-authenticate smtp-connection 'XOAUTH2 (list "account" "token"))))
-                            (assert (smtp-auth-successful? auth-result)))))
+                            (assert (smtp-auth-successful? auth-result))))
 
-                    (test "xoauth2 auth unsuccessful" (lambda () 
+                    (test "xoauth2 auth unsuccessful" 
                         (server-set-auths! server '(("XOAUTH2" ("account" "token"))))
                         (connect-and-ehlo-smtp-server)
                         (let 
                             ((auth-result (smtp-authenticate smtp-connection 'XOAUTH2 '("account" "not-a-token"))))
                             (assert (not (smtp-auth-successful? auth-result)))
-                            (assert (smtp-auth-credentials-error? auth-result) (string-append "Expected credentials error but got " auth-result)))))
+                            (assert (smtp-auth-credentials-error? auth-result) (string-append "Expected credentials error but got " auth-result))))
 
-                    (test "xoauth2 auth not supported" (lambda () 
+                    (test "xoauth2 auth not supported" 
                         (server-set-auths! server '())
                         (connect-and-ehlo-smtp-server)
                         (let 
                             ((auth-result (smtp-authenticate smtp-connection 'XOAUTH2 '("account" "token"))))
                             (assert (not (smtp-auth-successful? auth-result)))
-                            (assert (smtp-auth-not-supported-error? auth-result)))))
+                            (assert (smtp-auth-not-supported-error? auth-result))))
 
                 ))
 
@@ -1335,40 +1335,40 @@
                     (setup (lambda () 
                         (server-set-auth-proc! server cram-md5-auth-proc)))
 
-                    (test "cram-md5 success" (lambda ()
+                    (test "cram-md5 success"
                         (server-set-auths! server '(("CRAM-MD5" ("account" "password"))))
                         (connect-and-ehlo-smtp-server)
                         (let 
                             ((auth-result 
                                 (smtp-authenticate smtp-connection 'CRAM-MD5 (list "account" "password"))))
-                            (assert (smtp-auth-successful? auth-result)))))
+                            (assert (smtp-auth-successful? auth-result))))
 
-                    (test "cram-md5 auth unsuccessful" (lambda () 
+                    (test "cram-md5 auth unsuccessful" 
                         (server-set-auths! server '(("CRAM-MD5" ("account" "password"))))
                         (connect-and-ehlo-smtp-server)
                         (let 
                             ((auth-result (smtp-authenticate smtp-connection 'CRAM-MD5 '("account" "not-the-password"))))
                             (assert (not (smtp-auth-successful? auth-result)))
-                            (assert (smtp-auth-credentials-error? auth-result) (string-append "Expected credentials error but got " auth-result)))))
+                            (assert (smtp-auth-credentials-error? auth-result) (string-append "Expected credentials error but got " auth-result))))
 
-                    (test "cram-md5 auth not supported" (lambda () 
+                    (test "cram-md5 auth not supported" 
                         (server-set-auths! server '())
                         (connect-and-ehlo-smtp-server)
                         (let 
                             ((auth-result (smtp-authenticate smtp-connection 'CRAM-MD5 '("account" "password"))))
                             (assert (not (smtp-auth-successful? auth-result)))
-                            (assert (smtp-auth-not-supported-error? auth-result)))))
+                            (assert (smtp-auth-not-supported-error? auth-result))))
 
                     (capability 'initial-response (list
 
-                        (test "cram-md5 initial response not supported and should be ignored" (lambda ()
+                        (test "cram-md5 initial response not supported and should be ignored"
                             ; Test would fail, as mock auth procedure fails when inital response is provided
                             (server-set-auths! server '(("CRAM-MD5" ("account" "password"))))
                             (connect-and-ehlo-smtp-server)
                             (let 
                                 ((auth-result 
                                     (smtp-authenticate-initial-response smtp-connection 'CRAM-MD5 '("account" "password") #t)))
-                                (assert (smtp-auth-successful? auth-result)))))
+                                (assert (smtp-auth-successful? auth-result))))
 
                     ))
                 ))
@@ -1394,39 +1394,39 @@
                     (setup (lambda () 
                         (server-set-auth-proc! server login-auth-proc)))
 
-                    (test "login success" (lambda ()
+                    (test "login success"
                         (server-set-auths! server '(("LOGIN" ("account" "password"))))
                         (connect-and-ehlo-smtp-server)
                         (let 
                             ((auth-result 
                                 (smtp-authenticate smtp-connection 'LOGIN (list "account" "password"))))
-                            (assert (smtp-auth-successful? auth-result)))))
+                            (assert (smtp-auth-successful? auth-result))))
 
-                    (test "login auth unsuccessful" (lambda () 
+                    (test "login auth unsuccessful" 
                         (server-set-auths! server '(("LOGIN" ("account" "password"))))
                         (connect-and-ehlo-smtp-server)
                         (let 
                             ((auth-result (smtp-authenticate smtp-connection 'LOGIN '("account" "not-the-password"))))
                             (assert (not (smtp-auth-successful? auth-result)))
-                            (assert (smtp-auth-credentials-error? auth-result) (string-append "Expected credentials error but got " auth-result)))))
+                            (assert (smtp-auth-credentials-error? auth-result) (string-append "Expected credentials error but got " auth-result))))
 
-                    (test "login auth not supported" (lambda () 
+                    (test "login auth not supported" 
                         (server-set-auths! server '())
                         (connect-and-ehlo-smtp-server)
                         (let 
                             ((auth-result (smtp-authenticate smtp-connection 'LOGIN '("account" "password"))))
                             (assert (not (smtp-auth-successful? auth-result)))
-                            (assert (smtp-auth-not-supported-error? auth-result)))))
+                            (assert (smtp-auth-not-supported-error? auth-result))))
 
                     (capability 'initial-response (list
 
-                        (test "login initial response" (lambda ()
+                        (test "login initial response"
                             (server-set-auths! server '(("LOGIN" ("account" "password"))))
                             (connect-and-ehlo-smtp-server)
                             (let 
                                 ((auth-result 
                                     (smtp-authenticate-initial-response smtp-connection 'LOGIN '("account" "password") #t)))
-                                (assert (smtp-auth-successful? auth-result)))))
+                                (assert (smtp-auth-successful? auth-result))))
 
                     ))
 
@@ -1445,13 +1445,13 @@
                     (setup (lambda () 
                         (server-set-auth-proc! server buggy-auth-proc)))
 
-                    (test "buggy auth with too many challenges" (lambda ()
+                    (test "buggy auth with too many challenges"
                         (server-set-auths! server '(("BUGGY" ("account" "password"))))
                         (connect-and-ehlo-smtp-server)
                         (let 
                             ((auth-result 
                                 (smtp-authenticate smtp-connection 'BUGGY (list "account" "password"))))
-                            (assert (not (smtp-auth-successful? auth-result))))))
+                            (assert (not (smtp-auth-successful? auth-result)))))
                 
                 ))
 
@@ -1459,13 +1459,13 @@
 
             (capability 'quit (list
             
-                (test "quit resets list of extensions, if it is stored in the connection" (lambda ()
+                (test "quit resets list of extensions, if it is stored in the connection"
                     (begin
                         (server-set-extensions! server '("8BITMIME"))
                         (connect-smtp-server)
                         (smtp-ehlo smtp-connection "")
                         (smtp-quit smtp-connection)
-                        (assert-extensions smtp-connection '() '()))))
+                        (assert-extensions smtp-connection '() '())))
 
             ))
 

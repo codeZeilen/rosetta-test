@@ -229,7 +229,10 @@
     ; Capability 
     ;
 
-    (define (capability name contents) (let
+    (define-macro capability (lambda capability-elements
+        `(make-capability ,(car capability-elements) ((lambda () ,@(cdr capability-elements))))))
+
+    (define (make-capability name contents) (let
         ((new-capability (list 
             'capability
             name 
@@ -345,7 +348,10 @@
     ; Test 
     ;
 
-    (define (test name test-fn) (list
+    (define-macro test (lambda test-elements
+        `(make-test ,(car test-elements) (lambda () ,@(cdr test-elements)))))
+
+    (define (make-test name test-fn) (list
         'test 
         name 
         test-fn
