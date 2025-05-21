@@ -76,7 +76,7 @@
         ; The authority component is preceded by a double slash ("//") and is
         ; terminated by the next slash ("/"), question mark ("?"), or number
         ; sign ("#") character, or by the end of the URI.
-        ; RFC 3986 - 3.1. Scheme
+        ; RFC 3986 - 3.2. Authority
         (capability 'authority (list
 
             (define (assert-authority authority-string url-string)
@@ -88,7 +88,14 @@
                     (string-downcase (url-authority (url-parse url-string)))))
 
             (test "basic authority" (lambda ()
-                (assert-authority "named-authority" "scheme://named-authority/path")))
+                (assert-authority "named-authority" "scheme://named-authority/path")
+                (assert-authority "named-authority" "scheme://named-authority?query")
+                (assert-authority "named-authority" "scheme://named-authority#fragment")
+                (assert-authority "named-authority" "scheme://named-authority")))
+
+            (test "basic not-a-authority" (lambda ()
+                (assert-authority "" "mailto:test@recipient.org")
+                (assert-authority "" "some-prot:/path:100")))
 
             ; Host parts
             ; RFC 3986 - 3.2.2. Host
@@ -232,5 +239,35 @@
             ))
 
         ))
+
+        ; The path is terminated by the first question mark ("?") or 
+        ; number sign ("#") character, or by the end of the URI. If a 
+        ; URI contains an authority component, then the path component
+        ; must either be empty or begin with a slash ("/") character.
+        ; RFC 3986 - 3.3. Path
+        (capability 'path (list
+
+            (define (assert-path path-string url-string)
+                (assert 
+                    (not (parse-error? (url-parse url-string))) 
+                    (string-append "Failed to parse URL: " url-string))
+                (assert-equal 
+                    (string-downcase path-string) 
+                    (string-downcase (url-path (url-parse url-string)))))
+        
+
+
+
+            ; If a URI does not contain an authority component, then the 
+            ; path cannot begin with two slash characters ("//").
+            ; RFC 3986 - 3.3. Path
+
+
+            ; In addition, a URI reference (Section 4.1) may be a relative-path 
+            ; reference, in which case the first path segment cannot contain a 
+            ; colon (":") character.
+
+        ))
+
 
 ))
