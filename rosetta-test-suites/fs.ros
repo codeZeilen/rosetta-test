@@ -16,11 +16,11 @@
 
 		(define test-file '())
 
-		(setup (lambda () (begin
-			(create-test-file "my-test-file" "first line\nsecond line"))))
+		(setup
+			(create-test-file "my-test-file" "first line\nsecond line"))
 
-		(tearDown (lambda ()
-			(remove-test-file "my-test-file")))
+		(tearDown
+			(remove-test-file "my-test-file"))
 	
 		(capability 'open (list
 			(test "open returns a file descriptor" 
@@ -32,12 +32,12 @@
 				(assert (is-file-error? (open "my-test-file" "qr"))))))
 
 		(capability 'close (list
-			(setup (lambda () 
-				(set! test-file (open "my-test-file" "r"))))
+			(setup 
+				(set! test-file (open "my-test-file" "r")))
 
-			(tearDown (lambda () (begin
+			(tearDown
 				(close test-file)
-				(set! test-file '()))))
+				(set! test-file '()))
 
 			(test "a closed file descriptor does not allow further reads"
 				(close test-file) 
@@ -48,12 +48,12 @@
 				(assert (is-file-error? (write test-file "abc"))))))
 
 		(capability 'read (list
-			(setup (lambda () 
-				(set! test-file (open "my-test-file" "r"))))
+			(setup 
+				(set! test-file (open "my-test-file" "r")))
 
-			(tearDown (lambda () (begin
+			(tearDown
 				(close test-file)
-				(set! test-file '()))))
+				(set! test-file '()))
 
 			(test "read can read one value" 
 				(assert-equal

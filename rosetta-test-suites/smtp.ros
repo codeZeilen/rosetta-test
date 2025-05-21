@@ -90,11 +90,11 @@
                 (lambda (response) (assert-response-code response code))
                 responses))
 
-        (setup (lambda ()  
-            (set! server '())))
+        (setup  
+            (set! server '()))
 
-        (tearDown (lambda () 
-            (stop-mock-server)))
+        (tearDown 
+            (stop-mock-server))
 
         ;
         ; Capabilities
@@ -102,8 +102,8 @@
 
         (capability 'connection (list
 
-            (setup (lambda ()
-                (set! server (start-mock-server))))
+            (setup
+                (set! server (start-mock-server)))
 
             (test "Connect to server" 
                 (assert (smtp-connected? (smtp-connect "localhost" (server-port server)))))
@@ -122,11 +122,11 @@
             (define start-tls-mock-server (lambda () 
                 (set! server (server-start (create-server #t)))))
 
-            (tearDown (lambda ()
+            (tearDown
                 (if (not (= original-secure-server-socket-wrap '()))
                     (begin
                         (set! secure-server-socket-wrap original-secure-server-socket-wrap)
-                        (set! original-secure-server-socket-wrap '())))))
+                        (set! original-secure-server-socket-wrap '()))))
 
             (test "Connect to server with TLS"
                 (start-tls-mock-server)
@@ -148,14 +148,14 @@
             (define (connect-smtp-server)
                 (set! smtp-connection (smtp-connect "localhost" (server-port server))))
 
-            (setup (lambda () 
+            (setup 
                 (set! server (start-mock-server))
                 (connect-smtp-server)
-                (smtp-ehlo smtp-connection "")))
+                (smtp-ehlo smtp-connection ""))
 
-            (tearDown (lambda ()
+            (tearDown
                 (smtp-disconnect smtp-connection)
-                (set! smtp-connection '())))
+                (set! smtp-connection '()))
 
             (define (assert-crlf-injection-error test-function failure-description)
                 (let
@@ -382,14 +382,14 @@
             (define (connect-smtp-server)
                 (set! smtp-connection (smtp-connect "localhost" (server-port server))))
 
-            (setup (lambda () 
+            (setup 
                 (set! server (start-mock-server))
                 (connect-smtp-server)
-                (smtp-ehlo smtp-connection "")))
+                (smtp-ehlo smtp-connection ""))
 
-            (tearDown (lambda ()
+            (tearDown
                 (smtp-disconnect smtp-connection)
-                (set! smtp-connection '())))
+                (set! smtp-connection '()))
 
             (test "Send a message" 
                 (let
@@ -477,13 +477,13 @@
             (define (connect-smtp-server)
                 (set! smtp-connection (smtp-connect "localhost" (server-port server))))
 
-            (setup (lambda () 
+            (setup 
                 (set! server (start-mock-server))
-                (connect-smtp-server)))
+                (connect-smtp-server))
 
-            (tearDown (lambda ()
+            (tearDown
                 (smtp-disconnect smtp-connection)
-                (set! smtp-connection '())))
+                (set! smtp-connection '()))
 
             (define (activate-8bitmime server) 
                 (server-set-extensions! server '("8BITMIME")))
@@ -579,13 +579,13 @@
             (define (connect-smtp-server)
                 (set! smtp-connection (smtp-connect "localhost" (server-port server))))
 
-            (setup (lambda () 
+            (setup 
                 (set! server (start-mock-server))
-                (connect-smtp-server)))
+                (connect-smtp-server))
 
-            (tearDown (lambda () 
+            (tearDown 
                 (smtp-disconnect smtp-connection)
-                (set! smtp-connection '())))
+                (set! smtp-connection '()))
 
             ; RFC 6531 3.1 - Item 8 
             ; 8BITMIME is required, as we would normally expect international mailboxes to also
@@ -799,16 +799,16 @@
             (define (connect-smtp-server)
                 (set! smtp-connection (smtp-connect "localhost" (server-port server))))
 
-            (setup (lambda ()
-                (set! server (start-mock-server))))
+            (setup
+                (set! server (start-mock-server)))
 
-            (tearDown (lambda () 
+            (tearDown 
                 (smtp-disconnect smtp-connection)
-                (set! smtp-connection '())))
+                (set! smtp-connection '()))
 
             (capability 'ehlo (list
-                (setup (lambda () 
-                    (connect-smtp-server)))
+                (setup 
+                    (connect-smtp-server))
 
                 (test "basic ehlo" 
                     (smtp-ehlo smtp-connection ""))
@@ -860,12 +860,12 @@
 
             (capability 'rset (list
             
-                (setup (lambda () 
+                (setup 
                     (connect-smtp-server)
-                    (smtp-ehlo smtp-connection "")))
+                    (smtp-ehlo smtp-connection ""))
 
-                (tearDown (lambda () 
-                    (smtp-disconnect smtp-connection)))
+                (tearDown 
+                    (smtp-disconnect smtp-connection))
 
                 (test "basic rset"
                     (server-set-response-code! server "250")
@@ -877,12 +877,12 @@
 
             (capability 'expn (list
             
-                (setup (lambda () 
+                (setup 
                     (connect-smtp-server)
-                    (smtp-ehlo smtp-connection "")))
+                    (smtp-ehlo smtp-connection ""))
 
-                (tearDown (lambda () 
-                    (smtp-disconnect smtp-connection)))
+                (tearDown 
+                    (smtp-disconnect smtp-connection))
 
                 (test "basic expn"
                     (server-set-response-code! server "250-Jon Postel <Postel@isi.edu>\r\n250-Fred Fonebone <Fonebone@physics.foo-u.edu>\r\n250 Sam Q. Smith <SQSmith@specific.generic.com>")
@@ -903,12 +903,12 @@
 
             (capability 'help (list
             
-                (setup (lambda () 
+                (setup 
                     (connect-smtp-server)
-                    (smtp-ehlo smtp-connection "")))
+                    (smtp-ehlo smtp-connection ""))
 
-                (tearDown (lambda () 
-                    (smtp-disconnect smtp-connection)))
+                (tearDown 
+                    (smtp-disconnect smtp-connection))
 
                 (test "basic help"
                     (server-set-response-code! server "250 Supported commands: EHLO HELO MAIL")
@@ -921,12 +921,12 @@
 
             (capability 'vrfy (list
             
-                (setup (lambda () 
+                (setup 
                     (connect-smtp-server)
-                    (smtp-ehlo smtp-connection "")))
+                    (smtp-ehlo smtp-connection ""))
 
-                (tearDown (lambda () 
-                    (smtp-disconnect smtp-connection)))
+                (tearDown 
+                    (smtp-disconnect smtp-connection))
 
                 ; RFC 2821 - Section 3.5: https://datatracker.ietf.org/doc/html/rfc2821#section-3.5
                 (data-test "verify of a valid email address" 
@@ -978,12 +978,12 @@
 
             (capability 'mail (list
             
-                (setup (lambda () 
+                (setup 
                     (connect-smtp-server)
-                    (smtp-ehlo smtp-connection "")))
+                    (smtp-ehlo smtp-connection ""))
 
-                (tearDown (lambda () 
-                    (smtp-disconnect smtp-connection)))
+                (tearDown 
+                    (smtp-disconnect smtp-connection))
 
                 (test "basic mail" 
                     (let
@@ -1013,12 +1013,12 @@
 
             (capability 'data (list
             
-                (setup (lambda () 
+                (setup 
                     (connect-smtp-server)
-                    (smtp-ehlo smtp-connection "")))
+                    (smtp-ehlo smtp-connection ""))
 
-                (tearDown (lambda () 
-                    (smtp-disconnect smtp-connection)))
+                (tearDown 
+                    (smtp-disconnect smtp-connection))
 
                 (test "basic data" 
                     (let
@@ -1055,12 +1055,12 @@
 
             (capability 'rcpt (list
             
-                (setup (lambda () 
+                (setup 
                     (connect-smtp-server)
-                    (smtp-ehlo smtp-connection "")))
+                    (smtp-ehlo smtp-connection ""))
 
-                (tearDown (lambda () 
-                    (smtp-disconnect smtp-connection)))
+                (tearDown 
+                    (smtp-disconnect smtp-connection))
 
 
                 (test "basic rcpt" 
@@ -1105,11 +1105,11 @@
 
             (capability 'starttls (list
             
-                (setup (lambda () 
-                    (connect-smtp-server)))
+                (setup 
+                    (connect-smtp-server))
 
-                (tearDown (lambda () 
-                    (smtp-disconnect smtp-connection)))
+                (tearDown 
+                    (smtp-disconnect smtp-connection))
 
                 (test "basic starttls" 
                     (server-set-extensions! server '("STARTTLS"))
@@ -1210,8 +1210,8 @@
                     (connect-smtp-server)
                     (smtp-ehlo smtp-connection ""))
 
-                (tearDown (lambda () 
-                    (smtp-disconnect smtp-connection)))
+                (tearDown 
+                    (smtp-disconnect smtp-connection))
 
                 (data-test "other auth failures" 
                     '(("454 4.7.0  Temporary authentication failure" #t)
@@ -1241,8 +1241,8 @@
                                 (success)
                                 (failure))))
 
-                    (setup (lambda () 
-                        (server-set-auth-proc! server plain-auth-proc)))
+                    (setup 
+                        (server-set-auth-proc! server plain-auth-proc))
 
                     (test "plain auth success"
                         (server-set-auths! server '(("PLAIN" ("account" "password"))))
@@ -1290,8 +1290,8 @@
                             (success)
                             (failure)))
 
-                    (setup (lambda () 
-                        (server-set-auth-proc! server xoauth2-auth-proc)))
+                    (setup 
+                        (server-set-auth-proc! server xoauth2-auth-proc))
 
                     (test "xoauth2 success"
                         (server-set-auths! server '(("XOAUTH2" ("account" "token"))))
@@ -1332,8 +1332,8 @@
                                         (failure))))
                             (failure)))
 
-                    (setup (lambda () 
-                        (server-set-auth-proc! server cram-md5-auth-proc)))
+                    (setup 
+                        (server-set-auth-proc! server cram-md5-auth-proc))
 
                     (test "cram-md5 success"
                         (server-set-auths! server '(("CRAM-MD5" ("account" "password"))))
@@ -1391,8 +1391,8 @@
                                     (success)
                                     (failure)))))
 
-                    (setup (lambda () 
-                        (server-set-auth-proc! server login-auth-proc)))
+                    (setup 
+                        (server-set-auth-proc! server login-auth-proc))
 
                     (test "login success"
                         (server-set-auths! server '(("LOGIN" ("account" "password"))))
@@ -1442,8 +1442,8 @@
                                     (looping-auth (- count 1))))
                         (looping-auth 10)))
 
-                    (setup (lambda () 
-                        (server-set-auth-proc! server buggy-auth-proc)))
+                    (setup 
+                        (server-set-auth-proc! server buggy-auth-proc))
 
                     (test "buggy auth with too many challenges"
                         (server-set-auths! server '(("BUGGY" ("account" "password"))))

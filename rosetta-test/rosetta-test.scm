@@ -409,13 +409,19 @@
     ; Setup/tearDown 
     ;
 
-    (define (setup setup-fn) (list
+    (define-macro setup (lambda setup-elements
+        `(make-setup (lambda () ,@setup-elements))))
+
+    (define (make-setup setup-fn) (list
         'setup
         setup-fn))
     (define (setup-fn setup) (list-ref setup 1))
     (define (setup-run setup) ((setup-fn setup)))
 
-    (define (tearDown tearDown-fn) (list
+    (define-macro tearDown (lambda tearDown-elements
+        `(make-tearDown (lambda () ,@tearDown-elements))))
+
+    (define (make-tearDown tearDown-fn) (list
         'tearDown
         tearDown-fn))
     (define (tearDown-fn tearDown) (list-ref tearDown 1))

@@ -82,11 +82,11 @@
         (define (server-message-contains-ci? content)
                 (string-contains-ci? (server-message-data server) content))
 
-        (setup (lambda ()  
-            (set! server '())))
+        (setup  
+            (set! server '()))
 
-        (tearDown (lambda () 
-            (stop-mock-server)))
+        (tearDown 
+            (stop-mock-server))
 
         ;
         ; Capabilities
@@ -96,7 +96,7 @@
 
             (define sendmail-connection '())
 
-            (setup (lambda ()
+            (setup
                 (set! server (start-mock-server))
                 (server-set-extensions! server '("STARTTLS"))
                 (server-set-auths! server '(("LOGIN" ("account" "password"))))
@@ -114,11 +114,11 @@
                             (if (and (= login-user-response "YWNjb3VudA==") (= login-password-response "cGFzc3dvcmQ="))
                                 (success)
                                 (failure)))))
-                (server-set-auth-proc! server login-auth-proc)))
+                (server-set-auth-proc! server login-auth-proc))
 
-            (tearDown (lambda ()
+            (tearDown
                 (sendmail-disconnect sendmail-connection)
-                (set! sendmail-connection '())))
+                (set! sendmail-connection '()))
 
             (capability 'eager-connection (list
                 (test "Connect to server" 
@@ -162,13 +162,13 @@
             (define (connect-smtp-server)
                 (set! sendmail-connection (sendmail-connect "localhost" (server-port server))))
 
-            (setup (lambda () 
+            (setup 
                 (set! server (start-mock-server))
-                (connect-smtp-server)))
+                (connect-smtp-server))
 
-            (tearDown (lambda ()
+            (tearDown
                 (sendmail-disconnect sendmail-connection)
-                (set! sendmail-connection '())))
+                (set! sendmail-connection '()))
 
             (test "Send a message" 
                 (let
@@ -280,13 +280,13 @@
             (define (connect-smtp-server)
                 (set! sendmail-connection (sendmail-connect "localhost" (server-port server))))
 
-            (setup (lambda () 
+            (setup 
                 (set! server (start-mock-server))
-                (connect-smtp-server)))
+                (connect-smtp-server))
 
-            (tearDown (lambda ()
+            (tearDown
                 (sendmail-disconnect sendmail-connection)
-                (set! sendmail-connection '())))
+                (set! sendmail-connection '()))
 
             (define (sendmail-send-with-headers headers)
                 (sendmail-send-message-full 
@@ -357,13 +357,13 @@
             (define (connect-smtp-server)
                 (set! sendmail-connection (sendmail-connect "localhost" (server-port server))))
 
-            (setup (lambda () 
+            (setup 
                 (set! server (start-mock-server))
-                (connect-smtp-server)))
+                (connect-smtp-server))
 
-            (tearDown (lambda ()
+            (tearDown
                 (sendmail-disconnect sendmail-connection)
-                (set! sendmail-connection '())))
+                (set! sendmail-connection '()))
 
             ; attachments-properties is a list of alists with the following keys: 
             ; "data", "file-name", "content-type", or "content-disposition"
@@ -492,13 +492,13 @@
             (define (connect-smtp-server)
                 (set! sendmail-connection (sendmail-connect "localhost" (server-port server))))
 
-            (setup (lambda () 
+            (setup 
                 (set! server (start-mock-server))
-                (connect-smtp-server)))
+                (connect-smtp-server))
 
-            (tearDown (lambda ()
+            (tearDown
                 (sendmail-disconnect sendmail-connection)
-                (set! sendmail-connection '())))
+                (set! sendmail-connection '()))
 
             (define (assert-crlf-injection-error test-function failure-description)
                 (let
@@ -569,13 +569,13 @@
             (define (connect-smtp-server)
                 (set! sendmail-connection (sendmail-connect "localhost" (server-port server))))
 
-            (setup (lambda () 
+            (setup 
                 (set! server (start-mock-server))
-                (connect-smtp-server)))
+                (connect-smtp-server))
 
-            (tearDown (lambda ()
+            (tearDown
                 (sendmail-disconnect sendmail-connection)
-                (set! sendmail-connection '())))
+                (set! sendmail-connection '()))
 
             (capability '8bitmime (list
 
@@ -647,13 +647,13 @@
             (define (connect-smtp-server)
                 (set! sendmail-connection (sendmail-connect "localhost" (server-port server))))
 
-            (setup (lambda () 
+            (setup 
                 (set! server (start-mock-server))
-                (connect-smtp-server)))
+                (connect-smtp-server))
 
-            (tearDown (lambda () 
+            (tearDown 
                 (sendmail-disconnect sendmail-connection)
-                (set! sendmail-connection '())))
+                (set! sendmail-connection '()))
 
 
             (capability 'smtputf8 (list
