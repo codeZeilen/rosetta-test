@@ -8,7 +8,7 @@
     ;
 
     (define (suite suite-name suite-version suite-sources suite-contents) (let 
-        ((root-capability (capability 
+        ((root-capability (make-capability 
                 "root"
                 (filter (lambda (e) (not (is-placeholder? e))) suite-contents))))
         (capability-set-children-parent! root-capability)
