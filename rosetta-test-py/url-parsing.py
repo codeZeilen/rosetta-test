@@ -23,6 +23,10 @@ def url_scheme(env, parse_result: urllib.parse.ParseResult):
 def url_authority(env, parse_result: urllib.parse.ParseResult):
     return parse_result.netloc or ""
 
+@suite.placeholder("url-path")
+def url_path(env, parse_result: urllib.parse.ParseResult):
+    return parse_result.path or ""
+
 #
 # Running
 #

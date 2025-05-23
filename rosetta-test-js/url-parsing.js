@@ -24,6 +24,10 @@ urlParsingSuite.placeholder("url-authority", (env, parseResult) => {
     return parseResult instanceof URL ? parseResult.host : "";
 });
 
+urlParsingSuite.placeholder("url-path", (env, parseResult) => {
+    return parseResult instanceof URL ? parseResult.pathname : "";
+});
+
 // Running
 urlParsingSuite.run({
     expectedFailures: ["test_ipv6_host"], 

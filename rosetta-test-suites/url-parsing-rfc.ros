@@ -10,7 +10,8 @@
         (placeholder '(parse-error? parse-result) "Does the parse-result represent a parse error?")
         (placeholder '(url-scheme parse-result) "Return the scheme part of the parsed URL. Return the empty string if no value is present.")
         (placeholder '(url-authority parse-result) "Return the authority part of the parsed URL. Return the empty string if no value is present.")
-        
+        (placeholder '(url-path parse-result) "Return the path part of the parsed URL. Return the empty string if no value is present.")
+
         (define (assert-parse-error url-string)
             (let 
                 ((parse-result (url-parse url-string)))
@@ -126,7 +127,9 @@
             (test "reg-name host with schema name"
                 (assert-authority "http-bin.org" "schema://http-bin.org"))
 
-            ; TODO: reg-name host with percent encoded characters
+            (test "reg-name host with percent-encoded name"
+                (assert-authority "%2F%20bin.org" "schema://%2F%20bin.org")
+                (assert-authority "bin.org%20%2F" "schema://bin.org%20%2F"))
 
             (test "ipv6 host"
                 (assert-authority "[21DA:00D3:0000:2F3B:02AA:00FF:FE28:9C5A]" "schema://[21DA:00D3:0000:2F3B:02AA:00FF:FE28:9C5A]")
@@ -163,7 +166,8 @@
             (test "userinfo with all special characters"
                 (assert-authority "-._~!:$&'()*+,;=@domain.tld" "schema://-._~!:$&'()*+,;=@domain.tld"))
 
-            ; TODO: userinfo with percent encoded characters
+            (test "percent-encoded userinfo"
+                (assert-authority "a%20dmin%40@domain.tld" "schema://a%20dmin%40@domain.tld"))
 
             ; Port
             ; The port subcomponent of authority is designated by an optional port
@@ -256,16 +260,55 @@
                     (string-downcase (url-path (url-parse url-string)))))
         
 
-
+            (test "basic path with authority"
+                (assert-path "/path" "schema://domain.tld/path")
+                (assert-path "/path" "schema://domain.tld/path?query")
+                (assert-path "/path" "schema://domain.tld/path?query#fragment")
+                (assert-path "/path" "schema://domain.tld/path#fragment"))
 
             ; If a URI does not contain an authority component, then the 
             ; path cannot begin with two slash characters ("//").
             ; RFC 3986 - 3.3. Path
 
+            (test "basic path without authority"
+                (assert-path "path" "schema:path")
+                (assert-path "path/path2" "schema:path/path2")
+                (assert-path "path" "schema:path?query")
+                (assert-path "path" "schema:path?query#fragment")
+                (assert-path "path" "schema:path#fragment")
+                (assert-path "/path" "schema:/path")
+                (assert-path "/path" "schema:/path?query")
+                (assert-path "/path" "schema:/path?query#fragment")
+                (assert-path "/path" "schema:/path#fragment")
+                (assert-path "/path2" "schema://path/path2"))
 
+            (test "empty path with authority"
+                (assert-path "" "schema://domain.tld")
+                (assert-path "" "schema://domain.tld#fragment")
+                (assert-path "/" "schema://domain.tld/"))
+
+            (test "empty path without authority"
+                (assert-path "" "schema:")
+                (assert-path "/" "schema:/")
+                (assert-path "" "schema:#fragment")
+                (assert-path "" "schema:?query#fragment"))
+
+            (test "hierarchical path with authority"
+                (assert-path "/path/to/resource" "schema://domain.tld/path/to/resource")
+                (assert-path "/path/to/resource" "schema://domain.tld/path/to/resource?query")
+                (assert-path "/path/to/resource" "schema://domain.tld/path/to/resource?query#fragment")
+                (assert-path "/path/to/resource" "schema://domain.tld/path/to/resource#fragment"))
+
+            (test "path with digits and all special characters"
+                (assert-path "/012345789-._~!$&'()*+,;=:@/path2" "schema://domain.tld/012345789-._~!$&'()*+,;=:@/path2"))
+
+            (test "path with percent-encoded characters"
+                (assert-path "/%2fpath/t%20o/resource" "schema://domain.tld/%2fpath/t%20o/resource"))
+
+            ; TODO: URI references
             ; In addition, a URI reference (Section 4.1) may be a relative-path 
             ; reference, in which case the first path segment cannot contain a 
-            ; colon (":") character.
+            ; colon (":") character. 
 
         ))
 

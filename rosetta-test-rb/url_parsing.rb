@@ -7,7 +7,7 @@ suite "stdlib uri parsing", "rosetta-test-suites/url-parsing-rfc.ros" do
     :test_invalid_ipv4_host
 
   placeholder "url-parse" do |_env, url_string|
-    URI.parse(url_string)
+    URI::RFC3986_PARSER.parse(url_string)
   rescue URI::InvalidURIError => e
     e
   end
@@ -25,5 +25,9 @@ suite "stdlib uri parsing", "rosetta-test-suites/url-parsing-rfc.ros" do
     authority = "#{uri.userinfo}@#{authority}" if uri.userinfo
     authority = "#{authority}:#{uri.port}" if uri.port
     authority
+  end
+
+  placeholder "url-path" do |_env, uri|
+    uri.path || ""
   end
 end

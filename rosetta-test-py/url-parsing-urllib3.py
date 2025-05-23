@@ -22,6 +22,10 @@ def url_scheme(env, parse_result: urllib3.util.Url):
 def url_authority(env, parse_result: urllib3.util.Url):
     return parse_result.authority or ""
 
+@suite.placeholder("url-path")
+def url_path(env, parse_result: urllib3.util.Url):
+    return parse_result.path or ""
+
 #
 # Running
 #
